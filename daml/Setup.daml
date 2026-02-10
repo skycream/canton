@@ -1,0 +1,51 @@
+module Setup where
+
+import Daml.Script
+import Asset
+
+setup : Script ()
+setup = do
+  -- Allocate parties
+  alice   <- allocatePartyWithHint "Alice" (PartyIdHint "Alice")
+  bob     <- allocatePartyWithHint "Bob" (PartyIdHint "Bob")
+  charlie <- allocatePartyWithHint "Charlie" (PartyIdHint "Charlie")
+
+  -- Create users for JSON API authentication
+  aliceId   <- validateUserId "alice"
+  bobId     <- validateUserId "bob"
+  charlieId <- validateUserId "charlie"
+
+  createUser (User aliceId (Some alice)) [CanActAs alice]
+  createUser (User bobId (Some bob)) [CanActAs bob]
+  createUser (User charlieId (Some charlie)) [CanActAs charlie]
+
+  -- Create initial assets
+  submit alice do
+    createCmd Asset with
+      issuer   = alice
+      owner    = alice
+      name     = "Gold"
+      quantity = 100.0
+
+  submit alice do
+    createCmd Asset with
+      issuer   = alice
+      owner    = alice
+      name     = "Silver"
+      quantity = 500.0
+
+  submit alice do
+    createCmd Asset with
+      issuer   = alice
+      owner    = alice
+      name     = "Platinum"
+      quantity = 25.0
+
+  submit bob do
+    createCmd Asset with
+      issuer   = bob
+      owner    = bob
+      name     = "Bonds"
+      quantity = 50.0
+
+  pure ()

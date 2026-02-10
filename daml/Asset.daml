@@ -1,0 +1,53 @@
+module Asset where
+
+-- | An asset issued by an issuer and owned by an owner.
+template Asset
+  with
+    issuer   : Party
+    owner    : Party
+    name     : Text
+    quantity : Decimal
+  where
+    signatory issuer
+    observer owner
+
+    key (issuer, owner, name) : (Party, Party, Text)
+    maintainer key._1
+
+    -- | The current owner proposes to transfer the asset to a new owner.
+    choice ProposeTransfer : ContractId TransferProposal
+      with
+        newOwner : Party
+      controller owner
+      do
+        assertMsg "Cannot transfer to yourself" (newOwner /= owner)
+        create TransferProposal with
+          asset = this
+          newOwner
+
+-- | A pending proposal to transfer an asset to a new owner.
+template TransferProposal
+  with
+    asset    : Asset
+    newOwner : Party
+  where
+    signatory (signatory asset)
+    observer newOwner
+
+    -- | The new owner accepts the transfer.
+    choice Accept : ContractId Asset
+      controller newOwner
+      do
+        create asset with owner = newOwner
+
+    -- | The new owner rejects the transfer.
+    choice Reject : ContractId Asset
+      controller newOwner
+      do
+        create asset
+
+    -- | The original owner withdraws the proposal.
+    choice Withdraw : ContractId Asset
+      controller asset.owner
+      do
+        create asset

@@ -1,0 +1,14 @@
+sdk-version: 2.10.3
+name: asset-transfer
+source: daml
+init-script: Setup:setup
+version: 0.1.0
+dependencies:
+  - daml-prim
+  - daml-stdlib
+  - daml-script
+start-navigator: false
+codegen:
+  js:
+    output-directory: ui/daml.js
+    npm-scope: daml.js

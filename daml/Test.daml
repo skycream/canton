@@ -1,0 +1,116 @@
+module Test where
+
+import Daml.Script
+import Asset
+import DA.Assert ((===))
+
+-- | Test: create asset, propose transfer, accept transfer.
+testTransferAccept : Script ()
+testTransferAccept = do
+  alice <- allocateParty "Alice"
+  bob   <- allocateParty "Bob"
+
+  assetCid <- submit alice do
+    createCmd Asset with
+      issuer = alice; owner = alice; name = "Gold"; quantity = 100.0
+
+  proposalCid <- submit alice do
+    exerciseCmd assetCid ProposeTransfer with newOwner = bob
+
+  newAssetCid <- submit bob do
+    exerciseCmd proposalCid Accept
+
+  Some newAsset <- queryContractId bob newAssetCid
+  newAsset.owner === bob
+  newAsset.issuer === alice
+  newAsset.quantity === 100.0
+  pure ()
+
+-- | Test: rejected transfer returns asset to original owner.
+testTransferReject : Script ()
+testTransferReject = do
+  alice <- allocateParty "Alice"
+  bob   <- allocateParty "Bob"
+
+  assetCid <- submit alice do
+    createCmd Asset with
+      issuer = alice; owner = alice; name = "Silver"; quantity = 200.0
+
+  proposalCid <- submit alice do
+    exerciseCmd assetCid ProposeTransfer with newOwner = bob
+
+  returnedCid <- submit bob do
+    exerciseCmd proposalCid Reject
+
+  Some returned <- queryContractId alice returnedCid
+  returned.owner === alice
+  pure ()
+
+-- | Test: proposer can withdraw the proposal.
+testTransferWithdraw : Script ()
+testTransferWithdraw = do
+  alice <- allocateParty "Alice"
+  bob   <- allocateParty "Bob"
+
+  assetCid <- submit alice do
+    createCmd Asset with
+      issuer = alice; owner = alice; name = "Bonds"; quantity = 50.0
+
+  proposalCid <- submit alice do
+    exerciseCmd assetCid ProposeTransfer with newOwner = bob
+
+  returnedCid <- submit alice do
+    exerciseCmd proposalCid Withdraw
+
+  Some returned <- queryContractId alice returnedCid
+  returned.owner === alice
+  pure ()
+
+-- | Test: only the owner can propose a transfer.
+testOnlyOwnerCanPropose : Script ()
+testOnlyOwnerCanPropose = do
+  alice   <- allocateParty "Alice"
+  bob     <- allocateParty "Bob"
+  charlie <- allocateParty "Charlie"
+
+  assetCid <- submit alice do
+    createCmd Asset with
+      issuer = alice; owner = alice; name = "Gold"; quantity = 100.0
+
+  submitMustFail bob do
+    exerciseCmd assetCid ProposeTransfer with newOwner = charlie
+  pure ()
+
+-- | Test: cannot transfer an asset to yourself.
+testCannotSelfTransfer : Script ()
+testCannotSelfTransfer = do
+  alice <- allocateParty "Alice"
+
+  assetCid <- submit alice do
+    createCmd Asset with
+      issuer = alice; owner = alice; name = "Gold"; quantity = 100.0
+
+  submitMustFail alice do
+    exerciseCmd assetCid ProposeTransfer with newOwner = alice
+  pure ()
+
+-- | Test: only newOwner can accept.
+testOnlyNewOwnerCanAccept : Script ()
+testOnlyNewOwnerCanAccept = do
+  alice   <- allocateParty "Alice"
+  bob     <- allocateParty "Bob"
+  charlie <- allocateParty "Charlie"
+
+  assetCid <- submit alice do
+    createCmd Asset with
+      issuer = alice; owner = alice; name = "Gold"; quantity = 100.0
+
+  proposalCid <- submit alice do
+    exerciseCmd assetCid ProposeTransfer with newOwner = bob
+
+  submitMustFail charlie do
+    exerciseCmd proposalCid Accept
+
+  submitMustFail alice do
+    exerciseCmd proposalCid Accept
+  pure ()

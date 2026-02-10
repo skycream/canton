@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "canton-participant"
+    static_configs:
+      - targets: ["host.docker.internal:9000"]
+    metrics_path: "/metrics"
+
+  - job_name: "canton-sequencer"
+    static_configs:
+      - targets: ["host.docker.internal:9002"]
+    metrics_path: "/metrics"
+
+  - job_name: "canton-mediator"
+    static_configs:
+      - targets: ["host.docker.internal:9004"]
+    metrics_path: "/metrics"
