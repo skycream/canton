@@ -1,0 +1,117 @@
+module Cap.Escrow where
+
+import Cap.Types
+import Cap.Token
+import Cap.Reputation
+
+-- Funds locked for a deal between consumer and provider
+template Escrow
+  with
+    consumer : Party
+    provider : Party
+    amount : Decimal
+    capability : Text
+    params : Text
+    slaTerms : SLATerms
+  where
+    signatory consumer, provider
+
+    -- Provider submits work result
+    choice Deliver : ContractId PendingReview
+      with
+        resultHash : Text
+        resultUrl : Text
+      controller provider
+      do
+        create PendingReview with
+          consumer
+          provider
+          amount
+          resultHash
+          resultUrl
+          slaTerms
+
+    -- Consumer cancels before delivery
+    choice CancelEscrow : ContractId CAPCoin
+      controller consumer
+      do
+        create CAPCoin with owner = consumer, amount
+
+    -- Provider walks away, refunding consumer
+    choice AbandonEscrow : ContractId CAPCoin
+      controller provider
+      do
+        create CAPCoin with owner = consumer, amount
+
+-- Delivery submitted, awaiting consumer review
+template PendingReview
+  with
+    consumer : Party
+    provider : Party
+    amount : Decimal
+    resultHash : Text
+    resultUrl : Text
+    slaTerms : SLATerms
+  where
+    signatory consumer, provider
+
+    -- Consumer approves → provider gets paid, consumer rates provider
+    choice ApproveAndPay : (ContractId CAPCoin, ContractId Rating)
+      with
+        consumerRating : Int
+        consumerComment : Text
+      controller consumer
+      do
+        assertMsg "Rating must be 1-5" (consumerRating >= 1 && consumerRating <= 5)
+        payment <- create CAPCoin with owner = provider, amount
+        -- Consumer rates provider (only the rater creates their own rating)
+        r1 <- create Rating with
+          rater = consumer
+          rated = provider
+          score = consumerRating
+          comment = consumerComment
+        return (payment, r1)
+
+    -- Quick approve without detailed ratings
+    choice QuickApprove : ContractId CAPCoin
+      controller consumer
+      do
+        create CAPCoin with owner = provider, amount
+
+    -- Consumer disputes the delivery
+    choice Dispute : ContractId DisputeRecord
+      with
+        reason : Text
+      controller consumer
+      do
+        create DisputeRecord with
+          consumer
+          provider
+          amount
+          reason
+          resultHash
+          resultUrl
+
+-- Active dispute between consumer and provider
+template DisputeRecord
+  with
+    consumer : Party
+    provider : Party
+    amount : Decimal
+    reason : Text
+    resultHash : Text
+    resultUrl : Text
+  where
+    signatory consumer, provider
+
+    -- Provider concedes → consumer gets refund
+    choice ResolveForConsumer : ContractId CAPCoin
+      controller provider
+      do
+        create CAPCoin with owner = consumer, amount
+
+    -- Consumer concedes → provider gets paid
+    choice ResolveForProvider : ContractId CAPCoin
+      controller consumer
+      do
+        create CAPCoin with owner = provider, amount

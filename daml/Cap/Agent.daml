@@ -1,0 +1,64 @@
+module Cap.Agent where
+
+-- Agent identity: each AI agent registers on the protocol
+template AgentProfile
+  with
+    registry : Party   -- Public registry observer (for discovery)
+    agent : Party
+    name : Text
+    description : Text
+    capabilities : [Text]
+    endpoint : Text
+  where
+    signatory agent
+    observer registry
+
+    key agent : Party
+    maintainer key
+
+    choice UpdateProfile : ContractId AgentProfile
+      with
+        newName : Text
+        newDescription : Text
+        newCapabilities : [Text]
+        newEndpoint : Text
+      controller agent
+      do
+        create this with
+          name = newName
+          description = newDescription
+          capabilities = newCapabilities
+          endpoint = newEndpoint
+
+    choice Deactivate : ()
+      controller agent
+      do return ()
+
+-- Public service advertisement
+template ServiceListing
+  with
+    registry : Party   -- Public registry observer (for discovery)
+    provider : Party
+    capability : Text
+    description : Text
+    basePrice : Decimal
+  where
+    signatory provider
+    observer registry
+
+    key (provider, capability) : (Party, Text)
+    maintainer key._1
+
+    choice UpdateListing : ContractId ServiceListing
+      with
+        newDescription : Text
+        newPrice : Decimal
+      controller provider
+      do
+        create this with
+          description = newDescription
+          basePrice = newPrice
+
+    choice RemoveListing : ()
+      controller provider
+      do return ()

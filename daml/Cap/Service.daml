@@ -1,0 +1,89 @@
+module Cap.Service where
+
+import Cap.Types
+import Cap.Token
+import Cap.Escrow
+
+-- Consumer requests a service from a specific provider
+template ServiceRequest
+  with
+    consumer : Party
+    provider : Party
+    capability : Text
+    params : Text
+    maxPrice : Decimal
+    slaTerms : SLATerms
+  where
+    signatory consumer
+    observer provider
+
+    -- Provider responds with a price and timeline
+    choice MakeOffer : ContractId ServiceOffer
+      with
+        price : Decimal
+        estimatedTimeMs : Int
+      controller provider
+      do
+        assertMsg "Price exceeds consumer's max" (price <= maxPrice)
+        create ServiceOffer with
+          consumer
+          provider
+          capability
+          params
+          price
+          estimatedTimeMs
+          slaTerms
+
+    choice DeclineRequest : ()
+      controller provider
+      do return ()
+
+    choice WithdrawRequest : ()
+      controller consumer
+      do return ()
+
+-- Offer from provider, signed by both parties
+template ServiceOffer
+  with
+    consumer : Party
+    provider : Party
+    capability : Text
+    params : Text
+    price : Decimal
+    estimatedTimeMs : Int
+    slaTerms : SLATerms
+  where
+    signatory consumer, provider
+
+    -- Consumer accepts and locks funds in escrow
+    choice AcceptOffer : ContractId Escrow
+      with
+        paymentCid : ContractId CAPCoin
+      controller consumer
+      do
+        coin <- fetch paymentCid
+        assertMsg "Not your coin" (coin.owner == consumer)
+        assertMsg "Insufficient funds" (coin.amount >= price)
+        archive paymentCid
+        -- Return change if overpaid
+        if coin.amount > price
+          then do
+            _ <- create CAPCoin with owner = consumer, amount = coin.amount - price
+            pure ()
+          else pure ()
+        -- Lock funds in escrow
+        create Escrow with
+          consumer
+          provider
+          amount = price
+          capability
+          params
+          slaTerms
+
+    choice RejectOffer : ()
+      controller consumer
+      do return ()
+
+    choice WithdrawOffer : ()
+      controller provider
+      do return ()

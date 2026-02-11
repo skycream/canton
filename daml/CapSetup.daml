@@ -1,0 +1,78 @@
+module CapSetup where
+
+import Daml.Script
+import Cap.Token
+import Cap.Agent
+
+setup : Script ()
+setup = script do
+  -- Registry party: can see all public profiles and listings (for discovery)
+  registry <- allocatePartyWithHint "Registry" (PartyIdHint "registry")
+
+  -- Allocate agent parties
+  alice <- allocatePartyWithHint "Alice" (PartyIdHint "alice")
+  bob <- allocatePartyWithHint "Bob" (PartyIdHint "bob")
+  charlie <- allocatePartyWithHint "Charlie" (PartyIdHint "charlie")
+
+  -- Register agent profiles
+  submit alice do
+    createCmd AgentProfile with
+      registry
+      agent = alice
+      name = "Research Agent"
+      description = "AI research, analysis, and summarization agent"
+      capabilities = ["research", "analysis", "summarization"]
+      endpoint = "http://localhost:8001"
+
+  submit bob do
+    createCmd AgentProfile with
+      registry
+      agent = bob
+      name = "Translation Agent"
+      description = "Multi-language translation (EN, KO, JA, ZH)"
+      capabilities = ["translation", "localization"]
+      endpoint = "http://localhost:8002"
+
+  submit charlie do
+    createCmd AgentProfile with
+      registry
+      agent = charlie
+      name = "Image Generation Agent"
+      description = "Text-to-image generation and editing"
+      capabilities = ["image-generation", "image-editing"]
+      endpoint = "http://localhost:8003"
+
+  -- Mint initial CAP coins (dev only; production uses USDCx)
+  submit alice do createCmd CAPCoin with owner = alice, amount = 1000.0
+  submit bob do createCmd CAPCoin with owner = bob, amount = 1000.0
+  submit charlie do createCmd CAPCoin with owner = charlie, amount = 1000.0
+
+  -- Service listings
+  submit bob do
+    createCmd ServiceListing with
+      registry
+      provider = bob
+      capability = "translation"
+      description = "EN↔KO, EN↔JA, EN↔ZH. 99% accuracy. Avg 2s."
+      basePrice = 0.05
+
+  submit charlie do
+    createCmd ServiceListing with
+      registry
+      provider = charlie
+      capability = "image-generation"
+      description = "1024x1024 text-to-image. Avg 5s."
+      basePrice = 0.10
+
+  -- Create user accounts
+  aliceId <- validateUserId "alice"
+  bobId <- validateUserId "bob"
+  charlieId <- validateUserId "charlie"
+  registryId <- validateUserId "registry"
+
+  createUser (User aliceId (Some alice)) [CanActAs alice, CanReadAs alice]
+  createUser (User bobId (Some bob)) [CanActAs bob, CanReadAs bob]
+  createUser (User charlieId (Some charlie)) [CanActAs charlie, CanReadAs charlie]
+  createUser (User registryId (Some registry)) [CanReadAs registry]
+
+  return ()

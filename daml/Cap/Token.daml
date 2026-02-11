@@ -1,0 +1,73 @@
+module Cap.Token where
+
+-- Simple fungible token for agent payments.
+-- In production, replaced by USDCx on Canton Network.
+template CAPCoin
+  with
+    owner : Party
+    amount : Decimal
+  where
+    signatory owner
+    ensure amount > 0.0
+
+    -- Split a coin into two parts
+    choice Split : (ContractId CAPCoin, ContractId CAPCoin)
+      with
+        splitAmount : Decimal
+      controller owner
+      do
+        assertMsg "Split amount must be positive" (splitAmount > 0.0)
+        assertMsg "Split amount must be less than total" (splitAmount < amount)
+        coin1 <- create CAPCoin with owner, amount = splitAmount
+        coin2 <- create CAPCoin with owner, amount = amount - splitAmount
+        return (coin1, coin2)
+
+    -- Propose transferring coin to a new owner
+    choice ProposeTransfer : ContractId TransferProposal
+      with
+        receiver : Party
+      controller owner
+      do
+        assertMsg "Cannot transfer to self" (receiver /= owner)
+        create TransferProposal with sender = owner, receiver, amount
+
+    -- Merge another coin into this one (both must have same owner)
+    nonconsuming choice Merge : ContractId CAPCoin
+      with
+        otherCid : ContractId CAPCoin
+      controller owner
+      do
+        other <- fetch otherCid
+        assertMsg "Coins must have same owner" (other.owner == owner)
+        archive self
+        archive otherCid
+        create CAPCoin with owner, amount = amount + other.amount
+
+-- Transfer proposal: coin is locked (consumed), receiver must accept to get funds
+template TransferProposal
+  with
+    sender : Party
+    receiver : Party
+    amount : Decimal
+  where
+    signatory sender
+    observer receiver
+    ensure amount > 0.0
+
+    -- Receiver accepts: gets a new coin
+    choice AcceptTransfer : ContractId CAPCoin
+      controller receiver
+      do
+        create CAPCoin with owner = receiver, amount
+
+    -- Receiver rejects: funds returned to sender
+    choice RejectTransfer : ContractId CAPCoin
+      controller receiver
+      do
+        create CAPCoin with owner = sender, amount
+
+    -- Sender cancels: funds returned to sender
+    choice CancelTransfer : ContractId CAPCoin
+      controller sender
+      do
+        create CAPCoin with owner = sender, amount

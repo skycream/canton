@@ -1,0 +1,15 @@
+module Cap.Types where
+
+-- Service Level Agreement terms for agent-to-agent contracts
+data SLATerms = SLATerms
+  with
+    maxLatencyMs : Int        -- Maximum response time in milliseconds
+    penaltyRate : Decimal     -- Penalty as fraction of payment (0.0 to 1.0)
+  deriving (Show, Eq)
+
+-- Default SLA: 30s timeout, no penalty
+defaultSLA : SLATerms
+defaultSLA = SLATerms
+  with
+    maxLatencyMs = 30000
+    penaltyRate = 0.0

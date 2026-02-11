@@ -1,0 +1,356 @@
+module Cap.Test where
+
+import Daml.Script
+import Cap.Types
+import Cap.Token
+import Cap.Agent
+import Cap.Service
+import Cap.Escrow
+import Cap.Reputation
+
+-- Full protocol flow test
+testFullFlow : Script ()
+testFullFlow = script do
+  -- Parties
+  registry <- allocateParty "Registry"
+  alice <- allocateParty "Alice"      -- Consumer (research agent)
+  bob <- allocateParty "Bob"          -- Provider (translation agent)
+  charlie <- allocateParty "Charlie"  -- Competing agent (should see nothing)
+
+  -- 1. Register agents
+  submit alice do
+    createCmd AgentProfile with
+      registry, agent = alice
+      name = "Research Agent"
+      description = "AI research and analysis"
+      capabilities = ["research", "analysis"]
+      endpoint = "http://localhost:8001"
+
+  submit bob do
+    createCmd AgentProfile with
+      registry, agent = bob
+      name = "Translation Agent"
+      description = "EN-KO translation"
+      capabilities = ["translation"]
+      endpoint = "http://localhost:8002"
+
+  -- 2. Bob lists translation service
+  submit bob do
+    createCmd ServiceListing with
+      registry, provider = bob
+      capability = "translation"
+      description = "EN to KO, 99% accuracy"
+      basePrice = 0.05
+
+  -- 3. Registry can discover all agents
+  allAgents <- query @AgentProfile registry
+  assertMsg "Registry sees all agents" (length allAgents == 2)
+
+  allListings <- query @ServiceListing registry
+  assertMsg "Registry sees listings" (length allListings == 1)
+
+  -- 4. Mint coins
+  aliceCoin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 100.0
+
+  -- 5. Alice requests translation
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice
+      provider = bob
+      capability = "translation"
+      params = "{\"text\": \"Hello world\", \"target\": \"ko\"}"
+      maxPrice = 1.0
+      slaTerms = defaultSLA
+
+  -- 6. Bob makes offer
+  offer <- submit bob do
+    exerciseCmd request MakeOffer with
+      price = 0.05
+      estimatedTimeMs = 3000
+
+  -- 7. Alice accepts → Escrow
+  escrow <- submit alice do
+    exerciseCmd offer AcceptOffer with
+      paymentCid = aliceCoin
+
+  -- 8. Bob delivers
+  review <- submit bob do
+    exerciseCmd escrow Deliver with
+      resultHash = "sha256:abc123"
+      resultUrl = "https://results.cap/001"
+
+  -- 9. Alice approves and pays with rating
+  (bobPayment, _) <- submit alice do
+    exerciseCmd review ApproveAndPay with
+      consumerRating = 5
+      consumerComment = "Fast and accurate"
+
+  -- 10. Verify Bob got paid
+  Some bobCoin <- queryContractId bob bobPayment
+  assertMsg "Bob received 0.05" (bobCoin.amount == 0.05)
+
+  -- 11. Verify Alice got change (100 - 0.05 = 99.95)
+  aliceCoins <- query @CAPCoin alice
+  let aliceTotal = foldl (\acc (_, c) -> acc + c.amount) 0.0 aliceCoins
+  assertMsg "Alice has 99.95" (aliceTotal == 99.95)
+
+  -- 12. Privacy: Charlie sees nothing about Alice-Bob deal
+  charlieCoins <- query @CAPCoin charlie
+  assertMsg "Charlie sees no coins" (null charlieCoins)
+
+  charlieRequests <- query @ServiceRequest charlie
+  assertMsg "Charlie sees no requests" (null charlieRequests)
+
+  charlieEscrows <- query @Escrow charlie
+  assertMsg "Charlie sees no escrows" (null charlieEscrows)
+
+  charlieRatings <- query @Rating charlie
+  assertMsg "Charlie sees no ratings" (null charlieRatings)
+
+  return ()
+
+-- Test: Provider declines request
+testDecline : Script ()
+testDecline = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 50.0
+
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "translation", params = "{}"
+      maxPrice = 1.0, slaTerms = defaultSLA
+
+  submit bob do exerciseCmd request DeclineRequest
+
+  coins <- query @CAPCoin alice
+  assertMsg "Alice still has coin" (length coins == 1)
+  return ()
+
+-- Test: Consumer withdraws request
+testWithdraw : Script ()
+testWithdraw = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "translation", params = "{}"
+      maxPrice = 1.0, slaTerms = defaultSLA
+
+  submit alice do exerciseCmd request WithdrawRequest
+
+  requests <- query @ServiceRequest alice
+  assertMsg "No active requests" (null requests)
+  return ()
+
+-- Test: Consumer rejects offer
+testRejectOffer : Script ()
+testRejectOffer = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "translation", params = "{}"
+      maxPrice = 1.0, slaTerms = defaultSLA
+
+  offer <- submit bob do
+    exerciseCmd request MakeOffer with price = 0.80, estimatedTimeMs = 5000
+
+  submit alice do exerciseCmd offer RejectOffer
+  return ()
+
+-- Test: Escrow cancellation
+testCancelEscrow : Script ()
+testCancelEscrow = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 10.0
+
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "image-gen", params = "{}"
+      maxPrice = 5.0, slaTerms = defaultSLA
+
+  offer <- submit bob do
+    exerciseCmd request MakeOffer with price = 2.0, estimatedTimeMs = 10000
+
+  escrow <- submit alice do
+    exerciseCmd offer AcceptOffer with paymentCid = aliceCoin
+
+  refund <- submit alice do exerciseCmd escrow CancelEscrow
+
+  Some coin <- queryContractId alice refund
+  assertMsg "Refund is 2.0" (coin.amount == 2.0)
+
+  allCoins <- query @CAPCoin alice
+  let total = foldl (\acc (_, c) -> acc + c.amount) 0.0 allCoins
+  assertMsg "Alice has 10.0 total" (total == 10.0)
+  return ()
+
+-- Test: Dispute resolution
+testDispute : Script ()
+testDispute = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 5.0
+
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "translation"
+      params = "{\"text\": \"Hello\"}"
+      maxPrice = 1.0, slaTerms = defaultSLA
+
+  offer <- submit bob do
+    exerciseCmd request MakeOffer with price = 0.50, estimatedTimeMs = 3000
+
+  escrow <- submit alice do
+    exerciseCmd offer AcceptOffer with paymentCid = aliceCoin
+
+  review <- submit bob do
+    exerciseCmd escrow Deliver with
+      resultHash = "sha256:bad_result"
+      resultUrl = "https://results.cap/bad"
+
+  dispute <- submit alice do
+    exerciseCmd review Dispute with reason = "Translation quality is unacceptable"
+
+  refund <- submit bob do exerciseCmd dispute ResolveForConsumer
+
+  Some coin <- queryContractId alice refund
+  assertMsg "Alice gets full refund" (coin.amount == 0.50)
+  return ()
+
+-- Test: Quick approve without ratings
+testQuickApprove : Script ()
+testQuickApprove = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 1.0
+
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "summarize", params = "{}"
+      maxPrice = 1.0, slaTerms = defaultSLA
+
+  offer <- submit bob do
+    exerciseCmd request MakeOffer with price = 0.10, estimatedTimeMs = 2000
+
+  escrow <- submit alice do
+    exerciseCmd offer AcceptOffer with paymentCid = aliceCoin
+
+  review <- submit bob do
+    exerciseCmd escrow Deliver with
+      resultHash = "sha256:summary123"
+      resultUrl = "https://results.cap/summary"
+
+  payment <- submit alice do exerciseCmd review QuickApprove
+
+  Some coin <- queryContractId bob payment
+  assertMsg "Bob got 0.10" (coin.amount == 0.10)
+  return ()
+
+-- Test: Token split
+testTokenSplit : Script ()
+testTokenSplit = script do
+  alice <- allocateParty "Alice"
+
+  coin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 100.0
+
+  (coin1, coin2) <- submit alice do
+    exerciseCmd coin Split with splitAmount = 30.0
+
+  Some c1 <- queryContractId alice coin1
+  Some c2 <- queryContractId alice coin2
+  assertMsg "Split 1 = 30" (c1.amount == 30.0)
+  assertMsg "Split 2 = 70" (c2.amount == 70.0)
+  return ()
+
+-- Test: Agent profile update
+testProfileUpdate : Script ()
+testProfileUpdate = script do
+  registry <- allocateParty "Registry"
+  alice <- allocateParty "Alice"
+
+  submit alice do
+    createCmd AgentProfile with
+      registry, agent = alice
+      name = "Old Name", description = "Old"
+      capabilities = ["a"], endpoint = "http://old"
+
+  submit alice do
+    exerciseByKeyCmd @AgentProfile alice UpdateProfile with
+      newName = "New Name"
+      newDescription = "New"
+      newCapabilities = ["a", "b", "c"]
+      newEndpoint = "http://new"
+
+  profiles <- query @AgentProfile alice
+  let (_, p) = headNote "updated" profiles
+  assertMsg "Name updated" (p.name == "New Name")
+  assertMsg "Caps updated" (length p.capabilities == 3)
+  return ()
+
+-- Test: Token transfer (propose-accept)
+testTokenTransfer : Script ()
+testTokenTransfer = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  coin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 50.0
+
+  proposal <- submit alice do
+    exerciseCmd coin ProposeTransfer with receiver = bob
+
+  bobCoin <- submit bob do
+    exerciseCmd proposal AcceptTransfer
+
+  Some c <- queryContractId bob bobCoin
+  assertMsg "Bob owns the coin" (c.owner == bob)
+  assertMsg "Amount is 50" (c.amount == 50.0)
+
+  aliceCoins <- query @CAPCoin alice
+  assertMsg "Alice has no coins" (null aliceCoins)
+  return ()
+
+-- Test: Token merge
+testTokenMerge : Script ()
+testTokenMerge = script do
+  alice <- allocateParty "Alice"
+
+  coin1 <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 30.0
+  coin2 <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 70.0
+
+  merged <- submit alice do
+    exerciseCmd coin1 Merge with otherCid = coin2
+
+  Some c <- queryContractId alice merged
+  assertMsg "Merged amount is 100" (c.amount == 100.0)
+
+  allCoins <- query @CAPCoin alice
+  assertMsg "Only one coin left" (length allCoins == 1)
+  return ()
+
+headNote : Text -> [a] -> a
+headNote msg [] = error msg
+headNote _ (x :: _) = x

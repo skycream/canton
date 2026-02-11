@@ -1,7 +1,7 @@
 sdk-version: 2.10.3
-name: asset-transfer
+name: canton-agent-protocol
 source: daml
-init-script: Setup:setup
+init-script: CapSetup:setup
 version: 0.1.0
 dependencies:
   - daml-prim

@@ -1,0 +1,14 @@
+module Cap.Reputation where
+
+-- Individual deal rating (private: only rater and rated can see)
+template Rating
+  with
+    rater : Party
+    rated : Party
+    score : Int         -- 1 to 5
+    comment : Text
+  where
+    signatory rater
+    observer rated
+
+    ensure score >= 1 && score <= 5
