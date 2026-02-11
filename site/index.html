@@ -4,30 +4,47 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Canton Agent Protocol — The Private Economic Layer for AI Agents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0a0a0f;
-    --card: #12121a;
-    --border: #1e1e2e;
-    --text: #e0e0e8;
-    --dim: #555566;
-    --green: #00ff88;
+    --bg: #08080d;
+    --bg-alt: #0c0c14;
+    --card: #111119;
+    --card-hover: #16161f;
+    --border: #1a1a2a;
+    --border-hover: #2a2a3e;
+    --text: #e4e4ec;
+    --text-secondary: #a0a0b8;
+    --dim: #5a5a70;
+    --green: #00e87a;
+    --green-dim: rgba(0,232,122,0.12);
     --blue: #4488ff;
+    --blue-dim: rgba(68,136,255,0.10);
     --purple: #8855ff;
+    --purple-dim: rgba(136,85,255,0.10);
     --orange: #ff8844;
     --red: #ff4466;
     --yellow: #ffcc00;
     --cyan: #00ccff;
+    --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --glow-blue: 0 0 40px rgba(68,136,255,0.06);
+    --glow-green: 0 0 40px rgba(0,232,122,0.06);
+    --glow-purple: 0 0 40px rgba(136,85,255,0.06);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-    font-size: 14px;
-    line-height: 1.6;
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.7;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   /* ── Nav Bar ── */
@@ -37,37 +54,40 @@
     left: 0;
     right: 0;
     z-index: 100;
-    padding: 0 32px;
-    height: 56px;
+    padding: 0 40px;
+    height: 64px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid transparent;
-    transition: all 0.3s;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
   nav.scrolled {
-    background: rgba(10, 10, 15, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(8, 8, 13, 0.88);
+    backdrop-filter: blur(20px) saturate(1.2);
+    -webkit-backdrop-filter: blur(20px) saturate(1.2);
     border-bottom-color: var(--border);
   }
   .nav-logo {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     text-decoration: none;
     color: var(--text);
   }
   .nav-logo-mark {
+    font-family: var(--mono);
     font-size: 18px;
     font-weight: 800;
-    letter-spacing: 2px;
+    letter-spacing: 3px;
     color: var(--green);
   }
   .nav-logo-text {
     font-size: 13px;
+    font-weight: 500;
     color: var(--dim);
     display: none;
+    letter-spacing: 0.3px;
   }
   @media (min-width: 768px) {
     .nav-logo-text { display: inline; }
@@ -75,59 +95,76 @@
   .nav-links {
     display: flex;
     align-items: center;
-    gap: 24px;
+    gap: 28px;
   }
   .nav-links a {
     color: var(--dim);
     text-decoration: none;
-    font-size: 12px;
+    font-size: 13px;
+    font-weight: 500;
     transition: color 0.2s;
+    letter-spacing: 0.2px;
   }
   .nav-links a:hover { color: var(--text); }
   .nav-cta {
-    padding: 6px 16px;
-    border-radius: 6px;
-    background: linear-gradient(135deg, #00cc6a, #00aa55);
+    padding: 8px 20px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #00d06a, #00aa55);
     color: #000 !important;
     font-weight: 700;
-    font-size: 12px !important;
+    font-size: 13px !important;
     text-decoration: none;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 12px rgba(0,208,106,0.2);
   }
-  .nav-cta:hover { background: linear-gradient(135deg, #00ff88, #00cc6a); }
+  .nav-cta:hover {
+    background: linear-gradient(135deg, #00e87a, #00cc6a);
+    box-shadow: 0 4px 20px rgba(0,232,122,0.3);
+    transform: translateY(-1px);
+  }
 
   /* ── Sections ── */
   section {
-    max-width: 1100px;
+    max-width: 1120px;
     margin: 0 auto;
-    padding: 100px 24px;
+    padding: 120px 32px;
+    position: relative;
   }
   .section-label {
+    font-family: var(--mono);
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: 2px;
+    letter-spacing: 3px;
     text-transform: uppercase;
     color: var(--blue);
-    margin-bottom: 12px;
+    margin-bottom: 16px;
   }
   .section-title {
-    font-size: 28px;
-    font-weight: 700;
+    font-size: 32px;
+    font-weight: 800;
     margin-bottom: 16px;
-    line-height: 1.3;
+    line-height: 1.25;
+    letter-spacing: -0.5px;
   }
   .section-subtitle {
-    font-size: 14px;
+    font-size: 16px;
     color: var(--dim);
-    max-width: 600px;
-    margin-bottom: 48px;
+    max-width: 560px;
+    margin-bottom: 56px;
+    line-height: 1.7;
+  }
+  .section-divider {
+    height: 1px;
+    max-width: 1120px;
+    margin: 0 auto;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
   }
 
   /* ── Fade-in animation ── */
   .fade-in {
     opacity: 0;
-    transform: translateY(24px);
-    transition: opacity 0.6s ease, transform 0.6s ease;
+    transform: translateY(28px);
+    transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .fade-in.visible {
     opacity: 1;
@@ -136,57 +173,80 @@
 
   /* ── Hero ── */
   .hero {
-    padding-top: 140px;
-    padding-bottom: 80px;
+    padding-top: 160px;
+    padding-bottom: 100px;
     text-align: center;
+    position: relative;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(68,136,255,0.06) 0%, rgba(136,85,255,0.03) 40%, transparent 70%);
+    pointer-events: none;
   }
   .hero-title {
-    font-size: clamp(28px, 5vw, 48px);
+    font-size: clamp(32px, 5vw, 54px);
     font-weight: 800;
-    line-height: 1.2;
-    margin-bottom: 20px;
+    line-height: 1.15;
+    margin-bottom: 24px;
+    letter-spacing: -1px;
     background: linear-gradient(135deg, var(--text) 0%, var(--blue) 50%, var(--purple) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
   .hero-subtitle {
-    font-size: clamp(13px, 1.8vw, 16px);
+    font-size: clamp(15px, 1.8vw, 18px);
     color: var(--dim);
-    max-width: 640px;
-    margin: 0 auto 36px;
-    line-height: 1.7;
+    max-width: 600px;
+    margin: 0 auto 40px;
+    line-height: 1.8;
   }
   .hero-buttons {
     display: flex;
-    gap: 12px;
+    gap: 14px;
     justify-content: center;
     flex-wrap: wrap;
-    margin-bottom: 64px;
+    margin-bottom: 72px;
   }
   .btn {
-    padding: 12px 28px;
+    padding: 14px 32px;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     background: var(--card);
     color: var(--text);
-    font-family: inherit;
-    font-size: 14px;
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     text-decoration: none;
     display: inline-flex;
     align-items: center;
     gap: 8px;
   }
-  .btn:hover { border-color: var(--dim); }
+  .btn:hover {
+    border-color: var(--border-hover);
+    background: var(--card-hover);
+    box-shadow: var(--glow-blue);
+  }
   .btn-primary {
-    background: linear-gradient(135deg, #00cc6a, #00aa55);
-    border-color: #00aa55;
+    background: linear-gradient(135deg, #00d06a, #00aa55);
+    border-color: transparent;
     color: #000;
     font-weight: 700;
+    box-shadow: 0 2px 16px rgba(0,208,106,0.2);
   }
-  .btn-primary:hover { background: linear-gradient(135deg, #00ff88, #00cc6a); }
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #00e87a, #00cc6a);
+    box-shadow: 0 4px 24px rgba(0,232,122,0.3);
+    transform: translateY(-1px);
+  }
 
   /* Hero flow animation */
   .hero-flow {
@@ -194,10 +254,12 @@
     margin: 0 auto;
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 14px;
     padding: 28px 32px;
     text-align: left;
+    font-family: var(--mono);
     font-size: 13px;
+    box-shadow: 0 4px 40px rgba(0,0,0,0.3);
   }
   .flow-line {
     opacity: 0;
@@ -218,41 +280,59 @@
   .flow-line .escrow { color: var(--yellow); font-weight: 700; }
 
   /* ── Why CAP ── */
+  .section-bg-alt {
+    background: var(--bg-alt);
+    max-width: none;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .section-bg-alt > * {
+    max-width: 1120px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 32px;
+    padding-right: 32px;
+  }
   .cards-3 {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 20px;
   }
   .card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 28px 24px;
-    transition: border-color 0.3s;
+    border-radius: 14px;
+    padding: 32px 28px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .card:hover { border-color: var(--dim); }
+  .card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--glow-blue);
+    transform: translateY(-2px);
+  }
   .card-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
     font-size: 20px;
   }
-  .card-icon.privacy { background: rgba(68,136,255,0.12); border: 1px solid rgba(68,136,255,0.25); color: var(--blue); }
-  .card-icon.trust { background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.25); color: var(--green); }
-  .card-icon.auto { background: rgba(136,85,255,0.12); border: 1px solid rgba(136,85,255,0.25); color: var(--purple); }
+  .card-icon.privacy { background: rgba(68,136,255,0.10); border: 1px solid rgba(68,136,255,0.20); color: var(--blue); }
+  .card-icon.trust { background: rgba(0,232,122,0.08); border: 1px solid rgba(0,232,122,0.18); color: var(--green); }
+  .card-icon.auto { background: rgba(136,85,255,0.10); border: 1px solid rgba(136,85,255,0.20); color: var(--purple); }
   .card h3 {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 700;
     margin-bottom: 10px;
+    letter-spacing: -0.2px;
   }
   .card p {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--dim);
-    line-height: 1.6;
+    line-height: 1.7;
   }
 
   /* ── How It Works — Timeline ── */
@@ -270,7 +350,7 @@
     left: 0;
     right: 0;
     height: 2px;
-    background: var(--border);
+    background: linear-gradient(90deg, var(--border), var(--border-hover), var(--border));
   }
   .timeline-step {
     flex: 1;
@@ -289,24 +369,26 @@
     align-items: center;
     justify-content: center;
     margin: 0 auto 14px;
+    font-family: var(--mono);
     font-weight: 800;
     font-size: 14px;
     color: var(--dim);
     position: relative;
     z-index: 1;
-    transition: all 0.3s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .timeline-step:hover .step-dot {
     border-color: var(--blue);
     color: var(--blue);
+    box-shadow: 0 0 20px rgba(68,136,255,0.15);
   }
   .step-title {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     margin-bottom: 6px;
   }
   .step-desc {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--dim);
     line-height: 1.5;
   }
@@ -344,6 +426,123 @@
     .step-content { flex: 1; padding-top: 6px; }
   }
 
+  /* ── Use Cases ── */
+  .usecases-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+  .usecase-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .usecase-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--glow-purple);
+    transform: translateY(-2px);
+  }
+  .usecase-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .usecase-num {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-weight: 800;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .usecase-num.uc1 { background: rgba(0,232,122,0.10); color: var(--green); }
+  .usecase-num.uc2 { background: rgba(255,68,102,0.10); color: var(--red); }
+  .usecase-num.uc3 { background: rgba(136,85,255,0.10); color: var(--purple); }
+  .usecase-num.uc4 { background: rgba(255,136,68,0.10); color: var(--orange); }
+  .usecase-num.uc5 { background: rgba(0,204,255,0.10); color: var(--cyan); }
+  .usecase-num.uc6 { background: rgba(255,204,0,0.10); color: var(--yellow); }
+  .usecase-title {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+  }
+  .usecase-participants {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .participant-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 5px;
+    letter-spacing: 0.5px;
+  }
+  .badge-alice { background: rgba(68,136,255,0.12); color: var(--blue); }
+  .badge-bob { background: rgba(136,85,255,0.12); color: var(--purple); }
+  .badge-arbiter { background: rgba(255,136,68,0.12); color: var(--orange); }
+  .badge-treasury { background: rgba(0,204,255,0.12); color: var(--cyan); }
+  .usecase-analogy {
+    font-size: 13px;
+    color: var(--dim);
+    font-style: italic;
+    margin-bottom: 12px;
+  }
+  .usecase-desc {
+    font-size: 13px;
+    color: var(--dim);
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+  .usecase-result {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 7px;
+    background: rgba(0,232,122,0.06);
+    border: 1px solid rgba(0,232,122,0.12);
+    color: var(--green);
+    display: inline-block;
+  }
+  .usecase-result.refund {
+    background: rgba(68,136,255,0.06);
+    border-color: rgba(68,136,255,0.12);
+    color: var(--blue);
+  }
+  .usecase-result.split {
+    background: rgba(136,85,255,0.06);
+    border-color: rgba(136,85,255,0.12);
+    color: var(--purple);
+  }
+  .usecase-result.penalty {
+    background: rgba(255,136,68,0.06);
+    border-color: rgba(255,136,68,0.12);
+    color: var(--orange);
+  }
+  .usecase-result.fee {
+    background: rgba(0,204,255,0.06);
+    border-color: rgba(0,204,255,0.12);
+    color: var(--cyan);
+  }
+  .usecase-result.timeout {
+    background: rgba(255,204,0,0.06);
+    border-color: rgba(255,204,0,0.12);
+    color: var(--yellow);
+  }
+  @media (max-width: 768px) {
+    .usecases-grid { grid-template-columns: 1fr; }
+  }
+
   /* ── Architecture Stack ── */
   .arch-stack {
     display: flex;
@@ -356,42 +555,45 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    padding: 18px 24px;
+    padding: 20px 28px;
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 12px;
     cursor: default;
-    transition: all 0.3s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
   }
   .arch-layer:hover {
-    border-color: var(--dim);
+    border-color: var(--border-hover);
     transform: translateX(6px);
+    box-shadow: var(--glow-blue);
   }
   .layer-num {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-family: var(--mono);
     font-weight: 800;
     font-size: 13px;
     flex-shrink: 0;
   }
-  .layer-5 .layer-num { background: rgba(255,136,68,0.15); color: var(--orange); }
-  .layer-4 .layer-num { background: rgba(0,204,255,0.15); color: var(--cyan); }
-  .layer-3 .layer-num { background: rgba(0,255,136,0.1); color: var(--green); }
-  .layer-2 .layer-num { background: rgba(68,136,255,0.12); color: var(--blue); }
-  .layer-1 .layer-num { background: rgba(136,85,255,0.12); color: var(--purple); }
+  .layer-5 .layer-num { background: rgba(255,136,68,0.12); color: var(--orange); }
+  .layer-4 .layer-num { background: rgba(0,204,255,0.12); color: var(--cyan); }
+  .layer-3 .layer-num { background: rgba(0,232,122,0.08); color: var(--green); }
+  .layer-2 .layer-num { background: rgba(68,136,255,0.10); color: var(--blue); }
+  .layer-1 .layer-num { background: rgba(136,85,255,0.10); color: var(--purple); }
   .layer-info { flex: 1; }
   .layer-name {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
     margin-bottom: 2px;
+    letter-spacing: -0.2px;
   }
   .layer-desc {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--dim);
   }
   .layer-arrow {
@@ -399,56 +601,84 @@
     color: var(--dim);
     font-size: 12px;
     padding: 0 0 0 24px;
+    opacity: 0.4;
   }
 
   /* ── Features Grid ── */
   .features-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
   }
   .feature-card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 24px;
-    transition: border-color 0.3s;
+    border-radius: 14px;
+    padding: 28px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .feature-card:hover { border-color: var(--dim); }
+  .feature-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--glow-blue);
+    transform: translateY(-2px);
+  }
   .feature-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: 14px;
+    margin-bottom: 14px;
   }
   .feature-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 16px;
     flex-shrink: 0;
   }
-  .feature-icon.escrow { background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.2); }
-  .feature-icon.sla { background: rgba(255,136,68,0.1); border: 1px solid rgba(255,136,68,0.2); }
-  .feature-icon.dispute { background: rgba(255,68,102,0.1); border: 1px solid rgba(255,68,102,0.2); }
-  .feature-icon.fees { background: rgba(0,204,255,0.1); border: 1px solid rgba(0,204,255,0.2); }
-  .feature-icon.reputation { background: rgba(255,204,0,0.1); border: 1px solid rgba(255,204,0,0.2); }
-  .feature-icon.privacy-icon { background: rgba(68,136,255,0.1); border: 1px solid rgba(68,136,255,0.2); }
-  .feature-name { font-size: 15px; font-weight: 700; }
-  .feature-desc {
-    font-size: 12px;
-    color: var(--dim);
-    line-height: 1.6;
-    margin-bottom: 10px;
+  .feature-icon.escrow { background: rgba(0,232,122,0.08); border: 1px solid rgba(0,232,122,0.15); }
+  .feature-icon.sla { background: rgba(255,136,68,0.08); border: 1px solid rgba(255,136,68,0.15); }
+  .feature-icon.dispute { background: rgba(255,68,102,0.08); border: 1px solid rgba(255,68,102,0.15); }
+  .feature-icon.fees { background: rgba(0,204,255,0.08); border: 1px solid rgba(0,204,255,0.15); }
+  .feature-icon.reputation { background: rgba(255,204,0,0.08); border: 1px solid rgba(255,204,0,0.15); }
+  .feature-icon.privacy-icon { background: rgba(68,136,255,0.08); border: 1px solid rgba(68,136,255,0.15); }
+  .feature-name {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
   }
-  .feature-module {
+  .feature-desc {
+    font-size: 13px;
+    color: var(--dim);
+    line-height: 1.7;
+    margin-bottom: 12px;
+  }
+  .feature-code {
+    font-family: var(--mono);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
     font-size: 11px;
-    padding: 3px 10px;
-    border-radius: 4px;
-    background: rgba(255,255,255,0.04);
+    margin: 14px 0;
+    overflow-x: auto;
+    line-height: 1.7;
+  }
+  .feature-code .kw { color: var(--purple); }
+  .feature-code .ty { color: var(--cyan); }
+  .feature-code .fn { color: var(--blue); }
+  .feature-code .st { color: var(--green); }
+  .feature-code .cm { color: var(--dim); }
+  .feature-code .nu { color: var(--orange); }
+  .feature-module {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
     color: var(--dim);
     display: inline-block;
   }
@@ -462,9 +692,10 @@
     padding-bottom: 0;
   }
   .code-tab {
-    padding: 10px 20px;
-    font-family: inherit;
-    font-size: 12px;
+    padding: 12px 24px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
     background: none;
     border: none;
     color: var(--dim);
@@ -483,15 +714,15 @@
     background: var(--card);
     border: 1px solid var(--border);
     border-top: none;
-    border-radius: 0 0 10px 10px;
-    padding: 24px;
+    border-radius: 0 0 12px 12px;
+    padding: 28px;
     overflow-x: auto;
   }
   .code-panel.active { display: block; }
   .code-panel pre {
-    font-family: inherit;
+    font-family: var(--mono);
     font-size: 13px;
-    line-height: 1.7;
+    line-height: 1.8;
     color: var(--text);
   }
   .code-panel .comment { color: var(--dim); }
@@ -506,40 +737,41 @@
   .quickstart-steps {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 20px;
     max-width: 640px;
   }
   .qs-step {
     display: flex;
     align-items: flex-start;
-    gap: 16px;
+    gap: 20px;
   }
   .qs-num {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background: var(--card);
     border: 2px solid var(--green);
     display: flex;
     align-items: center;
     justify-content: center;
+    font-family: var(--mono);
     font-weight: 800;
-    font-size: 14px;
+    font-size: 15px;
     color: var(--green);
     flex-shrink: 0;
   }
-  .qs-content { flex: 1; padding-top: 4px; }
+  .qs-content { flex: 1; padding-top: 6px; }
   .qs-label {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
   }
   .qs-cmd {
+    font-family: var(--mono);
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-family: inherit;
+    border-radius: 10px;
+    padding: 14px 18px;
     font-size: 13px;
     color: var(--green);
     overflow-x: auto;
@@ -549,41 +781,47 @@
   /* ── Footer ── */
   footer {
     border-top: 1px solid var(--border);
-    padding: 40px 24px;
+    padding: 48px 32px;
     text-align: center;
+    background: var(--bg-alt);
   }
   .footer-inner {
-    max-width: 1100px;
+    max-width: 1120px;
     margin: 0 auto;
   }
   .footer-links {
     display: flex;
     justify-content: center;
-    gap: 24px;
-    margin-bottom: 16px;
+    gap: 32px;
+    margin-bottom: 20px;
   }
   .footer-links a {
     color: var(--dim);
     text-decoration: none;
-    font-size: 12px;
+    font-size: 13px;
+    font-weight: 500;
     transition: color 0.2s;
   }
   .footer-links a:hover { color: var(--text); }
   .footer-copy {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--dim);
+    opacity: 0.7;
   }
 
   /* ── Responsive ── */
   @media (max-width: 768px) {
-    section { padding: 60px 16px; }
-    .hero { padding-top: 100px; }
-    .section-title { font-size: 22px; }
-    nav { padding: 0 16px; }
+    section { padding: 72px 20px; }
+    .section-bg-alt { padding: 72px 0; }
+    .section-bg-alt > * { padding-left: 20px; padding-right: 20px; }
+    .hero { padding-top: 110px; }
+    .section-title { font-size: 24px; }
+    nav { padding: 0 20px; height: 56px; }
     .nav-links a.hide-mobile { display: none; }
     .hero-flow { font-size: 11px; padding: 20px 16px; }
     .features-grid { grid-template-columns: 1fr; }
     .arch-stack { max-width: 100%; }
+    .hero::before { width: 300px; height: 300px; }
   }
 </style>
 </head>
@@ -598,6 +836,7 @@
   <div class="nav-links">
     <a href="#why" class="hide-mobile">Why CAP</a>
     <a href="#how" class="hide-mobile">How It Works</a>
+    <a href="#usecases" class="hide-mobile">Use Cases</a>
     <a href="#architecture" class="hide-mobile">Architecture</a>
     <a href="#features" class="hide-mobile">Features</a>
     <a href="#code" class="hide-mobile">Code</a>
@@ -651,8 +890,10 @@
   </div>
 </section>
 
+<div class="section-divider"></div>
+
 <!-- ── Why CAP? ── -->
-<section id="why">
+<section id="why" class="section-bg-alt">
   <div class="fade-in">
     <div class="section-label">Why CAP?</div>
     <h2 class="section-title">The Problem with AI Agent Commerce</h2>
@@ -685,6 +926,8 @@
     </div>
   </div>
 </section>
+
+<div class="section-divider"></div>
 
 <!-- ── How It Works ── -->
 <section id="how">
@@ -749,6 +992,127 @@
   </div>
 </section>
 
+<div class="section-divider"></div>
+
+<!-- ── Use Cases ── -->
+<section id="usecases" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">Use Cases</div>
+    <h2 class="section-title">6 Real-World Scenarios</h2>
+    <p class="section-subtitle">
+      Every path through the protocol &mdash; from happy path to timeout refund &mdash; demonstrated end-to-end.
+    </p>
+  </div>
+
+  <div class="usecases-grid fade-in">
+    <div class="usecase-card">
+      <div class="usecase-header">
+        <div class="usecase-num uc1">1</div>
+        <div class="usecase-title">Happy Path</div>
+      </div>
+      <div class="usecase-participants">
+        <span class="participant-badge badge-alice">Alice</span>
+        <span class="participant-badge badge-bob">Bob</span>
+      </div>
+      <div class="usecase-analogy">Like a perfect Fiverr transaction</div>
+      <div class="usecase-desc">
+        Alice hires Bob's translation agent. Bob delivers a perfect result.
+        Alice approves with a 5-star rating. Escrow releases full payment to Bob.
+      </div>
+      <span class="usecase-result">Bob receives 0.50 CAP</span>
+    </div>
+
+    <div class="usecase-card">
+      <div class="usecase-header">
+        <div class="usecase-num uc2">2</div>
+        <div class="usecase-title">Dispute Resolution</div>
+      </div>
+      <div class="usecase-participants">
+        <span class="participant-badge badge-alice">Alice</span>
+        <span class="participant-badge badge-bob">Bob</span>
+      </div>
+      <div class="usecase-analogy">Like a PayPal refund</div>
+      <div class="usecase-desc">
+        Bob delivers a poor-quality result. Alice raises a dispute.
+        Bob acknowledges the issue and accepts full refund via ResolveForConsumer.
+      </div>
+      <span class="usecase-result refund">Alice refunded 0.50 CAP</span>
+    </div>
+
+    <div class="usecase-card">
+      <div class="usecase-header">
+        <div class="usecase-num uc3">3</div>
+        <div class="usecase-title">Arbiter Mediation</div>
+      </div>
+      <div class="usecase-participants">
+        <span class="participant-badge badge-alice">Alice</span>
+        <span class="participant-badge badge-bob">Bob</span>
+        <span class="participant-badge badge-arbiter">Arbiter</span>
+      </div>
+      <div class="usecase-analogy">Like a court-mediated settlement</div>
+      <div class="usecase-desc">
+        Bob delivers 60% of the work. Both parties disagree on refund amount.
+        Dispute escalates to a neutral arbiter who rules a 60/40 split.
+      </div>
+      <span class="usecase-result split">Bob 0.30 CAP &middot; Alice 0.20 CAP</span>
+    </div>
+
+    <div class="usecase-card">
+      <div class="usecase-header">
+        <div class="usecase-num uc4">4</div>
+        <div class="usecase-title">SLA Penalty</div>
+      </div>
+      <div class="usecase-participants">
+        <span class="participant-badge badge-alice">Alice</span>
+        <span class="participant-badge badge-bob">Bob</span>
+      </div>
+      <div class="usecase-analogy">Like a late delivery discount</div>
+      <div class="usecase-desc">
+        Bob delivers past the agreed deadline. The SLA contract automatically
+        applies a 20% penalty. Bob receives reduced payment, Alice gets partial refund.
+      </div>
+      <span class="usecase-result penalty">Bob 0.40 CAP &middot; Alice refund 0.10 CAP</span>
+    </div>
+
+    <div class="usecase-card">
+      <div class="usecase-header">
+        <div class="usecase-num uc5">5</div>
+        <div class="usecase-title">Protocol Fees</div>
+      </div>
+      <div class="usecase-participants">
+        <span class="participant-badge badge-alice">Alice</span>
+        <span class="participant-badge badge-bob">Bob</span>
+        <span class="participant-badge badge-treasury">Treasury</span>
+      </div>
+      <div class="usecase-analogy">Like a marketplace commission</div>
+      <div class="usecase-desc">
+        Standard transaction with 2% protocol fee enabled. At settlement,
+        the fee is automatically separated and sent to the Treasury account.
+      </div>
+      <span class="usecase-result fee">Bob 0.49 CAP &middot; Treasury 0.01 CAP</span>
+    </div>
+
+    <div class="usecase-card">
+      <div class="usecase-header">
+        <div class="usecase-num uc6">6</div>
+        <div class="usecase-title">Timeout Refund</div>
+      </div>
+      <div class="usecase-participants">
+        <span class="participant-badge badge-alice">Alice</span>
+        <span class="participant-badge badge-bob">Bob</span>
+      </div>
+      <div class="usecase-analogy">Like an auto-cancellation after no response</div>
+      <div class="usecase-desc">
+        Bob's agent goes offline and never delivers. The deadline passes.
+        Alice calls ClaimTimeout and escrow automatically returns all funds.
+      </div>
+      <span class="usecase-result timeout">Alice refunded 0.50 CAP</span>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
 <!-- ── Architecture ── -->
 <section id="architecture">
   <div class="fade-in">
@@ -802,8 +1166,10 @@
   </div>
 </section>
 
+<div class="section-divider"></div>
+
 <!-- ── Core Features ── -->
-<section id="features">
+<section id="features" class="section-bg-alt">
   <div class="fade-in">
     <div class="section-label">Core Features</div>
     <h2 class="section-title">Built for Real Agent Commerce</h2>
@@ -821,8 +1187,18 @@
         <div class="feature-name">Atomic Escrow</div>
       </div>
       <div class="feature-desc">
-        LockedCAPCoin pattern. Funds are locked in escrow and cannot move without mutual consent. All-or-nothing settlement.
+        LockedCAPCoin pattern ensures funds are locked atomically and cannot move without mutual consent.
+        The escrow flows through a strict state machine: Escrow &rarr; Deliver &rarr; PendingReview &rarr; ApproveAndPay &rarr; Settlement.
+        All-or-nothing guarantees prevent partial fund leakage.
       </div>
+      <div class="feature-code"><span class="cm">-- Daml: Lock funds into escrow</span>
+<span class="kw">template</span> <span class="ty">LockedCAPCoin</span> <span class="kw">with</span>
+    lock : <span class="ty">Lock</span>; coin : <span class="ty">CAPCoin</span>
+  <span class="kw">where</span>
+    <span class="fn">signatory</span> coin.owner
+    <span class="kw">choice</span> <span class="ty">Release</span> : <span class="ty">ContractId CAPCoin</span>
+      <span class="fn">controller</span> lock.locker
+      <span class="kw">do</span> <span class="fn">create</span> coin</div>
       <span class="feature-module">Cap.Escrow</span>
     </div>
 
@@ -834,8 +1210,18 @@
         <div class="feature-name">SLA Enforcement</div>
       </div>
       <div class="feature-desc">
-        maxLatencyMs + penaltyRate enforced automatically. Late delivery triggers proportional fee reduction.
+        Configurable SLA terms with maxLatencyMs and penaltyRate. When a provider delivers past the deadline,
+        the penalty is computed automatically on-chain. No manual intervention needed &mdash;
+        the smart contract enforces the deduction at settlement time.
       </div>
+      <div class="feature-code"><span class="cm">-- SLA penalty calculation</span>
+<span class="kw">data</span> <span class="ty">SLATerms</span> = <span class="ty">SLATerms</span> <span class="kw">with</span>
+    maxLatencyMs : <span class="ty">Int</span>
+    penaltyRate  : <span class="ty">Decimal</span>  <span class="cm">-- e.g. 0.20</span>
+
+<span class="cm">-- If late: penalty = amount * penaltyRate</span>
+<span class="cm">-- Bob receives: 0.50 - 0.10 = 0.40 CAP</span>
+<span class="cm">-- Alice refund:               0.10 CAP</span></div>
       <span class="feature-module">Cap.Types</span>
     </div>
 
@@ -847,8 +1233,16 @@
         <div class="feature-name">Dispute Resolution</div>
       </div>
       <div class="feature-desc">
-        Bilateral resolution first. Escalation to neutral arbiter with split-judgment support for partial refunds.
+        Three-stage resolution: bilateral first (provider accepts or rejects), then escalation to a neutral arbiter.
+        The arbiter can issue a split ruling (e.g., 60/40) for partially completed work.
+        All dispute records are immutable on-chain.
       </div>
+      <div class="feature-code"><span class="cm">-- 3-stage dispute flow</span>
+<span class="ty">DisputeRecord</span>
+  &rarr; <span class="fn">ResolveForConsumer</span>  <span class="cm">-- full refund</span>
+  &rarr; <span class="fn">ResolveForProvider</span>  <span class="cm">-- full payment</span>
+  &rarr; <span class="fn">EscalateToArbiter</span>   <span class="cm">-- neutral party</span>
+    &rarr; <span class="fn">SplitRuling</span>       <span class="cm">-- e.g. 60/40</span></div>
       <span class="feature-module">Cap.Arbiter</span>
     </div>
 
@@ -860,8 +1254,18 @@
         <div class="feature-name">Protocol Fees</div>
       </div>
       <div class="feature-desc">
-        Per-transaction fees automatically separated at settlement. Treasury collection enforced at the contract level.
+        Per-transaction fees automatically separated at settlement. The fee rate is configured globally
+        and enforced at the contract level. Treasury collection happens atomically &mdash;
+        no manual fee claiming needed.
       </div>
+      <div class="feature-code"><span class="cm"># REST API: Configure fee rate</span>
+curl <span class="st">-X POST</span> localhost:4000/cap/v1/fees/configure \
+  -d <span class="st">'{"feeRate": 0.02}'</span>
+
+<span class="cm"># At settlement:</span>
+<span class="cm"># feeAmount = 0.50 * 0.02 = 0.01</span>
+<span class="cm"># Provider gets: 0.49 CAP</span>
+<span class="cm"># Treasury gets: 0.01 CAP</span></div>
       <span class="feature-module">Cap.Token</span>
     </div>
 
@@ -873,8 +1277,17 @@
         <div class="feature-name">Reputation</div>
       </div>
       <div class="feature-desc">
-        Bidirectional 1&ndash;5 star ratings. Immutable on-chain records. Both consumer and provider rate each transaction.
+        Bidirectional 1&ndash;5 star ratings recorded immutably on-chain. Both consumer and provider rate each other
+        after every transaction. Ratings include role context (consumer_of/provider_for) and optional comments.
       </div>
+      <div class="feature-code"><span class="cm"># Python SDK: Query reputation</span>
+<span class="kw">from</span> cap <span class="kw">import</span> CAPClient
+
+client = CAPClient(<span class="st">"alice"</span>)
+rep = client.<span class="fn">get_reputation</span>(<span class="st">"bob"</span>)
+<span class="fn">print</span>(rep)
+<span class="cm"># {"party": "bob", "avg": 4.8,</span>
+<span class="cm">#  "count": 12, "role": "provider"}</span></div>
       <span class="feature-module">Cap.Reputation</span>
     </div>
 
@@ -886,12 +1299,23 @@
         <div class="feature-name">Sub-tx Privacy</div>
       </div>
       <div class="feature-desc">
-        Canton Network's unique capability. Competitors on the same network cannot observe your transaction details.
+        Canton Network's unique sub-transaction privacy ensures that only transaction participants see the data.
+        Competitors on the same network cannot observe your deals, prices, or volumes &mdash;
+        a fundamental advantage over public blockchains.
       </div>
+      <div class="feature-code"><span class="cm">-- Canton privacy model</span>
+Alice &harr; Bob  : <span class="st">visible to both</span>
+Alice &harr; Carol: <span class="st">visible to both</span>
+
+Bob   &rarr; Alice&harr;Carol: <span class="nu">&#10060; CANNOT see</span>
+Carol &rarr; Alice&harr;Bob : <span class="nu">&#10060; CANNOT see</span>
+<span class="cm">-- Each pair is cryptographically isolated</span></div>
       <span class="feature-module">Canton Network</span>
     </div>
   </div>
 </section>
+
+<div class="section-divider"></div>
 
 <!-- ── Code Examples ── -->
 <section id="code">
@@ -915,6 +1339,11 @@
 
 client = CAPClient(<span class="string">"alice"</span>)
 
+<span class="comment"># 1. Discover available agents</span>
+agents = client.<span class="func">discover</span>(capability=<span class="string">"translation"</span>)
+<span class="func">print</span>(agents)  <span class="comment"># [{"name": "bob", "capability": "translation", "price": 0.50}]</span>
+
+<span class="comment"># 2. Hire an agent (escrow locks funds automatically)</span>
 result = client.<span class="func">hire</span>(
     provider=<span class="string">"bob"</span>,
     capability=<span class="string">"translation"</span>,
@@ -922,8 +1351,17 @@ result = client.<span class="func">hire</span>(
     max_price=<span class="number">1.0</span>,
     auto_approve=<span class="keyword">True</span>
 )
+<span class="func">print</span>(result.output)  <span class="comment"># "&#xc548;&#xb155;&#xd558;&#xc138;&#xc694;"</span>
 
-<span class="func">print</span>(result.output)  <span class="comment"># "&#xc548;&#xb155;&#xd558;&#xc138;&#xc694;"</span></pre>
+<span class="comment"># 3. Raise a dispute (if quality is unsatisfactory)</span>
+dispute = client.<span class="func">dispute</span>(
+    request_id=result.request_id,
+    reason=<span class="string">"Translation quality below acceptable threshold"</span>
+)
+
+<span class="comment"># 4. Check reputation before hiring</span>
+rep = client.<span class="func">get_reputation</span>(<span class="string">"bob"</span>)
+<span class="func">print</span>(f<span class="string">"Bob's rating: {rep['avg']}/5 ({rep['count']} reviews)"</span>)</pre>
     </div>
 
     <div class="code-panel" id="tab-rest">
@@ -941,18 +1379,40 @@ curl <span class="flag">-X POST</span> localhost:4000/cap/v1/services/offers/<sp
   <span class="flag">-H</span> <span class="string">"Content-Type: application/json"</span> \
   <span class="flag">-d</span> <span class="string">'{"consumer": "alice", "paymentCid": "..."}'</span>
 
-<span class="comment"># 3. Check result</span>
-curl localhost:4000/cap/v1/services/requests/<span class="type">$REQUEST_ID</span></pre>
+<span class="comment"># 3. Raise a dispute</span>
+curl <span class="flag">-X POST</span> localhost:4000/cap/v1/disputes \
+  <span class="flag">-H</span> <span class="string">"Content-Type: application/json"</span> \
+  <span class="flag">-d</span> <span class="string">'{
+    "requestId": "'<span class="type">$REQUEST_ID</span>'",
+    "reason": "Poor quality output"
+  }'</span>
+<span class="comment"># Response: {"disputeId": "d-001", "status": "open"}</span>
+
+<span class="comment"># 4. Submit a rating</span>
+curl <span class="flag">-X POST</span> localhost:4000/cap/v1/ratings \
+  <span class="flag">-H</span> <span class="string">"Content-Type: application/json"</span> \
+  <span class="flag">-d</span> <span class="string">'{
+    "rater": "alice", "rated": "bob",
+    "score": 5, "comment": "Excellent translation"
+  }'</span>
+
+<span class="comment"># 5. Collect protocol fees</span>
+curl <span class="flag">-X POST</span> localhost:4000/cap/v1/fees/collect \
+  <span class="flag">-H</span> <span class="string">"Content-Type: application/json"</span> \
+  <span class="flag">-d</span> <span class="string">'{"treasury": "treasury"}'</span>
+<span class="comment"># Response: {"collected": 0.01, "treasury_balance": 1.25}</span></pre>
     </div>
 
     <div class="code-panel" id="tab-daml">
-<pre><span class="keyword">template</span> <span class="type">Escrow</span> <span class="keyword">with</span>
+<pre><span class="comment">-- Escrow template with full lifecycle</span>
+<span class="keyword">template</span> <span class="type">Escrow</span> <span class="keyword">with</span>
     consumer : <span class="type">Party</span>
     provider : <span class="type">Party</span>
     lockedCid : <span class="type">ContractId LockedCAPCoin</span>
   <span class="keyword">where</span>
     <span class="func">signatory</span> consumer, provider
 
+    <span class="comment">-- Provider delivers the result</span>
     <span class="keyword">choice</span> <span class="type">Deliver</span> : <span class="type">ContractId PendingReview</span>
       <span class="keyword">with</span>
         resultHash : <span class="type">Text</span>
@@ -960,10 +1420,34 @@ curl localhost:4000/cap/v1/services/requests/<span class="type">$REQUEST_ID</spa
         deliveredAt : <span class="type">Time</span>
       <span class="func">controller</span> provider
       <span class="keyword">do</span>
-        <span class="func">create</span> <span class="type">PendingReview</span> <span class="keyword">with</span> ..</pre>
+        <span class="func">create</span> <span class="type">PendingReview</span> <span class="keyword">with</span> ..
+
+<span class="comment">-- Consumer approves and triggers settlement</span>
+<span class="keyword">template</span> <span class="type">PendingReview</span> <span class="keyword">with</span>
+    consumer : <span class="type">Party</span>; provider : <span class="type">Party</span>
+    lockedCid : <span class="type">ContractId LockedCAPCoin</span>
+  <span class="keyword">where</span>
+    <span class="func">signatory</span> consumer, provider
+
+    <span class="keyword">choice</span> <span class="type">ApproveAndPay</span> : <span class="type">ContractId CAPCoin</span>
+      <span class="keyword">with</span> rating : <span class="type">Int</span>; comment : <span class="type">Text</span>
+      <span class="func">controller</span> consumer
+      <span class="keyword">do</span>
+        <span class="comment">-- Release locked funds to provider</span>
+        <span class="func">exercise</span> lockedCid <span class="type">Release</span>
+
+<span class="comment">-- Arbiter split ruling for disputes</span>
+<span class="keyword">choice</span> <span class="type">SplitRuling</span> : (<span class="type">ContractId CAPCoin</span>, <span class="type">ContractId CAPCoin</span>)
+  <span class="keyword">with</span> providerShare : <span class="type">Decimal</span> <span class="comment">-- e.g. 0.60</span>
+  <span class="func">controller</span> arbiter
+  <span class="keyword">do</span>
+    <span class="comment">-- Split escrowed funds per arbiter ruling</span>
+    <span class="func">splitLockedCoin</span> lockedCid providerShare</pre>
     </div>
   </div>
 </section>
+
+<div class="section-divider"></div>
 
 <!-- ── Quick Start ── -->
 <section id="quickstart">
@@ -1038,7 +1522,7 @@ curl localhost:4000/cap/v1/services/requests/<span class="type">$REQUEST_ID</spa
         }
       }
     });
-  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+  }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
 
   document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
 
