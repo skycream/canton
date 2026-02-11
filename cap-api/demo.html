@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Canton Agent Protocol — Live Demo</title>
+<title>Canton Agent Protocol — Use Case Demo Suite</title>
 <style>
   :root {
     --bg: #0a0a0f;
@@ -30,27 +30,120 @@
     overflow-x: hidden;
   }
 
-  /* Header */
-  header {
+  /* App Layout */
+  .app-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    min-height: 100vh;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    overflow-y: auto;
+    background: var(--card);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar-header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
     text-align: center;
-    padding: 28px 20px 20px;
+    background: linear-gradient(180deg, #0f0f18 0%, var(--card) 100%);
+  }
+  .sidebar-header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    margin-bottom: 4px;
+  }
+  .sidebar-header h1 span { color: var(--green); }
+  .sidebar-header .subtitle {
+    font-size: 10px;
+    color: var(--dim);
+    line-height: 1.4;
+  }
+  .uc-list {
+    flex: 1;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    overflow-y: auto;
+  }
+  .use-case-card {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s;
+  }
+  .use-case-card:hover { border-color: var(--dim); background: rgba(255,255,255,0.02); }
+  .use-case-card.selected { border-color: var(--blue); background: rgba(68,136,255,0.06); }
+  .uc-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 12px;
+    flex-shrink: 0;
+    background: var(--bg);
+    border: 2px solid var(--border);
+    color: var(--dim);
+    transition: all 0.3s;
+  }
+  .uc-badge.running { border-color: var(--blue); color: var(--blue); animation: pulse-ring 1.5s infinite; }
+  .uc-badge.done { border-color: var(--green); background: var(--green); color: #000; }
+  .uc-badge.error { border-color: var(--red); color: var(--red); }
+  .uc-info { min-width: 0; }
+  .uc-name { font-weight: 600; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .uc-desc { font-size: 10px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sidebar-actions {
+    margin-top: 14px;
+    display: flex;
+    gap: 8px;
+  }
+  .sidebar-actions .btn { flex: 1; text-align: center; }
+
+  /* Demo Header */
+  .demo-header {
+    padding: 16px 24px;
     border-bottom: 1px solid var(--border);
     background: linear-gradient(180deg, #0f0f18 0%, var(--bg) 100%);
   }
-  header h1 {
-    font-size: 22px;
+  .demo-header h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .demo-participants { display: flex; gap: 8px; flex-wrap: wrap; }
+  .participant-badge {
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 10px;
     font-weight: 600;
-    letter-spacing: 2px;
-    color: var(--text);
-    margin-bottom: 4px;
   }
-  header h1 span { color: var(--green); }
-  header .subtitle {
-    color: var(--dim);
+  .participant-badge.alice { background: rgba(68,136,255,0.15); color: var(--blue); }
+  .participant-badge.bob { background: rgba(136,85,255,0.15); color: var(--purple); }
+  .participant-badge.arbiter { background: rgba(255,204,0,0.15); color: var(--yellow); }
+  .participant-badge.treasury { background: rgba(0,204,255,0.15); color: var(--cyan); }
+  .demo-scenario {
+    margin-top: 8px;
     font-size: 12px;
-    margin-bottom: 16px;
+    color: var(--dim);
+    line-height: 1.5;
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 6px;
+    border-left: 2px solid var(--blue);
   }
-  .btn-group { display: flex; gap: 10px; justify-content: center; }
+
+  /* Buttons */
   .btn {
     padding: 10px 28px;
     border: 1px solid var(--border);
@@ -78,489 +171,205 @@
     display: grid;
     grid-template-columns: 260px 1fr 260px;
     gap: 0;
-    min-height: 600px;
+    min-height: 500px;
   }
 
   /* Agent Cards */
   .agent-card {
     padding: 24px 20px;
-    border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     gap: 18px;
   }
-  .agent-card:last-child { border-right: none; border-left: 1px solid var(--border); }
-  .agent-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+  .agent-card.alice-side { border-right: 1px solid var(--border); }
+  .agent-header { display: flex; align-items: center; gap: 10px; }
   .agent-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    flex-shrink: 0;
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
   }
   .alice-avatar { background: rgba(68, 136, 255, 0.15); border: 1px solid rgba(68, 136, 255, 0.3); }
   .bob-avatar { background: rgba(136, 85, 255, 0.15); border: 1px solid rgba(136, 85, 255, 0.3); }
+  .arbiter-avatar { background: rgba(255, 204, 0, 0.15); border: 1px solid rgba(255, 204, 0, 0.3); }
+  .treasury-avatar { background: rgba(0, 204, 255, 0.15); border: 1px solid rgba(0, 204, 255, 0.3); }
   .agent-name { font-size: 16px; font-weight: 700; }
   .agent-role {
-    font-size: 10px;
-    padding: 2px 8px;
-    border-radius: 10px;
-    display: inline-block;
-    margin-top: 2px;
+    font-size: 10px; padding: 2px 8px; border-radius: 10px;
+    display: inline-block; margin-top: 2px;
   }
   .alice-role { background: rgba(68, 136, 255, 0.15); color: var(--blue); }
   .bob-role { background: rgba(136, 85, 255, 0.15); color: var(--purple); }
+  .arbiter-role { background: rgba(255, 204, 0, 0.15); color: var(--yellow); }
+  .treasury-role { background: rgba(0, 204, 255, 0.15); color: var(--cyan); }
 
   .stat-label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--dim);
-    margin-bottom: 4px;
+    font-size: 10px; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--dim); margin-bottom: 4px;
   }
-  .balance-value {
-    font-size: 28px;
-    font-weight: 700;
-    transition: color 0.3s;
-  }
+  .balance-value { font-size: 28px; font-weight: 700; transition: color 0.3s; }
   .balance-unit { font-size: 12px; color: var(--dim); font-weight: 400; margin-left: 4px; }
-  .balance-change {
-    font-size: 11px;
-    margin-top: 2px;
-    opacity: 0;
-    transition: opacity 0.5s;
-  }
+  .balance-change { font-size: 11px; margin-top: 2px; opacity: 0; transition: opacity 0.5s; }
   .balance-change.visible { opacity: 1; }
   .balance-change.negative { color: var(--red); }
   .balance-change.positive { color: var(--green); }
 
-  .status-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+  .status-row { display: flex; align-items: center; gap: 8px; }
   .status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--dim);
-    transition: background 0.3s;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--dim); transition: background 0.3s;
   }
   .status-dot.active { background: var(--green); box-shadow: 0 0 8px rgba(0,255,136,0.5); }
   .status-dot.busy { background: var(--blue); box-shadow: 0 0 8px rgba(68,136,255,0.5); animation: pulse-dot 1s infinite; }
   .status-text { font-size: 12px; }
 
-  /* Enhanced Escrow Box with Lock Visualization */
+  /* Escrow Box */
   .escrow-box {
-    padding: 12px 14px;
-    border-radius: 8px;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid var(--border);
-    font-size: 12px;
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: all 0.4s;
-    position: relative;
-    overflow: hidden;
+    padding: 12px 14px; border-radius: 8px;
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+    font-size: 12px; min-height: 44px;
+    display: flex; align-items: center; gap: 10px;
+    transition: all 0.4s; position: relative; overflow: hidden;
   }
-  .escrow-box.locked {
-    border-color: var(--orange);
-    background: rgba(255, 136, 68, 0.08);
-  }
+  .escrow-box.locked { border-color: var(--orange); background: rgba(255, 136, 68, 0.08); }
   .escrow-box.locked::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
+    content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
     background: linear-gradient(90deg, transparent, rgba(255,136,68,0.06), transparent);
     animation: lockShimmer 2s infinite;
   }
   .escrow-amount { font-weight: 700; font-size: 16px; }
-  .lock-icon {
-    font-size: 18px;
-    display: inline-block;
-    transition: transform 0.3s;
-  }
+  .lock-icon { font-size: 18px; display: inline-block; transition: transform 0.3s; }
   .lock-icon.locked { animation: lockBounce 0.5s ease; }
   .lock-icon.unlocked { animation: unlockPop 0.5s ease; }
   .escrow-label {
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    padding: 1px 5px;
-    border-radius: 3px;
-    display: inline-block;
+    font-size: 9px; text-transform: uppercase; letter-spacing: 1px;
+    padding: 1px 5px; border-radius: 3px; display: inline-block;
   }
-  .escrow-label.locked-label {
-    background: rgba(255,136,68,0.2);
-    color: var(--orange);
-  }
-  .escrow-label.released-label {
-    background: rgba(0,255,136,0.15);
-    color: var(--green);
-  }
-  .escrow-cid {
-    font-size: 9px;
-    color: var(--dim);
-    font-family: inherit;
-    margin-top: 4px;
-    word-break: break-all;
-  }
+  .escrow-label.locked-label { background: rgba(255,136,68,0.2); color: var(--orange); }
+  .escrow-label.released-label { background: rgba(0,255,136,0.15); color: var(--green); }
+  .escrow-cid { font-size: 9px; color: var(--dim); font-family: inherit; margin-top: 4px; word-break: break-all; }
 
   .result-box {
-    padding: 12px;
-    border-radius: 6px;
-    background: rgba(0,255,136,0.05);
-    border: 1px solid rgba(0,255,136,0.2);
-    font-size: 12px;
-    opacity: 0;
-    transition: opacity 0.5s;
+    padding: 12px; border-radius: 6px;
+    background: rgba(0,255,136,0.05); border: 1px solid rgba(0,255,136,0.2);
+    font-size: 12px; opacity: 0; transition: opacity 0.5s;
   }
   .result-box.visible { opacity: 1; }
   .result-label { color: var(--green); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
   .result-text { font-size: 14px; }
 
+  /* Right Panel */
+  .right-panel { border-left: 1px solid var(--border); display: flex; flex-direction: column; }
+
+  /* Third Party Panel */
+  .third-party-panel {
+    border-top: 1px solid var(--border);
+    padding: 20px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+
   /* Timeline */
-  .timeline {
-    padding: 16px 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
+  .timeline { padding: 16px 24px; display: flex; flex-direction: column; gap: 3px; }
   .step {
-    display: grid;
-    grid-template-columns: 32px 1fr auto;
-    align-items: center;
-    gap: 12px;
-    padding: 8px 14px;
-    border-radius: 8px;
-    border: 1px solid transparent;
-    transition: all 0.3s;
-    position: relative;
+    display: grid; grid-template-columns: 32px 1fr auto;
+    align-items: center; gap: 12px; padding: 8px 14px;
+    border-radius: 8px; border: 1px solid transparent; transition: all 0.3s; position: relative;
   }
-  .step.active {
-    background: rgba(68, 136, 255, 0.06);
-    border-color: rgba(68, 136, 255, 0.2);
-  }
-  .step.done {
-    background: rgba(0, 255, 136, 0.04);
-    border-color: rgba(0, 255, 136, 0.15);
-  }
-  .step.error {
-    background: rgba(255, 68, 102, 0.06);
-    border-color: rgba(255, 68, 102, 0.2);
-  }
+  .step.active { background: rgba(68, 136, 255, 0.06); border-color: rgba(68, 136, 255, 0.2); }
+  .step.done { background: rgba(0, 255, 136, 0.04); border-color: rgba(0, 255, 136, 0.15); }
+  .step.error { background: rgba(255, 68, 102, 0.06); border-color: rgba(255, 68, 102, 0.2); }
   .step-num {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    font-weight: 700;
-    background: var(--card);
-    border: 2px solid var(--border);
-    color: var(--dim);
-    transition: all 0.3s;
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    background: var(--card); border: 2px solid var(--border); color: var(--dim); transition: all 0.3s;
   }
-  .step.active .step-num {
-    border-color: var(--blue);
-    color: var(--blue);
-    box-shadow: 0 0 12px rgba(68,136,255,0.3);
-    animation: pulse-ring 1.5s infinite;
-  }
-  .step.done .step-num {
-    border-color: var(--green);
-    background: var(--green);
-    color: #000;
-  }
-  .step.error .step-num {
-    border-color: var(--red);
-    color: var(--red);
-  }
+  .step.active .step-num { border-color: var(--blue); color: var(--blue); box-shadow: 0 0 12px rgba(68,136,255,0.3); animation: pulse-ring 1.5s infinite; }
+  .step.done .step-num { border-color: var(--green); background: var(--green); color: #000; }
+  .step.error .step-num { border-color: var(--red); color: var(--red); }
   .step-content { min-width: 0; }
-  .step-title {
-    font-weight: 600;
-    font-size: 13px;
-    color: var(--dim);
-    transition: color 0.3s;
-  }
+  .step-title { font-weight: 600; font-size: 13px; color: var(--dim); transition: color 0.3s; }
   .step.active .step-title, .step.done .step-title { color: var(--text); }
-  .step-desc {
-    font-size: 11px;
-    color: var(--dim);
-    margin-top: 1px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .step-arrow {
-    font-size: 16px;
-    color: var(--dim);
-    transition: color 0.3s;
-    font-weight: 300;
-    min-width: 24px;
-    text-align: center;
-  }
+  .step-desc { font-size: 11px; color: var(--dim); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .step-arrow { font-size: 16px; color: var(--dim); transition: color 0.3s; font-weight: 300; min-width: 24px; text-align: center; }
   .step.active .step-arrow { color: var(--blue); }
   .step.done .step-arrow { color: var(--green); }
   .step-detail {
-    grid-column: 2 / 4;
-    font-size: 11px;
-    color: var(--dim);
-    background: rgba(0,0,0,0.3);
-    border-radius: 4px;
-    padding: 6px 10px;
-    margin-top: 4px;
-    font-family: inherit;
-    word-break: break-all;
-    display: none;
+    grid-column: 2 / 4; font-size: 11px; color: var(--dim);
+    background: rgba(0,0,0,0.3); border-radius: 4px; padding: 6px 10px;
+    margin-top: 4px; font-family: inherit; word-break: break-all; display: none;
   }
   .step.active .step-detail, .step.done .step-detail { display: block; }
 
-  /* Transaction Hash Badge */
+  /* TX Hash Badge */
   .tx-hash {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-family: inherit;
-    letter-spacing: 0.5px;
-    cursor: default;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 4px; font-size: 10px;
+    font-family: inherit; letter-spacing: 0.5px; cursor: default;
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .tx-hash.contract {
-    background: rgba(0,204,255,0.1);
-    border: 1px solid rgba(0,204,255,0.2);
-    color: var(--cyan);
-  }
-  .tx-hash.lock {
-    background: rgba(255,136,68,0.1);
-    border: 1px solid rgba(255,136,68,0.2);
-    color: var(--orange);
-  }
-  .tx-hash.release {
-    background: rgba(0,255,136,0.1);
-    border: 1px solid rgba(0,255,136,0.2);
-    color: var(--green);
-  }
+  .tx-hash.contract { background: rgba(0,204,255,0.1); border: 1px solid rgba(0,204,255,0.2); color: var(--cyan); }
+  .tx-hash.lock { background: rgba(255,136,68,0.1); border: 1px solid rgba(255,136,68,0.2); color: var(--orange); }
+  .tx-hash.release { background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.2); color: var(--green); }
   .tx-hash .icon { font-size: 11px; flex-shrink: 0; }
 
-  /* Asset Flow Visualization */
-  .asset-flow {
-    margin: 12px 0;
-    padding: 0;
-    position: relative;
-    min-height: 0;
-    overflow: hidden;
-    transition: all 0.4s;
-  }
-  .asset-flow.visible {
-    min-height: auto;
-    padding: 0 14px;
-  }
+  /* Asset Flow */
+  .asset-flow { margin: 12px 0; padding: 0; position: relative; min-height: 0; overflow: hidden; transition: all 0.4s; }
+  .asset-flow.visible { min-height: auto; padding: 0 14px; }
   .flow-container {
-    background: rgba(0,0,0,0.25);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 16px;
-    display: none;
-    gap: 0;
-    flex-direction: column;
-    animation: fadeIn 0.4s;
+    background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 16px; display: none; gap: 0; flex-direction: column; animation: fadeIn 0.4s;
   }
   .flow-container.visible { display: flex; }
-  .flow-header {
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--dim);
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .flow-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 5px 0;
-    font-size: 11px;
-    animation: flowSlideIn 0.5s ease;
-  }
-  .flow-node {
-    padding: 4px 10px;
-    border-radius: 5px;
-    font-weight: 600;
-    font-size: 11px;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-  .flow-node.coin {
-    background: rgba(68,136,255,0.12);
-    border: 1px solid rgba(68,136,255,0.25);
-    color: var(--blue);
-  }
-  .flow-node.locked-coin {
-    background: rgba(255,136,68,0.12);
-    border: 1px solid rgba(255,136,68,0.25);
-    color: var(--orange);
-  }
-  .flow-node.released-coin {
-    background: rgba(0,255,136,0.12);
-    border: 1px solid rgba(0,255,136,0.25);
-    color: var(--green);
-  }
-  .flow-node.escrow-node {
-    background: rgba(255,204,0,0.1);
-    border: 1px solid rgba(255,204,0,0.2);
-    color: var(--yellow);
-  }
-  .flow-arrow {
-    color: var(--dim);
-    font-size: 14px;
-    flex-shrink: 0;
-  }
-  .flow-label {
-    font-size: 9px;
-    color: var(--dim);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    background: rgba(255,255,255,0.04);
-    padding: 2px 6px;
-    border-radius: 3px;
-    white-space: nowrap;
-  }
-  .flow-amount {
-    font-weight: 700;
-    color: var(--text);
-  }
+  .flow-header { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--dim); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .flow-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 11px; animation: flowSlideIn 0.5s ease; flex-wrap: wrap; }
+  .flow-node { padding: 4px 10px; border-radius: 5px; font-weight: 600; font-size: 11px; white-space: nowrap; display: flex; align-items: center; gap: 5px; }
+  .flow-node.coin { background: rgba(68,136,255,0.12); border: 1px solid rgba(68,136,255,0.25); color: var(--blue); }
+  .flow-node.locked-coin { background: rgba(255,136,68,0.12); border: 1px solid rgba(255,136,68,0.25); color: var(--orange); }
+  .flow-node.released-coin { background: rgba(0,255,136,0.12); border: 1px solid rgba(0,255,136,0.25); color: var(--green); }
+  .flow-node.escrow-node { background: rgba(255,204,0,0.1); border: 1px solid rgba(255,204,0,0.2); color: var(--yellow); }
+  .flow-arrow { color: var(--dim); font-size: 14px; flex-shrink: 0; }
+  .flow-label { font-size: 9px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.5px; background: rgba(255,255,255,0.04); padding: 2px 6px; border-radius: 3px; white-space: nowrap; }
+  .flow-amount { font-weight: 700; color: var(--text); }
 
-  /* Ledger State Panel */
-  .ledger-state {
-    margin-top: 8px;
-    padding: 0 14px 8px;
-  }
-  .ledger-panel {
-    background: rgba(0,0,0,0.2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 14px;
-    display: none;
-    animation: fadeIn 0.3s;
-  }
+  /* Ledger State */
+  .ledger-state { margin-top: 8px; padding: 0 14px 8px; }
+  .ledger-panel { background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; display: none; animation: fadeIn 0.3s; }
   .ledger-panel.visible { display: block; }
-  .ledger-title {
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--dim);
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .contract-entry {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 0;
-    font-size: 11px;
-    animation: fadeIn 0.3s;
-  }
-  .contract-type {
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
-  }
+  .ledger-title { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--dim); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .contract-entry { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 11px; animation: fadeIn 0.3s; }
+  .contract-type { padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; letter-spacing: 0.5px; white-space: nowrap; }
   .contract-type.capcoin { background: rgba(68,136,255,0.15); color: var(--blue); }
   .contract-type.locked { background: rgba(255,136,68,0.15); color: var(--orange); }
   .contract-type.escrow-type { background: rgba(255,204,0,0.12); color: var(--yellow); }
   .contract-type.review-type { background: rgba(136,85,255,0.15); color: var(--purple); }
-  .contract-cid {
-    font-size: 10px;
-    color: var(--dim);
-    font-family: inherit;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 180px;
-  }
-  .contract-detail {
-    font-size: 10px;
-    color: var(--text);
-    margin-left: auto;
-    white-space: nowrap;
-  }
+  .contract-type.dispute-type { background: rgba(255,68,102,0.12); color: var(--red); }
+  .contract-type.fee-type { background: rgba(0,204,255,0.12); color: var(--cyan); }
+  .contract-cid { font-size: 10px; color: var(--dim); font-family: inherit; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; }
+  .contract-detail { font-size: 10px; color: var(--text); margin-left: auto; white-space: nowrap; }
 
   /* Event Log */
-  .event-log-container {
-    border-top: 1px solid var(--border);
-    background: #08080d;
-  }
+  .event-log-container { border-top: 1px solid var(--border); background: #08080d; }
   .event-log-header {
-    padding: 10px 20px;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--dim);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    border-bottom: 1px solid var(--border);
+    padding: 10px 20px; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--dim);
+    display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border);
   }
   .event-log-header .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
-  .event-log {
-    height: 180px;
-    overflow-y: auto;
-    padding: 8px 20px;
-    font-size: 11px;
-    scroll-behavior: smooth;
-  }
+  .event-log { height: 180px; overflow-y: auto; padding: 8px 20px; font-size: 11px; scroll-behavior: smooth; }
   .event-log::-webkit-scrollbar { width: 6px; }
   .event-log::-webkit-scrollbar-track { background: transparent; }
   .event-log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-  .log-entry {
-    padding: 3px 0;
-    display: flex;
-    gap: 10px;
-    animation: fadeIn 0.3s;
-  }
+  .log-entry { padding: 3px 0; display: flex; gap: 10px; animation: fadeIn 0.3s; }
   .log-time { color: var(--dim); white-space: nowrap; min-width: 80px; }
-  .log-tag {
-    padding: 1px 6px;
-    border-radius: 3px;
-    font-size: 10px;
-    font-weight: 600;
-    min-width: 56px;
-    text-align: center;
-    white-space: nowrap;
-  }
+  .log-tag { padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; min-width: 56px; text-align: center; white-space: nowrap; }
   .log-tag.alice { background: rgba(68,136,255,0.15); color: var(--blue); }
   .log-tag.bob { background: rgba(136,85,255,0.15); color: var(--purple); }
   .log-tag.ledger { background: rgba(0,255,136,0.12); color: var(--green); }
   .log-tag.system { background: rgba(255,204,0,0.12); color: var(--yellow); }
   .log-tag.error { background: rgba(255,68,102,0.12); color: var(--red); }
   .log-tag.tx { background: rgba(0,204,255,0.12); color: var(--cyan); }
+  .log-tag.arbiter { background: rgba(255,204,0,0.12); color: var(--yellow); }
+  .log-tag.treasury { background: rgba(0,204,255,0.12); color: var(--cyan); }
   .log-msg { color: var(--text); word-break: break-all; }
   .log-data { color: var(--dim); }
 
@@ -570,76 +379,28 @@
     70% { box-shadow: 0 0 0 8px rgba(68,136,255,0); }
     100% { box-shadow: 0 0 0 0 rgba(68,136,255,0); }
   }
-  @keyframes pulse-dot {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes balancePop {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.08); }
-    100% { transform: scale(1); }
-  }
+  @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes balancePop { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
   .balance-pop { animation: balancePop 0.4s ease; }
-  @keyframes lockBounce {
-    0% { transform: scale(1); }
-    30% { transform: scale(1.3) rotate(-10deg); }
-    60% { transform: scale(0.9); }
-    100% { transform: scale(1); }
-  }
-  @keyframes unlockPop {
-    0% { transform: scale(1); }
-    40% { transform: scale(1.4) rotate(10deg); }
-    100% { transform: scale(1) rotate(0); }
-  }
-  @keyframes lockShimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-  }
-  @keyframes flowSlideIn {
-    from { opacity: 0; transform: translateX(-10px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
-  @keyframes coinMove {
-    0% { transform: translateX(0); opacity: 1; }
-    50% { transform: translateX(30px); opacity: 0.6; }
-    100% { transform: translateX(0); opacity: 1; }
-  }
+  @keyframes lockBounce { 0% { transform: scale(1); } 30% { transform: scale(1.3) rotate(-10deg); } 60% { transform: scale(0.9); } 100% { transform: scale(1); } }
+  @keyframes unlockPop { 0% { transform: scale(1); } 40% { transform: scale(1.4) rotate(10deg); } 100% { transform: scale(1) rotate(0); } }
+  @keyframes lockShimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+  @keyframes flowSlideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
 
   /* Footer */
-  footer {
-    text-align: center;
-    padding: 12px;
-    color: var(--dim);
-    font-size: 10px;
-    border-top: 1px solid var(--border);
-  }
+  footer { text-align: center; padding: 12px; color: var(--dim); font-size: 10px; border-top: 1px solid var(--border); }
   footer a { color: var(--blue); text-decoration: none; }
 
-  /* Connection badge */
+  /* WS Badge */
   .ws-badge {
-    position: fixed;
-    top: 12px;
-    right: 16px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 10px;
-    color: var(--dim);
-    background: var(--card);
-    padding: 4px 10px;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    z-index: 100;
+    position: fixed; top: 12px; right: 16px;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 10px; color: var(--dim);
+    background: var(--card); padding: 4px 10px; border-radius: 20px;
+    border: 1px solid var(--border); z-index: 100;
   }
-  .ws-badge .dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--dim);
-    transition: background 0.3s;
-  }
+  .ws-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--dim); transition: background 0.3s; }
   .ws-badge .dot.connected { background: var(--green); }
 </style>
 </head>
@@ -650,217 +411,277 @@
   <span id="wsStatus">Disconnected</span>
 </div>
 
-<header>
-  <h1><span>Canton</span> Agent Protocol</h1>
-  <div class="subtitle">Real-time AI agent-to-agent commerce on Canton Network &mdash; CIP-0056 Token Standard + LockedAmulet Pattern</div>
-  <div class="btn-group">
-    <button class="btn btn-run" id="btnRun" onclick="runDemo()">Run Demo</button>
-    <button class="btn btn-reset" onclick="resetDemo()">Reset</button>
-  </div>
-</header>
+<div class="app-layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1><span>Canton</span> Agent Protocol</h1>
+      <div class="subtitle">AI Agent Commerce on Canton Network</div>
+      <div class="sidebar-actions">
+        <button class="btn btn-run" id="btnRun" onclick="runSelected()">Run Demo</button>
+        <button class="btn btn-reset" onclick="resetDemo()">Reset</button>
+      </div>
+    </div>
+    <div class="uc-list" id="ucList"></div>
+  </aside>
 
-<div class="main">
-  <!-- Alice -->
-  <div class="agent-card">
-    <div>
-      <div class="agent-header">
-        <div class="agent-avatar alice-avatar">A</div>
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="demo-header">
+      <h2 id="demoTitle">Select a Use Case</h2>
+      <div class="demo-participants" id="demoParticipants"></div>
+      <div class="demo-scenario" id="demoScenario" style="display:none;"></div>
+    </div>
+
+    <div class="main">
+      <!-- Alice Card -->
+      <div class="agent-card alice-side">
         <div>
-          <div class="agent-name">Alice</div>
-          <span class="agent-role alice-role">Consumer</span>
+          <div class="agent-header">
+            <div class="agent-avatar alice-avatar">A</div>
+            <div>
+              <div class="agent-name">Alice</div>
+              <span class="agent-role alice-role">Consumer</span>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-    <div>
-      <div class="stat-label">Available Balance</div>
-      <div class="balance-value" id="aliceBalance" style="color: var(--blue);">&mdash;</div>
-      <div class="balance-change" id="aliceChange"></div>
-    </div>
-    <div>
-      <div class="stat-label">Locked Balance</div>
-      <div class="balance-value" id="aliceLockedBalance" style="color: var(--orange); font-size: 20px;">&mdash;</div>
-    </div>
-    <div>
-      <div class="stat-label">Status</div>
-      <div class="status-row">
-        <div class="status-dot" id="aliceDot"></div>
-        <span class="status-text" id="aliceStatus">Idle</span>
-      </div>
-    </div>
-    <div>
-      <div class="stat-label">Escrow</div>
-      <div class="escrow-box" id="aliceEscrow">
-        <span style="color: var(--dim);">No active escrow</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Timeline + Asset Flow -->
-  <div style="overflow: hidden;">
-    <div class="timeline" id="timeline">
-      <div class="step" id="step1">
-        <div class="step-num">1</div>
-        <div class="step-content">
-          <div class="step-title">Discover</div>
-          <div class="step-desc">Alice searches for a translation agent</div>
-        </div>
-        <div class="step-arrow">&rarr;</div>
-        <div class="step-detail" id="detail1"></div>
-      </div>
-      <div class="step" id="step2">
-        <div class="step-num">2</div>
-        <div class="step-content">
-          <div class="step-title">Request</div>
-          <div class="step-desc">Alice sends translation request to Bob</div>
-        </div>
-        <div class="step-arrow">&rarr;</div>
-        <div class="step-detail" id="detail2"></div>
-      </div>
-      <div class="step" id="step3">
-        <div class="step-num">3</div>
-        <div class="step-content">
-          <div class="step-title">Offer</div>
-          <div class="step-desc">Bob proposes price for the service</div>
-        </div>
-        <div class="step-arrow">&larr;</div>
-        <div class="step-detail" id="detail3"></div>
-      </div>
-      <div class="step" id="step4">
-        <div class="step-num">4</div>
-        <div class="step-content">
-          <div class="step-title">Split + Lock</div>
-          <div class="step-desc">Alice splits coin, locks payment in LockedCAPCoin</div>
-        </div>
-        <div class="step-arrow">&rarr;</div>
-        <div class="step-detail" id="detail4"></div>
-      </div>
-
-      <!-- Asset Flow Visualization -->
-      <div class="asset-flow" id="assetFlow">
-        <div class="flow-container" id="flowContainer"></div>
-      </div>
-
-      <div class="step" id="step5">
-        <div class="step-num">5</div>
-        <div class="step-content">
-          <div class="step-title">Execute</div>
-          <div class="step-desc">Bob translates "Hello world" to Korean</div>
-        </div>
-        <div class="step-arrow">&larr;</div>
-        <div class="step-detail" id="detail5"></div>
-      </div>
-      <div class="step" id="step6">
-        <div class="step-num">6</div>
-        <div class="step-content">
-          <div class="step-title">Deliver</div>
-          <div class="step-desc">Bob delivers result to the ledger</div>
-        </div>
-        <div class="step-arrow">&larr;</div>
-        <div class="step-detail" id="detail6"></div>
-      </div>
-      <div class="step" id="step7">
-        <div class="step-num">7</div>
-        <div class="step-content">
-          <div class="step-title">Approve + Rate</div>
-          <div class="step-desc">Alice approves result and rates Bob</div>
-        </div>
-        <div class="step-arrow">&rarr;</div>
-        <div class="step-detail" id="detail7"></div>
-      </div>
-      <div class="step" id="step8">
-        <div class="step-num">8</div>
-        <div class="step-content">
-          <div class="step-title">Release + Settlement</div>
-          <div class="step-desc">LockedCAPCoin released to Bob</div>
-        </div>
-        <div class="step-arrow">&#10003;</div>
-        <div class="step-detail" id="detail8"></div>
-      </div>
-    </div>
-
-    <!-- Ledger State Panel -->
-    <div class="ledger-state">
-      <div class="ledger-panel" id="ledgerPanel">
-        <div class="ledger-title">
-          <span style="color: var(--cyan);">&#9679;</span> Active Contracts on Ledger
-        </div>
-        <div id="ledgerContracts"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Bob -->
-  <div class="agent-card">
-    <div>
-      <div class="agent-header">
-        <div class="agent-avatar bob-avatar">B</div>
         <div>
-          <div class="agent-name">Bob</div>
-          <span class="agent-role bob-role">Provider</span>
+          <div class="stat-label">Available Balance</div>
+          <div class="balance-value" id="aliceBalance" style="color: var(--blue);">&mdash;</div>
+          <div class="balance-change" id="aliceChange"></div>
+        </div>
+        <div>
+          <div class="stat-label">Locked Balance</div>
+          <div class="balance-value" id="aliceLockedBalance" style="color: var(--orange); font-size: 20px;">&mdash;</div>
+        </div>
+        <div>
+          <div class="stat-label">Status</div>
+          <div class="status-row">
+            <div class="status-dot" id="aliceDot"></div>
+            <span class="status-text" id="aliceStatus">Idle</span>
+          </div>
+        </div>
+        <div>
+          <div class="stat-label">Escrow</div>
+          <div class="escrow-box" id="aliceEscrow">
+            <span style="color: var(--dim);">No active escrow</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timeline + Asset Flow + Ledger -->
+      <div style="overflow: hidden;">
+        <div class="timeline" id="timeline"></div>
+        <div class="asset-flow" id="assetFlow">
+          <div class="flow-container" id="flowContainer"></div>
+        </div>
+        <div class="ledger-state">
+          <div class="ledger-panel" id="ledgerPanel">
+            <div class="ledger-title">
+              <span style="color: var(--cyan);">&#9679;</span> Active Contracts on Ledger
+            </div>
+            <div id="ledgerContracts"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Bob + Third Party -->
+      <div class="right-panel">
+        <div class="agent-card">
+          <div>
+            <div class="agent-header">
+              <div class="agent-avatar bob-avatar">B</div>
+              <div>
+                <div class="agent-name">Bob</div>
+                <span class="agent-role bob-role">Provider</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="stat-label">Available Balance</div>
+            <div class="balance-value" id="bobBalance" style="color: var(--purple);">&mdash;</div>
+            <div class="balance-change" id="bobChange"></div>
+          </div>
+          <div>
+            <div class="stat-label">Locked Balance</div>
+            <div class="balance-value" id="bobLockedBalance" style="color: var(--orange); font-size: 20px;">&mdash;</div>
+          </div>
+          <div>
+            <div class="stat-label">Status</div>
+            <div class="status-row">
+              <div class="status-dot" id="bobDot"></div>
+              <span class="status-text" id="bobStatus">Idle</span>
+            </div>
+          </div>
+          <div>
+            <div class="stat-label">Escrow</div>
+            <div class="escrow-box" id="bobEscrow">
+              <span style="color: var(--dim);">No active escrow</span>
+            </div>
+          </div>
+          <div>
+            <div class="stat-label">Result</div>
+            <div class="result-box" id="bobResult">
+              <div class="result-label">Translation Output</div>
+              <div class="result-text" id="bobResultText"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Third Party Panel (Arbiter / Treasury) -->
+        <div class="third-party-panel" id="thirdPartyPanel" style="display:none;">
+          <div class="agent-header">
+            <div class="agent-avatar" id="tpAvatar">?</div>
+            <div>
+              <div class="agent-name" id="tpName">Third Party</div>
+              <span class="agent-role" id="tpRole">Role</span>
+            </div>
+          </div>
+          <div>
+            <div class="stat-label">Balance</div>
+            <div class="balance-value" id="tpBalance" style="font-size: 20px; color: var(--cyan);">&mdash;</div>
+          </div>
+          <div>
+            <div class="stat-label">Status</div>
+            <div class="status-row">
+              <div class="status-dot" id="tpDot"></div>
+              <span class="status-text" id="tpStatus">Idle</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-    <div>
-      <div class="stat-label">Available Balance</div>
-      <div class="balance-value" id="bobBalance" style="color: var(--purple);">&mdash;</div>
-      <div class="balance-change" id="bobChange"></div>
-    </div>
-    <div>
-      <div class="stat-label">Locked Balance</div>
-      <div class="balance-value" id="bobLockedBalance" style="color: var(--orange); font-size: 20px;">&mdash;</div>
-    </div>
-    <div>
-      <div class="stat-label">Status</div>
-      <div class="status-row">
-        <div class="status-dot" id="bobDot"></div>
-        <span class="status-text" id="bobStatus">Idle</span>
+
+    <!-- Event Log -->
+    <div class="event-log-container">
+      <div class="event-log-header">
+        <div class="dot"></div>
+        Event Log
       </div>
+      <div class="event-log" id="eventLog"></div>
     </div>
-    <div>
-      <div class="stat-label">Escrow</div>
-      <div class="escrow-box" id="bobEscrow">
-        <span style="color: var(--dim);">No active escrow</span>
-      </div>
-    </div>
-    <div>
-      <div class="stat-label">Result</div>
-      <div class="result-box" id="bobResult">
-        <div class="result-label">Translation Output</div>
-        <div class="result-text" id="bobResultText"></div>
-      </div>
-    </div>
+
+    <footer>
+      Canton Agent Protocol v0.1.0 &mdash; Powered by <a href="https://www.canton.network/" target="_blank">Canton Network</a> + Daml Smart Contracts &mdash; CIP-0056 Holding + LockedAmulet Pattern
+    </footer>
   </div>
 </div>
-
-<!-- Event Log -->
-<div class="event-log-container">
-  <div class="event-log-header">
-    <div class="dot"></div>
-    Event Log
-  </div>
-  <div class="event-log" id="eventLog"></div>
-</div>
-
-<footer>
-  Canton Agent Protocol v0.1.0 &mdash; Powered by <a href="https://www.canton.network/" target="_blank">Canton Network</a> + Daml Smart Contracts &mdash; CIP-0056 Holding + LockedAmulet Pattern
-</footer>
 
 <script>
-const API = '';  // same origin
+const API = '';
 let running = false;
+let currentUC = null;
 let ws = null;
 
-// ── Helpers ──
+// ══════════════════════════════════════════════════════════════════
+// USE CASE REGISTRY
+// ══════════════════════════════════════════════════════════════════
 
-function sleep(ms) {
-  return new Promise(r => setTimeout(r, ms));
-}
+const USE_CASES = [
+  {
+    id: 'happy-path', name: 'Happy Path', icon: '1',
+    description: 'Basic service transaction flow',
+    scenario: 'Alice hires Bob\u2019s AI translation agent to translate "Hello world" into Korean. Bob delivers a perfect translation, Alice approves and pays \u2014 a typical freelance marketplace transaction, fully automated between AI agents on-chain.',
+    participants: ['alice:Alice (Consumer)', 'bob:Bob (Provider)'],
+    thirdParty: null,
+    steps: [
+      { title: 'Request', desc: 'Alice posts a translation job: "Hello world" \u2192 Korean', arrow: '&rarr;' },
+      { title: 'Offer', desc: 'Bob\u2019s AI agent bids 0.50 CAP for the job', arrow: '&larr;' },
+      { title: 'Accept + Lock', desc: 'Alice accepts \u2014 payment locked in escrow (like Upwork\u2019s escrow)', arrow: '&rarr;' },
+      { title: 'Deliver', desc: 'Bob\u2019s agent completes translation, submits result on-chain', arrow: '&larr;' },
+      { title: 'Approve + Rate', desc: 'Alice reviews output, approves and leaves 5-star rating', arrow: '&rarr;' },
+      { title: 'Settlement', desc: 'Escrow releases payment to Bob automatically', arrow: '&#10003;' },
+    ],
+    run: runHappyPath,
+  },
+  {
+    id: 'dispute-resolution', name: 'Dispute Resolution', icon: '2',
+    description: 'Quality dispute \u2192 Provider concedes',
+    scenario: 'Alice orders a translation but Bob\u2019s AI agent delivers gibberish. Alice files a dispute (like a PayPal chargeback). Bob\u2019s agent acknowledges the poor quality and concedes \u2014 Alice gets a full refund without any intermediary.',
+    participants: ['alice:Alice (Consumer)', 'bob:Bob (Provider)'],
+    thirdParty: null,
+    steps: [
+      { title: 'Setup', desc: 'Alice orders translation, payment locked in escrow', arrow: '&harr;' },
+      { title: 'Deliver', desc: 'Bob delivers unacceptable quality work', arrow: '&larr;' },
+      { title: 'Dispute', desc: 'Alice files dispute: "Translation quality unacceptable"', arrow: '&rarr;' },
+      { title: 'Concede', desc: 'Bob\u2019s agent reviews and acknowledges fault', arrow: '&larr;' },
+      { title: 'Refund', desc: 'Escrowed funds returned to Alice in full', arrow: '&#10003;' },
+    ],
+    run: runDisputeResolution,
+  },
+  {
+    id: 'arbiter-mediation', name: 'Arbiter Mediation', icon: '3',
+    description: 'Third-party judge splits the payment',
+    scenario: 'Alice disputes Bob\u2019s partial translation (60% done). Neither side agrees, so they escalate to an on-chain Arbiter \u2014 like a small claims court. Both submit evidence, and the Arbiter issues a 60/40 split ruling. Funds are distributed automatically per the verdict.',
+    participants: ['alice:Alice (Consumer)', 'bob:Bob (Provider)', 'arbiter:Arbiter (Judge)'],
+    thirdParty: 'arbiter',
+    steps: [
+      { title: 'Setup', desc: 'Alice orders translation, payment locked in escrow', arrow: '&harr;' },
+      { title: 'Deliver', desc: 'Bob delivers only 60% of the requested work', arrow: '&larr;' },
+      { title: 'Dispute', desc: 'Alice files dispute: "Partial completion only"', arrow: '&rarr;' },
+      { title: 'Escalate', desc: 'Neither side agrees \u2014 escalated to Arbiter (on-chain judge)', arrow: '&uarr;' },
+      { title: 'Evidence', desc: 'Alice: "Only 60% done" / Bob: "Scope was ambiguous"', arrow: '&harr;' },
+      { title: 'Split Ruling', desc: 'Arbiter rules: Alice gets 60% back, Bob keeps 40%', arrow: '&darr;' },
+      { title: 'Settlement', desc: 'Smart contract auto-distributes per ruling', arrow: '&#10003;' },
+    ],
+    run: runArbiterMediation,
+  },
+  {
+    id: 'sla-penalty', name: 'SLA Penalty', icon: '4',
+    description: 'Late delivery \u2192 Auto penalty deduction',
+    scenario: 'Alice needs an urgent translation with a strict SLA (1-second deadline, 20% penalty for lateness). Bob\u2019s agent accepts but delivers way past the deadline. The smart contract automatically deducts a 20% penalty \u2014 like a late fee on a shipping contract \u2014 no manual intervention needed.',
+    participants: ['alice:Alice (Consumer)', 'bob:Bob (Provider)'],
+    thirdParty: null,
+    steps: [
+      { title: 'Request + SLA', desc: 'Alice posts urgent job: 1s deadline, 20% late penalty', arrow: '&rarr;' },
+      { title: 'Offer + Lock', desc: 'Bob accepts \u2014 clock starts (simulated as already expired)', arrow: '&harr;' },
+      { title: 'Late Delivery', desc: 'Bob delivers years late \u2014 SLA clearly violated', arrow: '&larr;' },
+      { title: 'Approve', desc: 'Alice approves work but penalty is auto-calculated', arrow: '&rarr;' },
+      { title: 'Settlement', desc: 'Bob gets 80% (0.40), Alice refunded 20% (0.10) as penalty', arrow: '&#10003;' },
+    ],
+    run: runSLAPenalty,
+  },
+  {
+    id: 'protocol-fees', name: 'Protocol Fees', icon: '5',
+    description: 'Platform fee auto-collected by Treasury',
+    scenario: 'Like Uber or App Store taking a platform cut, the Canton protocol charges a 2% fee on every transaction. When Alice pays Bob, the smart contract automatically splits off the fee into a FeeTransfer. The Treasury (protocol operator) then collects it \u2014 fully transparent and on-chain.',
+    participants: ['alice:Alice (Consumer)', 'bob:Bob (Provider)', 'treasury:Treasury'],
+    thirdParty: 'treasury',
+    steps: [
+      { title: 'Request + Fee', desc: 'Alice posts job with 2% platform fee configured', arrow: '&rarr;' },
+      { title: 'Offer + Lock', desc: 'Standard offer and escrow lock', arrow: '&harr;' },
+      { title: 'Deliver', desc: 'Bob delivers result', arrow: '&larr;' },
+      { title: 'Approve', desc: 'Alice approves \u2014 fee auto-split into FeeTransfer contract', arrow: '&rarr;' },
+      { title: 'Fee Collect', desc: 'Treasury collects pending fees (like Stripe settlement)', arrow: '&darr;' },
+      { title: 'Settlement', desc: 'Bob: 0.49 CAP, Treasury: 0.01 CAP (2% fee)', arrow: '&#10003;' },
+    ],
+    run: runProtocolFees,
+  },
+  {
+    id: 'timeout-refund', name: 'Timeout Refund', icon: '6',
+    description: 'Agent goes silent \u2192 Auto refund',
+    scenario: 'Alice orders a translation but Bob\u2019s AI agent crashes and never delivers. After the SLA deadline passes, Alice claims a timeout directly on the Escrow contract \u2014 like an Amazon A-to-Z guarantee. The locked funds are returned automatically without needing Bob\u2019s cooperation.',
+    participants: ['alice:Alice (Consumer)', 'bob:Bob (Provider)'],
+    thirdParty: null,
+    steps: [
+      { title: 'Request + SLA', desc: 'Alice posts job with tight 1-second deadline', arrow: '&rarr;' },
+      { title: 'Offer + Lock', desc: 'Bob accepts, payment locked (deadline already past)', arrow: '&harr;' },
+      { title: 'Wait', desc: 'Bob\u2019s agent is unresponsive \u2014 deadline expires', arrow: '&middot;&middot;&middot;' },
+      { title: 'Claim Timeout', desc: 'Alice triggers ClaimTimeout on Escrow (no delivery = no PendingReview)', arrow: '&rarr;' },
+      { title: 'Full Refund', desc: 'Locked funds returned to Alice \u2014 zero loss', arrow: '&#10003;' },
+    ],
+    run: runTimeoutRefund,
+  },
+];
+
+// ══════════════════════════════════════════════════════════════════
+// CORE HELPERS
+// ══════════════════════════════════════════════════════════════════
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function api(method, path, body) {
-  const opts = {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-  };
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (body) opts.body = JSON.stringify(body);
   const resp = await fetch(`${API}${path}`, opts);
   return resp.json();
@@ -872,26 +693,22 @@ function timestamp() {
 
 function shortCid(cid) {
   if (!cid) return '...';
-  // Show first 8 and last 6 chars
   if (cid.length > 20) return cid.substring(0, 8) + '...' + cid.substring(cid.length - 6);
   return cid;
 }
 
 function txHash(cid) {
-  // Generate a deterministic hex-like hash from contract ID
   if (!cid) return '0x000000';
   let hash = 0;
-  for (let i = 0; i < cid.length; i++) {
-    hash = ((hash << 5) - hash + cid.charCodeAt(i)) | 0;
-  }
+  for (let i = 0; i < cid.length; i++) hash = ((hash << 5) - hash + cid.charCodeAt(i)) | 0;
   return '0x' + Math.abs(hash).toString(16).padStart(8, '0');
 }
 
 function log(tag, msg, data) {
   const el = document.getElementById('eventLog');
+  const dataStr = data ? `  <span class="log-data">${typeof data === 'string' ? data : JSON.stringify(data)}</span>` : '';
   const entry = document.createElement('div');
   entry.className = 'log-entry';
-  const dataStr = data ? `  <span class="log-data">${typeof data === 'string' ? data : JSON.stringify(data)}</span>` : '';
   entry.innerHTML = `<span class="log-time">${timestamp()}</span><span class="log-tag ${tag}">${tag.toUpperCase()}</span><span class="log-msg">${msg}${dataStr}</span>`;
   el.appendChild(entry);
   el.scrollTop = el.scrollHeight;
@@ -901,18 +718,16 @@ function logTx(action, cid, detail) {
   const el = document.getElementById('eventLog');
   const entry = document.createElement('div');
   entry.className = 'log-entry';
-  const hash = txHash(cid);
-  entry.innerHTML = `<span class="log-time">${timestamp()}</span><span class="log-tag tx">TX</span><span class="log-msg">${action} <span class="tx-hash contract"><span class="icon">&#9638;</span> ${hash}</span> ${detail || ''}</span>`;
+  entry.innerHTML = `<span class="log-time">${timestamp()}</span><span class="log-tag tx">TX</span><span class="log-msg">${action} <span class="tx-hash contract"><span class="icon">&#9638;</span> ${txHash(cid)}</span> ${detail || ''}</span>`;
   el.appendChild(entry);
   el.scrollTop = el.scrollHeight;
 }
 
 function setStep(n, state, detail) {
   const el = document.getElementById(`step${n}`);
+  if (!el) return;
   el.className = `step ${state}`;
-  if (detail !== undefined) {
-    document.getElementById(`detail${n}`).innerHTML = detail;
-  }
+  if (detail !== undefined) document.getElementById(`detail${n}`).innerHTML = detail;
 }
 
 function setAgentStatus(agent, status, state) {
@@ -925,12 +740,10 @@ function setAgentStatus(agent, status, state) {
 
 function setBalance(agent, amount, prevAmount) {
   const el = document.getElementById(`${agent}Balance`);
-  const unit = `<span class="balance-unit">CAP</span>`;
-  el.innerHTML = `${Number(amount).toFixed(2)}${unit}`;
+  el.innerHTML = `${Number(amount).toFixed(2)}<span class="balance-unit">CAP</span>`;
   el.classList.remove('balance-pop');
   void el.offsetWidth;
   el.classList.add('balance-pop');
-
   if (prevAmount !== undefined && prevAmount !== null) {
     const diff = amount - prevAmount;
     if (Math.abs(diff) > 0.001) {
@@ -957,47 +770,25 @@ function setEscrow(agent, amount, lockedCid, state) {
   if (amount && state === 'locked') {
     el.className = 'escrow-box locked';
     const cidStr = lockedCid ? `<div class="escrow-cid">LockedCAPCoin: ${shortCid(lockedCid)}</div>` : '';
-    el.innerHTML = `
-      <span class="lock-icon locked">&#128274;</span>
-      <div>
-        <div><span class="escrow-label locked-label">LOCKED</span></div>
-        <div style="margin-top:4px;"><span class="escrow-amount">${Number(amount).toFixed(2)}</span> <span style="color: var(--dim);">CAP</span></div>
-        ${cidStr}
-      </div>`;
+    el.innerHTML = `<span class="lock-icon locked">&#128274;</span><div><div><span class="escrow-label locked-label">LOCKED</span></div><div style="margin-top:4px;"><span class="escrow-amount">${Number(amount).toFixed(2)}</span> <span style="color:var(--dim);">CAP</span></div>${cidStr}</div>`;
   } else if (amount && state === 'released') {
     el.className = 'escrow-box';
     el.style.borderColor = 'var(--green)';
     el.style.background = 'rgba(0,255,136,0.06)';
-    el.innerHTML = `
-      <span class="lock-icon unlocked">&#128275;</span>
-      <div>
-        <div><span class="escrow-label released-label">RELEASED</span></div>
-        <div style="margin-top:4px;"><span class="escrow-amount" style="color:var(--green);">${Number(amount).toFixed(2)}</span> <span style="color: var(--dim);">CAP</span></div>
-      </div>`;
-    setTimeout(() => {
-      el.className = 'escrow-box';
-      el.style.borderColor = '';
-      el.style.background = '';
-      el.innerHTML = `<span style="color: var(--dim);">No active escrow</span>`;
-    }, 3000);
+    el.innerHTML = `<span class="lock-icon unlocked">&#128275;</span><div><div><span class="escrow-label released-label">RELEASED</span></div><div style="margin-top:4px;"><span class="escrow-amount" style="color:var(--green);">${Number(amount).toFixed(2)}</span> <span style="color:var(--dim);">CAP</span></div></div>`;
+    setTimeout(() => { el.className = 'escrow-box'; el.style.borderColor = ''; el.style.background = ''; el.innerHTML = `<span style="color:var(--dim);">No active escrow</span>`; }, 3000);
   } else {
-    el.className = 'escrow-box';
-    el.style.borderColor = '';
-    el.style.background = '';
-    el.innerHTML = `<span style="color: var(--dim);">No active escrow</span>`;
+    el.className = 'escrow-box'; el.style.borderColor = ''; el.style.background = '';
+    el.innerHTML = `<span style="color:var(--dim);">No active escrow</span>`;
   }
 }
-
-// ── Asset Flow Visualization ──
 
 function showAssetFlow(rows) {
   const container = document.getElementById('flowContainer');
   const flowEl = document.getElementById('assetFlow');
   flowEl.classList.add('visible');
   container.classList.add('visible');
-
-  container.innerHTML = `<div class="flow-header"><span style="color:var(--cyan);">&#9654;</span> Asset Flow &mdash; LockedAmulet Pattern</div>`;
-
+  container.innerHTML = `<div class="flow-header"><span style="color:var(--cyan);">&#9654;</span> Asset Flow</div>`;
   rows.forEach((row, i) => {
     setTimeout(() => {
       const rowEl = document.createElement('div');
@@ -1009,28 +800,21 @@ function showAssetFlow(rows) {
 }
 
 function clearAssetFlow() {
-  const container = document.getElementById('flowContainer');
-  container.classList.remove('visible');
-  container.innerHTML = '';
+  document.getElementById('flowContainer').classList.remove('visible');
+  document.getElementById('flowContainer').innerHTML = '';
   document.getElementById('assetFlow').classList.remove('visible');
 }
 
-// ── Ledger State Panel ──
-
 function showLedgerState(contracts) {
   const panel = document.getElementById('ledgerPanel');
-  const contractsEl = document.getElementById('ledgerContracts');
+  const el = document.getElementById('ledgerContracts');
   panel.classList.add('visible');
-  contractsEl.innerHTML = '';
-
+  el.innerHTML = '';
   contracts.forEach(c => {
     const entry = document.createElement('div');
     entry.className = 'contract-entry';
-    entry.innerHTML = `
-      <span class="contract-type ${c.typeClass}">${c.type}</span>
-      <span class="contract-cid" title="${c.cid}">${shortCid(c.cid)}</span>
-      <span class="contract-detail">${c.detail}</span>`;
-    contractsEl.appendChild(entry);
+    entry.innerHTML = `<span class="contract-type ${c.typeClass}">${c.type}</span><span class="contract-cid" title="${c.cid}">${shortCid(c.cid)}</span><span class="contract-detail">${c.detail}</span>`;
+    el.appendChild(entry);
   });
 }
 
@@ -1039,7 +823,982 @@ function clearLedgerState() {
   document.getElementById('ledgerContracts').innerHTML = '';
 }
 
-// ── WebSocket ──
+async function fetchBalance(agent) {
+  const data = await api('GET', `/cap/v1/wallet?as=${agent}`);
+  return {
+    balance: data.balance || 0,
+    lockedBalance: data.lockedBalance || 0,
+    totalBalance: data.totalBalance || data.balance || 0,
+    coins: data.coins || [],
+    lockedCoins: data.lockedCoins || [],
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════
+// UI RENDERING
+// ══════════════════════════════════════════════════════════════════
+
+function renderTimeline(uc) {
+  const container = document.getElementById('timeline');
+  container.innerHTML = '';
+  uc.steps.forEach((step, i) => {
+    const n = i + 1;
+    const el = document.createElement('div');
+    el.className = 'step';
+    el.id = `step${n}`;
+    el.innerHTML = `<div class="step-num">${n}</div><div class="step-content"><div class="step-title">${step.title}</div><div class="step-desc">${step.desc}</div></div><div class="step-arrow">${step.arrow}</div><div class="step-detail" id="detail${n}"></div>`;
+    container.appendChild(el);
+  });
+}
+
+function renderSidebar() {
+  const list = document.getElementById('ucList');
+  list.innerHTML = '';
+  USE_CASES.forEach(uc => {
+    const card = document.createElement('div');
+    card.className = 'use-case-card';
+    card.dataset.id = uc.id;
+    card.onclick = () => selectUseCase(uc.id);
+    card.innerHTML = `<div class="uc-badge" id="badge-${uc.id}">${uc.icon}</div><div class="uc-info"><div class="uc-name">${uc.name}</div><div class="uc-desc">${uc.description}</div></div>`;
+    list.appendChild(card);
+  });
+}
+
+function setUCBadge(ucId, state) {
+  const badge = document.getElementById(`badge-${ucId}`);
+  if (!badge) return;
+  badge.className = 'uc-badge';
+  if (state === 'running') badge.classList.add('running');
+  else if (state === 'done') { badge.classList.add('done'); badge.innerHTML = '&#10003;'; }
+  else if (state === 'error') badge.classList.add('error');
+}
+
+function configureThirdParty(uc) {
+  const panel = document.getElementById('thirdPartyPanel');
+  if (!uc.thirdParty) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  const avatar = document.getElementById('tpAvatar');
+  const name = document.getElementById('tpName');
+  const role = document.getElementById('tpRole');
+  const balEl = document.getElementById('tpBalance');
+  if (uc.thirdParty === 'arbiter') {
+    avatar.textContent = 'J'; avatar.className = 'agent-avatar arbiter-avatar';
+    name.textContent = 'Arbiter'; role.textContent = 'Judge'; role.className = 'agent-role arbiter-role';
+    balEl.style.color = 'var(--yellow)';
+  } else if (uc.thirdParty === 'treasury') {
+    avatar.textContent = 'T'; avatar.className = 'agent-avatar treasury-avatar';
+    name.textContent = 'Treasury'; role.textContent = 'Fee Collector'; role.className = 'agent-role treasury-role';
+    balEl.style.color = 'var(--cyan)';
+  }
+  balEl.innerHTML = '&mdash;';
+  setThirdPartyStatus('Idle', '');
+}
+
+function setThirdPartyStatus(status, state) {
+  document.getElementById('tpStatus').textContent = status;
+  const dot = document.getElementById('tpDot');
+  dot.className = 'status-dot';
+  if (state === 'busy') dot.classList.add('busy');
+  if (state === 'active') dot.classList.add('active');
+}
+
+function selectUseCase(id) {
+  if (running) return;
+  const uc = USE_CASES.find(u => u.id === id);
+  if (!uc) return;
+  currentUC = uc;
+  document.querySelectorAll('.use-case-card').forEach(el => el.classList.toggle('selected', el.dataset.id === id));
+  document.getElementById('demoTitle').textContent = uc.name;
+  const pEl = document.getElementById('demoParticipants');
+  pEl.innerHTML = uc.participants.map(p => {
+    const [key, label] = p.split(':');
+    return `<span class="participant-badge ${key}">${label}</span>`;
+  }).join('');
+  const sEl = document.getElementById('demoScenario');
+  if (uc.scenario) {
+    sEl.textContent = uc.scenario;
+    sEl.style.display = 'block';
+  } else {
+    sEl.style.display = 'none';
+  }
+  renderTimeline(uc);
+  configureThirdParty(uc);
+  resetDemoState();
+}
+
+function resetDemoState() {
+  document.getElementById('eventLog').innerHTML = '';
+  setAgentStatus('alice', 'Idle', '');
+  setAgentStatus('bob', 'Idle', '');
+  setEscrow('alice', null);
+  setEscrow('bob', null);
+  clearAssetFlow();
+  clearLedgerState();
+  document.getElementById('aliceBalance').innerHTML = '&mdash;';
+  document.getElementById('bobBalance').innerHTML = '&mdash;';
+  document.getElementById('aliceLockedBalance').innerHTML = '&mdash;';
+  document.getElementById('bobLockedBalance').innerHTML = '&mdash;';
+  document.getElementById('aliceChange').className = 'balance-change';
+  document.getElementById('bobChange').className = 'balance-change';
+  document.getElementById('bobResult').classList.remove('visible');
+  document.getElementById('tpBalance').innerHTML = '&mdash;';
+  setThirdPartyStatus('Idle', '');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SETUP HELPERS
+// ══════════════════════════════════════════════════════════════════
+
+async function initBalances() {
+  const aliceInit = await fetchBalance('alice');
+  const bobInit = await fetchBalance('bob');
+  setBalance('alice', aliceInit.balance);
+  setBalance('bob', bobInit.balance);
+  setLockedBalance('alice', aliceInit.lockedBalance);
+  setLockedBalance('bob', bobInit.lockedBalance);
+  log('alice', `Balance: ${aliceInit.balance.toFixed(2)} CAP`, `(${aliceInit.coins.length} coins)`);
+  log('bob', `Balance: ${bobInit.balance.toFixed(2)} CAP`, `(${bobInit.coins.length} coins)`);
+  return { aliceInit, bobInit };
+}
+
+async function createServiceRequest(opts = {}) {
+  const body = {
+    consumer: 'alice', provider: 'bob', capability: 'translation',
+    params: JSON.stringify({ text: 'Hello world', targetLang: 'ko' }),
+    maxPrice: '1.0',
+  };
+  if (opts.slaTerms) body.slaTerms = opts.slaTerms;
+  if (opts.feeConfig) body.feeConfig = opts.feeConfig;
+  const resp = await api('POST', '/cap/v1/services/requests', body);
+  return resp.contractId || '';
+}
+
+async function offerAndLock(opts = {}) {
+  const price = opts.price || 0.50;
+  const reqList = await api('GET', '/cap/v1/services/requests?as=bob');
+  const pendingReq = (reqList.requests || []).find(r => r.capability === 'translation');
+  if (!pendingReq) throw new Error('No request found for Bob');
+
+  await api('POST', `/cap/v1/services/requests/${pendingReq.contractId}/offer`, {
+    provider: 'bob', price: String(price), estimatedTimeMs: 5000,
+  });
+
+  const offerList = await api('GET', '/cap/v1/services/offers?as=alice');
+  const pendingOffer = (offerList.offers || [])[0];
+  if (!pendingOffer) throw new Error('No offer found');
+
+  const aliceCoins = (await fetchBalance('alice')).coins;
+  const bigCoin = aliceCoins.find(c => c.amount >= price);
+  if (!bigCoin) throw new Error('Insufficient balance');
+
+  let paymentCid;
+  if (Math.abs(bigCoin.amount - price) < 0.001) {
+    paymentCid = bigCoin.contractId;
+  } else {
+    await api('POST', '/cap/v1/wallet/split', {
+      owner: 'alice', contractId: bigCoin.contractId, splitAmount: String(price),
+    });
+    const afterSplit = (await fetchBalance('alice')).coins;
+    const splitCoin = afterSplit.find(c => Math.abs(c.amount - price) < 0.001);
+    paymentCid = splitCoin ? splitCoin.contractId : afterSplit[afterSplit.length - 1].contractId;
+  }
+
+  const acceptBody = { consumer: 'alice', paymentCid };
+  if (opts.acceptedAt) acceptBody.acceptedAt = opts.acceptedAt;
+  await api('POST', `/cap/v1/services/offers/${pendingOffer.contractId}/accept`, acceptBody);
+
+  const escrowList = await api('GET', '/cap/v1/escrows?as=alice');
+  const escrow = (escrowList.escrows || [])[0];
+  const aliceAfterLock = await fetchBalance('alice');
+
+  return {
+    escrowCid: escrow ? escrow.contractId : '',
+    paymentCid, bigCoin, aliceAfterLock, price,
+  };
+}
+
+async function fullSetup(opts = {}) {
+  const { aliceInit, bobInit } = await initBalances();
+  await createServiceRequest(opts);
+  const lock = await offerAndLock(opts);
+  return { aliceInit, bobInit, ...lock };
+}
+
+// ══════════════════════════════════════════════════════════════════
+// UC1: HAPPY PATH
+// ══════════════════════════════════════════════════════════════════
+
+async function runHappyPath() {
+  log('system', 'Happy Path demo — basic service transaction flow');
+  const { aliceInit, bobInit } = await initBalances();
+  await sleep(600);
+
+  // Step 1: Request
+  setStep(1, 'active');
+  setAgentStatus('alice', 'Requesting...', 'busy');
+  log('alice', 'Creating service request: translate "Hello world" to Korean');
+  const requestCid = await createServiceRequest();
+  setStep(1, 'done', `ServiceRequest created <span class="tx-hash contract"><span class="icon">&#9638;</span> ${txHash(requestCid)}</span>`);
+  logTx('CREATE', requestCid, 'ServiceRequest { capability: translation, maxPrice: 1.0 }');
+  setAgentStatus('alice', 'Waiting for offer', 'busy');
+  setAgentStatus('bob', 'Request received', 'active');
+  await sleep(1000);
+
+  // Step 2: Offer
+  setStep(2, 'active');
+  setAgentStatus('bob', 'Preparing offer...', 'busy');
+  log('bob', 'Reviewing request and preparing offer...');
+  const reqList = await api('GET', '/cap/v1/services/requests?as=bob');
+  const pendingReq = (reqList.requests || []).find(r => r.capability === 'translation');
+  if (!pendingReq) throw new Error('No request found');
+  const offerResp = await api('POST', `/cap/v1/services/requests/${pendingReq.contractId}/offer`, {
+    provider: 'bob', price: '0.50', estimatedTimeMs: 5000,
+  });
+  setStep(2, 'done', `ServiceOffer: 0.50 CAP, ETA 5s <span class="tx-hash contract"><span class="icon">&#9638;</span> ${txHash(pendingReq.contractId)}</span>`);
+  logTx('CREATE', pendingReq.contractId, 'ServiceOffer { price: 0.50 }');
+  setAgentStatus('bob', 'Offer sent', 'active');
+  setAgentStatus('alice', 'Offer received', 'active');
+  await sleep(1000);
+
+  // Step 3: Accept + Lock
+  setStep(3, 'active');
+  setAgentStatus('alice', 'Accepting offer...', 'busy');
+  log('alice', 'Evaluating offer... price within budget');
+
+  const offerList = await api('GET', '/cap/v1/services/offers?as=alice');
+  const pendingOffer = (offerList.offers || [])[0];
+  if (!pendingOffer) throw new Error('No offer found');
+
+  const aliceCoins = (await fetchBalance('alice')).coins;
+  const bigCoin = aliceCoins.find(c => c.amount >= 0.50);
+  if (!bigCoin) throw new Error('Insufficient balance');
+  log('alice', `Using CAPCoin (${bigCoin.amount.toFixed(2)} CAP)`, shortCid(bigCoin.contractId));
+
+  let paymentCid;
+  if (Math.abs(bigCoin.amount - 0.50) < 0.001) {
+    paymentCid = bigCoin.contractId;
+  } else {
+    logTx('SPLIT', bigCoin.contractId, `CAPCoin(${bigCoin.amount.toFixed(2)}) &rarr; CAPCoin(0.50) + CAPCoin(${(bigCoin.amount - 0.50).toFixed(2)})`);
+    await api('POST', '/cap/v1/wallet/split', {
+      owner: 'alice', contractId: bigCoin.contractId, splitAmount: '0.50',
+    });
+    const afterSplit = (await fetchBalance('alice')).coins;
+    const splitCoin = afterSplit.find(c => Math.abs(c.amount - 0.50) < 0.001);
+    paymentCid = splitCoin ? splitCoin.contractId : afterSplit[afterSplit.length - 1].contractId;
+  }
+
+  log('alice', 'AcceptOffer: Lock 0.50 CAP in LockedCAPCoin');
+  await api('POST', `/cap/v1/services/offers/${pendingOffer.contractId}/accept`, {
+    consumer: 'alice', paymentCid,
+  });
+
+  const escrowList = await api('GET', '/cap/v1/escrows?as=alice');
+  const escrow = (escrowList.escrows || [])[0];
+  const escrowCid = escrow ? escrow.contractId : '';
+  logTx('LOCK', paymentCid, 'CAPCoin(0.50) &rarr; LockedCAPCoin(0.50)');
+  logTx('CREATE', escrowCid, 'Escrow { amount: 0.50 }');
+
+  showAssetFlow([
+    `<span class="flow-label">SPLIT</span> <span class="flow-node coin">&#9673; CAPCoin <span class="flow-amount">${bigCoin.amount.toFixed(2)}</span></span> <span class="flow-arrow">&rarr;</span> <span class="flow-node coin">&#9673; CAPCoin <span class="flow-amount">0.50</span></span> <span style="color:var(--dim);">+</span> <span class="flow-node coin">&#9673; CAPCoin <span class="flow-amount">${(bigCoin.amount - 0.50).toFixed(2)}</span></span>`,
+    `<span class="flow-label">LOCK</span> <span class="flow-node coin">&#9673; CAPCoin <span class="flow-amount">0.50</span></span> <span class="flow-arrow">&rarr;</span> <span class="flow-node locked-coin">&#128274; LockedCAPCoin <span class="flow-amount">0.50</span></span> <span style="font-size:10px;color:var(--dim);">[beneficiary: Bob]</span>`,
+    `<span class="flow-label">ESCROW</span> <span class="flow-node escrow-node">&#9632; Escrow</span> <span style="font-size:10px;color:var(--dim);">holds reference to</span> <span class="flow-node locked-coin">&#128274; LockedCAPCoin</span>`,
+  ]);
+
+  const aliceAfterLock = await fetchBalance('alice');
+  setEscrow('alice', 0.50, escrowCid, 'locked');
+  setEscrow('bob', 0.50, escrowCid, 'locked');
+  setBalance('alice', aliceAfterLock.balance, aliceInit.balance);
+  setLockedBalance('alice', aliceAfterLock.lockedBalance);
+  setStep(3, 'done', `Split + Lock &rarr; Escrow <span class="tx-hash lock"><span class="icon">&#128274;</span> ${txHash(escrowCid)}</span>`);
+  setAgentStatus('alice', 'Escrow locked', 'active');
+  setAgentStatus('bob', 'Work authorized', 'active');
+  await sleep(1500);
+
+  // Step 4: Deliver
+  setStep(4, 'active');
+  setAgentStatus('bob', 'Translating...', 'busy');
+  log('bob', 'Executing translation: "Hello world" &rarr; Korean');
+  await sleep(1000);
+
+  const translatedText = '\uD558\uB298\uC544\uB798 \uC138\uC0C1\uC544';
+  document.getElementById('bobResultText').textContent = `"Hello world" \u2192 "${translatedText}"`;
+  document.getElementById('bobResult').classList.add('visible');
+
+  const escrowListBob = await api('GET', '/cap/v1/escrows?as=bob');
+  const activeEscrow = (escrowListBob.escrows || [])[0];
+  if (!activeEscrow) throw new Error('No escrow found');
+
+  await api('POST', `/cap/v1/escrows/${activeEscrow.contractId}/deliver`, {
+    provider: 'bob', resultHash: `translation:${translatedText}`,
+  });
+  logTx('ARCHIVE', activeEscrow.contractId, 'Escrow consumed by Deliver');
+  logTx('CREATE', activeEscrow.contractId, 'PendingReview { resultHash: translation:... }');
+  setStep(4, 'done', `Delivered: "${translatedText}"`);
+  setAgentStatus('bob', 'Delivered', 'active');
+  setAgentStatus('alice', 'Reviewing...', 'busy');
+  await sleep(1000);
+
+  // Step 5: Approve + Rate
+  setStep(5, 'active');
+  log('alice', 'Reviewing translation result...');
+  log('alice', `Received: "${translatedText}" — looks correct`);
+  await sleep(600);
+
+  const reviewList = await api('GET', '/cap/v1/escrows?as=alice');
+  const pendingReview = (reviewList.pendingReviews || [])[0];
+  if (!pendingReview) throw new Error('No pending review');
+
+  await api('POST', `/cap/v1/escrows/${pendingReview.contractId}/approve-with-rating`, {
+    consumer: 'alice', consumerRating: 5, consumerComment: 'Excellent translation!',
+  });
+  logTx('ARCHIVE', pendingReview.contractId, 'PendingReview consumed by ApproveAndPay');
+  log('alice', 'Approved with 5/5 rating');
+  setStep(5, 'done', `Approved with 5-star rating <span class="tx-hash release"><span class="icon">&#128275;</span> RELEASE</span>`);
+  setAgentStatus('alice', 'Approved', 'active');
+  await sleep(800);
+
+  // Step 6: Settlement
+  setStep(6, 'active');
+  logTx('RELEASE', paymentCid, 'LockedCAPCoin(0.50) &rarr; CAPCoin(0.50) [owner: Bob]');
+  log('ledger', 'LockedCAPCoin released to beneficiary (Bob)');
+  setEscrow('alice', 0.50, null, 'released');
+  setEscrow('bob', 0.50, null, 'released');
+
+  showAssetFlow([
+    `<span class="flow-label" style="background:rgba(0,255,136,0.12);color:var(--green);">RELEASE</span> <span class="flow-node locked-coin" style="opacity:0.4;text-decoration:line-through;">&#128274; LockedCAPCoin <span class="flow-amount">0.50</span></span> <span class="flow-arrow" style="color:var(--green);">&rarr;</span> <span class="flow-node released-coin">&#128275; CAPCoin <span class="flow-amount">0.50</span></span> <span style="font-size:10px;color:var(--green);">[Bob receives payment]</span>`,
+  ]);
+
+  const aliceFinal = await fetchBalance('alice');
+  const bobFinal = await fetchBalance('bob');
+  setBalance('alice', aliceFinal.balance, aliceInit.balance);
+  setBalance('bob', bobFinal.balance, bobInit.balance);
+  setLockedBalance('alice', aliceFinal.lockedBalance);
+  setLockedBalance('bob', bobFinal.lockedBalance);
+
+  log('alice', `Final: ${aliceFinal.balance.toFixed(2)} CAP`, `(${(aliceFinal.balance - aliceInit.balance).toFixed(2)})`);
+  log('bob', `Final: ${bobFinal.balance.toFixed(2)} CAP`, `(+${(bobFinal.balance - bobInit.balance).toFixed(2)})`);
+  setStep(6, 'done', `Alice: ${aliceFinal.balance.toFixed(2)} CAP | Bob: ${bobFinal.balance.toFixed(2)} CAP <span class="tx-hash release"><span class="icon">&#10003;</span> SETTLED</span>`);
+  setAgentStatus('alice', 'Complete', 'active');
+  setAgentStatus('bob', 'Complete', 'active');
+  log('system', 'Happy Path demo complete');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// UC2: DISPUTE RESOLUTION
+// ══════════════════════════════════════════════════════════════════
+
+async function runDisputeResolution() {
+  log('system', 'Dispute Resolution demo — dispute &rarr; provider concedes &rarr; refund');
+
+  // Step 1: Setup
+  setStep(1, 'active', 'Creating request, offer, and locking payment...');
+  setAgentStatus('alice', 'Setting up...', 'busy');
+  setAgentStatus('bob', 'Setting up...', 'busy');
+  const s = await fullSetup();
+  setBalance('alice', s.aliceAfterLock.balance, s.aliceInit.balance);
+  setLockedBalance('alice', s.aliceAfterLock.lockedBalance);
+  setEscrow('alice', 0.50, s.escrowCid, 'locked');
+  setEscrow('bob', 0.50, s.escrowCid, 'locked');
+  logTx('LOCK', s.paymentCid, 'CAPCoin(0.50) &rarr; LockedCAPCoin(0.50)');
+  logTx('CREATE', s.escrowCid, 'Escrow { amount: 0.50 }');
+  setStep(1, 'done', `Escrow locked: 0.50 CAP <span class="tx-hash lock"><span class="icon">&#128274;</span> ${txHash(s.escrowCid)}</span>`);
+  setAgentStatus('alice', 'Escrow locked', 'active');
+  setAgentStatus('bob', 'Work authorized', 'active');
+  await sleep(1000);
+
+  // Step 2: Deliver (poor quality)
+  setStep(2, 'active');
+  setAgentStatus('bob', 'Delivering...', 'busy');
+  log('bob', 'Delivering poor quality result...');
+
+  const escrowListBob = await api('GET', '/cap/v1/escrows?as=bob');
+  const activeEscrow = (escrowListBob.escrows || [])[0];
+  if (!activeEscrow) throw new Error('No escrow found');
+
+  await api('POST', `/cap/v1/escrows/${activeEscrow.contractId}/deliver`, {
+    provider: 'bob', resultHash: 'sha256:poor_quality',
+  });
+  logTx('DELIVER', activeEscrow.contractId, 'resultHash: sha256:poor_quality');
+  setStep(2, 'done', 'Delivered (poor quality result)');
+  setAgentStatus('bob', 'Delivered', 'active');
+  await sleep(800);
+
+  // Step 3: Dispute
+  setStep(3, 'active');
+  setAgentStatus('alice', 'Disputing...', 'busy');
+  log('alice', 'Translation quality unacceptable — filing dispute');
+
+  const reviewList = await api('GET', '/cap/v1/escrows?as=alice');
+  const pendingReview = (reviewList.pendingReviews || [])[0];
+  if (!pendingReview) throw new Error('No pending review');
+
+  await api('POST', `/cap/v1/escrows/${pendingReview.contractId}/dispute`, {
+    consumer: 'alice', reason: 'Translation quality unacceptable',
+  });
+  logTx('DISPUTE', pendingReview.contractId, 'reason: "Translation quality unacceptable"');
+  log('system', 'DisputeRecord created — awaiting provider response');
+  setStep(3, 'done', 'Dispute filed: "Translation quality unacceptable"');
+  setAgentStatus('alice', 'Dispute filed', 'active');
+  await sleep(1000);
+
+  // Step 4: Concede
+  setStep(4, 'active');
+  setAgentStatus('bob', 'Reviewing dispute...', 'busy');
+  log('bob', 'Reviewing dispute... acknowledging fault');
+  await sleep(600);
+
+  const disputeList = await api('GET', '/cap/v1/escrows?as=bob');
+  const dispute = (disputeList.disputes || [])[0];
+  if (!dispute) throw new Error('No dispute found');
+
+  await api('POST', `/cap/v1/escrows/${dispute.contractId}/resolve-for-consumer`, {
+    provider: 'bob',
+  });
+  logTx('RESOLVE', dispute.contractId, 'ResolveForConsumer — full refund to Alice');
+  setEscrow('alice', 0.50, null, 'released');
+  setEscrow('bob', 0.50, null, 'released');
+  setStep(4, 'done', 'Bob concedes fault — full refund initiated');
+  setAgentStatus('bob', 'Conceded', 'active');
+  log('system', 'LockedCAPCoin returned to Alice');
+  await sleep(800);
+
+  // Step 5: Refund verification
+  setStep(5, 'active');
+  log('system', 'Verifying refund...');
+
+  showAssetFlow([
+    `<span class="flow-label" style="background:rgba(255,68,102,0.12);color:var(--red);">DISPUTE</span> <span class="flow-node locked-coin">&#128274; LockedCAPCoin <span class="flow-amount">0.50</span></span> <span class="flow-arrow">&rarr;</span> <span style="font-size:10px;color:var(--red);">Bob concedes fault</span>`,
+    `<span class="flow-label" style="background:rgba(0,255,136,0.12);color:var(--green);">REFUND</span> <span class="flow-node locked-coin" style="opacity:0.4;text-decoration:line-through;">&#128274; LockedCAPCoin <span class="flow-amount">0.50</span></span> <span class="flow-arrow" style="color:var(--green);">&rarr;</span> <span class="flow-node released-coin">&#128275; CAPCoin <span class="flow-amount">0.50</span></span> <span style="font-size:10px;color:var(--blue);">[returned to Alice]</span>`,
+  ]);
+
+  const aliceFinal = await fetchBalance('alice');
+  const bobFinal = await fetchBalance('bob');
+  setBalance('alice', aliceFinal.balance, s.aliceInit.balance);
+  setBalance('bob', bobFinal.balance, s.bobInit.balance);
+  setLockedBalance('alice', aliceFinal.lockedBalance);
+  setLockedBalance('bob', bobFinal.lockedBalance);
+
+  log('alice', `Final: ${aliceFinal.balance.toFixed(2)} CAP (full refund)`);
+  log('bob', `Final: ${bobFinal.balance.toFixed(2)} CAP`);
+  setStep(5, 'done', `Alice: ${aliceFinal.balance.toFixed(2)} CAP (refunded) | Bob: ${bobFinal.balance.toFixed(2)} CAP`);
+  setAgentStatus('alice', 'Refunded', 'active');
+  setAgentStatus('bob', 'Complete', 'active');
+  log('system', 'Dispute Resolution demo complete');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// UC3: ARBITER MEDIATION
+// ══════════════════════════════════════════════════════════════════
+
+async function runArbiterMediation() {
+  log('system', 'Arbiter Mediation demo — escalation &rarr; split ruling');
+
+  // Step 1: Setup
+  setStep(1, 'active', 'Creating request, offer, and locking payment...');
+  setAgentStatus('alice', 'Setting up...', 'busy');
+  setAgentStatus('bob', 'Setting up...', 'busy');
+  const s = await fullSetup();
+  setBalance('alice', s.aliceAfterLock.balance, s.aliceInit.balance);
+  setLockedBalance('alice', s.aliceAfterLock.lockedBalance);
+  setEscrow('alice', 0.50, s.escrowCid, 'locked');
+  setEscrow('bob', 0.50, s.escrowCid, 'locked');
+  logTx('CREATE', s.escrowCid, 'Escrow { amount: 0.50 }');
+  setStep(1, 'done', `Escrow locked: 0.50 CAP <span class="tx-hash lock"><span class="icon">&#128274;</span> ${txHash(s.escrowCid)}</span>`);
+  setAgentStatus('alice', 'Escrow locked', 'active');
+  setAgentStatus('bob', 'Work authorized', 'active');
+  await sleep(1000);
+
+  // Step 2: Deliver
+  setStep(2, 'active');
+  setAgentStatus('bob', 'Delivering...', 'busy');
+  log('bob', 'Delivering partially completed work...');
+
+  const escrowListBob = await api('GET', '/cap/v1/escrows?as=bob');
+  const activeEscrow = (escrowListBob.escrows || [])[0];
+  if (!activeEscrow) throw new Error('No escrow found');
+
+  await api('POST', `/cap/v1/escrows/${activeEscrow.contractId}/deliver`, {
+    provider: 'bob', resultHash: 'sha256:partial_work',
+  });
+  logTx('DELIVER', activeEscrow.contractId, 'resultHash: sha256:partial_work');
+  setStep(2, 'done', 'Delivered (partial work)');
+  setAgentStatus('bob', 'Delivered', 'active');
+  await sleep(800);
+
+  // Step 3: Dispute
+  setStep(3, 'active');
+  setAgentStatus('alice', 'Disputing...', 'busy');
+  log('alice', 'Only partial completion — filing dispute');
+
+  const reviewList = await api('GET', '/cap/v1/escrows?as=alice');
+  const pendingReview = (reviewList.pendingReviews || [])[0];
+  if (!pendingReview) throw new Error('No pending review');
+
+  await api('POST', `/cap/v1/escrows/${pendingReview.contractId}/dispute`, {
+    consumer: 'alice', reason: 'Partial completion only',
+  });
+  logTx('DISPUTE', pendingReview.contractId, 'reason: "Partial completion only"');
+  setStep(3, 'done', 'Dispute filed: "Partial completion only"');
+  setAgentStatus('alice', 'Dispute filed', 'active');
+  await sleep(800);
+
+  // Step 4: Escalate to Arbiter
+  setStep(4, 'active');
+  setAgentStatus('alice', 'Escalating...', 'busy');
+  setThirdPartyStatus('Pending...', 'busy');
+  log('alice', 'Escalating dispute to Arbiter for mediation');
+
+  const disputeList = await api('GET', '/cap/v1/escrows?as=alice');
+  const dispute = (disputeList.disputes || [])[0];
+  if (!dispute) throw new Error('No dispute found');
+
+  await api('POST', `/cap/v1/escrows/${dispute.contractId}/escalate`, {
+    consumer: 'alice', arbiter: 'arbiter',
+  });
+  logTx('ESCALATE', dispute.contractId, 'ArbitratedDispute created — arbiter assigned');
+  setStep(4, 'done', 'Escalated to Arbiter');
+  setAgentStatus('alice', 'Awaiting ruling', 'active');
+  setThirdPartyStatus('Case received', 'active');
+  log('arbiter', 'ArbitratedDispute received — reviewing case');
+  await sleep(1000);
+
+  // Step 5: Evidence submission
+  setStep(5, 'active');
+  setThirdPartyStatus('Collecting evidence...', 'busy');
+  log('arbiter', 'Requesting evidence from both parties...');
+
+  const arbList1 = await api('GET', '/cap/v1/escrows?as=arbiter');
+  let arbDispute = (arbList1.arbitratedDisputes || [])[0];
+  if (!arbDispute) throw new Error('No arbitrated dispute');
+
+  // Alice submits evidence
+  log('alice', 'Submitting evidence: "Full document translation was requested..."');
+  await api('POST', `/cap/v1/escrows/${arbDispute.contractId}/submit-evidence`, {
+    submitter: 'alice', newEvidence: 'Full document translation was requested. Only 60% completed.',
+  });
+  await sleep(600);
+
+  // Re-query for updated contract
+  const arbList2 = await api('GET', '/cap/v1/escrows?as=arbiter');
+  arbDispute = (arbList2.arbitratedDisputes || [])[0] || arbDispute;
+
+  // Bob submits evidence
+  log('bob', 'Submitting evidence: "Completed 60% of work before deadline..."');
+  await api('POST', `/cap/v1/escrows/${arbDispute.contractId}/submit-evidence`, {
+    submitter: 'bob', newEvidence: 'Completed 60% of work before deadline. Remaining 40% was ambiguous.',
+  });
+
+  setStep(5, 'done', 'Evidence submitted by both parties');
+  setThirdPartyStatus('Reviewing evidence', 'busy');
+  log('arbiter', 'Reviewing all evidence...');
+  await sleep(1000);
+
+  // Step 6: Split Ruling
+  setStep(6, 'active');
+  log('arbiter', 'Ruling: Split 60/40 — Alice gets 0.30 CAP refund, Bob keeps 0.20 CAP');
+
+  const arbList3 = await api('GET', '/cap/v1/escrows?as=arbiter');
+  arbDispute = (arbList3.arbitratedDisputes || [])[0] || arbDispute;
+
+  await api('POST', `/cap/v1/escrows/${arbDispute.contractId}/split-ruling`, {
+    arbiter: 'arbiter', consumerAmount: '0.30',
+  });
+
+  logTx('RULING', arbDispute.contractId, 'SplitRuling { consumerAmount: 0.30 }');
+  setEscrow('alice', 0.50, null, 'released');
+  setEscrow('bob', 0.50, null, 'released');
+  setStep(6, 'done', 'Split ruling: Alice +0.30, Bob +0.20');
+  setThirdPartyStatus('Ruling issued', 'active');
+  await sleep(800);
+
+  // Step 7: Settlement
+  setStep(7, 'active');
+  log('system', 'Verifying settlement...');
+
+  showAssetFlow([
+    `<span class="flow-label" style="background:rgba(255,204,0,0.12);color:var(--yellow);">RULING</span> <span class="flow-node locked-coin">&#128274; LockedCAPCoin <span class="flow-amount">0.50</span></span> <span class="flow-arrow">&rarr;</span> <span class="flow-label" style="background:rgba(255,204,0,0.12);color:var(--yellow);">SPLIT 60/40</span>`,
+    `<span class="flow-label" style="visibility:hidden;">RULING</span> <span class="flow-arrow">&rarr;</span> <span class="flow-node released-coin">&#128275; CAPCoin <span class="flow-amount">0.30</span></span> <span style="font-size:10px;color:var(--blue);">[Alice: 60% refund]</span>`,
+    `<span class="flow-label" style="visibility:hidden;">RULING</span> <span class="flow-arrow">&rarr;</span> <span class="flow-node released-coin">&#128275; CAPCoin <span class="flow-amount">0.20</span></span> <span style="font-size:10px;color:var(--purple);">[Bob: 40% payment]</span>`,
+  ]);
+
+  const aliceFinal = await fetchBalance('alice');
+  const bobFinal = await fetchBalance('bob');
+  setBalance('alice', aliceFinal.balance, s.aliceInit.balance);
+  setBalance('bob', bobFinal.balance, s.bobInit.balance);
+  setLockedBalance('alice', aliceFinal.lockedBalance);
+  setLockedBalance('bob', bobFinal.lockedBalance);
+
+  log('alice', `Final: ${aliceFinal.balance.toFixed(2)} CAP (+0.30 refund)`);
+  log('bob', `Final: ${bobFinal.balance.toFixed(2)} CAP (+0.20 earned)`);
+  setStep(7, 'done', `Alice: ${aliceFinal.balance.toFixed(2)} CAP | Bob: ${bobFinal.balance.toFixed(2)} CAP — Arbiter split ruling applied`);
+  setAgentStatus('alice', 'Complete', 'active');
+  setAgentStatus('bob', 'Complete', 'active');
+  log('system', 'Arbiter Mediation demo complete');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// UC4: SLA PENALTY
+// ══════════════════════════════════════════════════════════════════
+
+async function runSLAPenalty() {
+  log('system', 'SLA Penalty demo — late delivery triggers automatic penalty');
+  const { aliceInit, bobInit } = await initBalances();
+  await sleep(600);
+
+  // Step 1: Request with SLA
+  setStep(1, 'active');
+  setAgentStatus('alice', 'Creating request...', 'busy');
+  log('alice', 'Creating request with SLA: maxLatency=1000ms, penaltyRate=20%');
+  const reqCid = await createServiceRequest({
+    slaTerms: { maxLatencyMs: '1000', penaltyRate: '0.20' },
+  });
+  logTx('CREATE', reqCid, 'ServiceRequest { slaTerms: { maxLatencyMs: 1000, penaltyRate: 0.20 } }');
+  setStep(1, 'done', `Request with SLA terms created <span class="tx-hash contract"><span class="icon">&#9638;</span> ${txHash(reqCid)}</span>`);
+  setAgentStatus('alice', 'Waiting for offer', 'busy');
+  await sleep(800);
+
+  // Step 2: Offer + Lock with past acceptedAt
+  setStep(2, 'active');
+  setAgentStatus('bob', 'Making offer...', 'busy');
+  log('bob', 'Making offer: 0.50 CAP');
+  const lock = await offerAndLock({ price: 0.50, acceptedAt: '2024-01-01T00:00:00Z' });
+  log('alice', 'Accepting with acceptedAt=2024-01-01T00:00:00Z (deadline=2024-01-01T00:00:01Z)');
+  setBalance('alice', lock.aliceAfterLock.balance, aliceInit.balance);
+  setLockedBalance('alice', lock.aliceAfterLock.lockedBalance);
+  setEscrow('alice', 0.50, lock.escrowCid, 'locked');
+  setEscrow('bob', 0.50, lock.escrowCid, 'locked');
+  logTx('LOCK', lock.paymentCid, 'CAPCoin(0.50) &rarr; LockedCAPCoin(0.50)');
+  setStep(2, 'done', 'Locked 0.50 CAP — deadline=2024-01-01T00:00:01Z (already passed!)');
+  setAgentStatus('alice', 'Escrow locked', 'active');
+  setAgentStatus('bob', 'Work authorized', 'active');
+  await sleep(1000);
+
+  // Step 3: Late Delivery
+  setStep(3, 'active');
+  setAgentStatus('bob', 'Delivering late...', 'busy');
+  const now = new Date().toISOString();
+  log('bob', `Delivering NOW (${now}) — well past deadline`);
+
+  const escrowListBob = await api('GET', '/cap/v1/escrows?as=bob');
+  const activeEscrow = (escrowListBob.escrows || [])[0];
+  if (!activeEscrow) throw new Error('No escrow found');
+
+  await api('POST', `/cap/v1/escrows/${activeEscrow.contractId}/deliver`, {
+    provider: 'bob', resultHash: 'sha256:late_delivery', deliveredAt: now,
+  });
+  logTx('DELIVER', activeEscrow.contractId, `deliveredAt: ${now} (SLA VIOLATED)`);
+  setStep(3, 'done', `Delivered at ${now.substring(0, 19)} — SLA VIOLATED`);
+  setAgentStatus('bob', 'Delivered (late)', 'active');
+  await sleep(800);
+
+  // Step 4: Approve (penalty auto-applied)
+  setStep(4, 'active');
+  setAgentStatus('alice', 'Approving...', 'busy');
+  log('alice', 'Approving — 20% SLA penalty will be auto-deducted');
+
+  const reviewList = await api('GET', '/cap/v1/escrows?as=alice');
+  const pendingReview = (reviewList.pendingReviews || [])[0];
+  if (!pendingReview) throw new Error('No pending review');
+
+  await api('POST', `/cap/v1/escrows/${pendingReview.contractId}/approve-with-rating`, {
+    consumer: 'alice', consumerRating: 3, consumerComment: 'Acceptable but delivered late',
+  });
+  logTx('APPROVE', pendingReview.contractId, 'ApproveAndPay with SLA penalty (20%)');
+  setEscrow('alice', 0.50, null, 'released');
+  setEscrow('bob', 0.50, null, 'released');
+  setStep(4, 'done', 'Approved with rating 3/5 — SLA penalty applied');
+  setAgentStatus('alice', 'Approved', 'active');
+  await sleep(800);
+
+  // Step 5: Settlement
+  setStep(5, 'active');
+  log('system', 'Checking settlement after SLA penalty...');
+
+  showAssetFlow([
+    `<span class="flow-label" style="background:rgba(255,68,102,0.12);color:var(--red);">SLA PENALTY</span> <span class="flow-node locked-coin">&#128274; LockedCAPCoin <span class="flow-amount">0.50</span></span> <span class="flow-arrow">&rarr;</span> <span class="flow-label" style="background:rgba(255,68,102,0.12);color:var(--red);">SPLIT 80/20</span>`,
+    `<span class="flow-label" style="visibility:hidden;">PENALTY</span> <span class="flow-arrow">&rarr;</span> <span class="flow-node released-coin">&#128275; CAPCoin <span class="flow-amount">0.40</span></span> <span style="font-size:10px;color:var(--purple);">[Bob: 80% after penalty]</span>`,
+    `<span class="flow-label" style="visibility:hidden;">PENALTY</span> <span class="flow-arrow">&rarr;</span> <span class="flow-node coin">&#9673; CAPCoin <span class="flow-amount">0.10</span></span> <span style="font-size:10px;color:var(--blue);">[Alice: 20% penalty refund]</span>`,
+  ]);
+
+  const aliceFinal = await fetchBalance('alice');
+  const bobFinal = await fetchBalance('bob');
+  setBalance('alice', aliceFinal.balance, aliceInit.balance);
+  setBalance('bob', bobFinal.balance, bobInit.balance);
+  setLockedBalance('alice', aliceFinal.lockedBalance);
+  setLockedBalance('bob', bobFinal.lockedBalance);
+
+  log('alice', `Final: ${aliceFinal.balance.toFixed(2)} CAP (+0.10 penalty refund)`);
+  log('bob', `Final: ${bobFinal.balance.toFixed(2)} CAP (0.40 after 20% penalty)`);
+  setStep(5, 'done', `Alice: ${aliceFinal.balance.toFixed(2)} CAP | Bob: ${bobFinal.balance.toFixed(2)} CAP — 20% SLA penalty`);
+  setAgentStatus('alice', 'Complete', 'active');
+  setAgentStatus('bob', 'Complete', 'active');
+  log('system', 'SLA Penalty demo complete');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// UC5: PROTOCOL FEES
+// ══════════════════════════════════════════════════════════════════
+
+async function runProtocolFees() {
+  log('system', 'Protocol Fees demo — fee deduction + Treasury collection');
+  const { aliceInit, bobInit } = await initBalances();
+  const treasuryInit = await fetchBalance('treasury');
+  document.getElementById('tpBalance').innerHTML = `${treasuryInit.balance.toFixed(2)}<span class="balance-unit">CAP</span>`;
+  log('treasury', `Balance: ${treasuryInit.balance.toFixed(2)} CAP`);
+  await sleep(600);
+
+  // Step 1: Request with Fee Config
+  setStep(1, 'active');
+  setAgentStatus('alice', 'Creating request...', 'busy');
+  log('alice', 'Creating request with feeConfig: feeRate=2%, treasury=treasury');
+  const reqCid = await createServiceRequest({
+    feeConfig: { feeRate: '0.02', treasury: 'treasury' },
+  });
+  logTx('CREATE', reqCid, 'ServiceRequest { feeConfig: { feeRate: 0.02, treasury } }');
+  setStep(1, 'done', `Request with 2% fee config created <span class="tx-hash contract"><span class="icon">&#9638;</span> ${txHash(reqCid)}</span>`);
+  await sleep(800);
+
+  // Step 2: Offer + Lock
+  setStep(2, 'active');
+  setAgentStatus('bob', 'Making offer...', 'busy');
+  log('bob', 'Making offer: 0.50 CAP');
+  const lock = await offerAndLock({ price: 0.50 });
+  setBalance('alice', lock.aliceAfterLock.balance, aliceInit.balance);
+  setLockedBalance('alice', lock.aliceAfterLock.lockedBalance);
+  setEscrow('alice', 0.50, lock.escrowCid, 'locked');
+  setEscrow('bob', 0.50, lock.escrowCid, 'locked');
+  logTx('LOCK', lock.paymentCid, 'CAPCoin(0.50) &rarr; LockedCAPCoin(0.50)');
+  setStep(2, 'done', `Locked 0.50 CAP <span class="tx-hash lock"><span class="icon">&#128274;</span> ${txHash(lock.escrowCid)}</span>`);
+  setAgentStatus('alice', 'Escrow locked', 'active');
+  setAgentStatus('bob', 'Work authorized', 'active');
+  await sleep(1000);
+
+  // Step 3: Deliver
+  setStep(3, 'active');
+  setAgentStatus('bob', 'Delivering...', 'busy');
+  log('bob', 'Delivering result...');
+
+  const escrowListBob = await api('GET', '/cap/v1/escrows?as=bob');
+  const activeEscrow = (escrowListBob.escrows || [])[0];
+  if (!activeEscrow) throw new Error('No escrow found');
+
+  await api('POST', `/cap/v1/escrows/${activeEscrow.contractId}/deliver`, {
+    provider: 'bob', resultHash: 'sha256:translated_hello_world',
+  });
+  logTx('DELIVER', activeEscrow.contractId, 'Result delivered');
+  setStep(3, 'done', 'Result delivered to ledger');
+  setAgentStatus('bob', 'Delivered', 'active');
+  await sleep(800);
+
+  // Step 4: Approve (auto fee split)
+  setStep(4, 'active');
+  setAgentStatus('alice', 'Approving...', 'busy');
+  log('alice', 'Approving — 2% protocol fee will be auto-split');
+
+  const reviewList = await api('GET', '/cap/v1/escrows?as=alice');
+  const pendingReview = (reviewList.pendingReviews || [])[0];
+  if (!pendingReview) throw new Error('No pending review');
+
+  await api('POST', `/cap/v1/escrows/${pendingReview.contractId}/approve-with-rating`, {
+    consumer: 'alice', consumerRating: 5, consumerComment: 'Great work!',
+  });
+  logTx('APPROVE', pendingReview.contractId, 'ApproveAndPay with fee split (2%)');
+  log('system', 'FeeTransfer(0.01 CAP) created for Treasury');
+  setEscrow('alice', 0.50, null, 'released');
+  setEscrow('bob', 0.50, null, 'released');
+  setStep(4, 'done', 'Approved — FeeTransfer created (0.01 CAP)');
+  setThirdPartyStatus('Fee pending...', 'busy');
+  await sleep(1000);
+
+  // Step 5: Fee Collection
+  setStep(5, 'active');
+  log('treasury', 'Checking pending fees...');
+
+  const pending = await api('GET', '/cap/v1/fees/pending');
+  const pendingFees = pending.pending || [];
+  log('treasury', `Found ${pendingFees.length} pending fee(s), total: ${(pending.totalPending || 0).toFixed(2)} CAP`);
+
+  if (pendingFees.length > 0) {
+    log('treasury', 'Collecting pending fees...');
+    const collectResp = await api('POST', '/cap/v1/fees/collect', { treasury: 'treasury' });
+    logTx('COLLECT', 'fees', `Collected ${collectResp.collected || 0} fee transfer(s)`);
+  }
+
+  setStep(5, 'done', `Treasury collected ${pendingFees.length} fee(s)`);
+  setThirdPartyStatus('Fees collected', 'active');
+  await sleep(800);
+
+  // Step 6: Settlement
+  setStep(6, 'active');
+  log('system', 'Verifying settlement...');
+
+  showAssetFlow([
+    `<span class="flow-label" style="background:rgba(0,204,255,0.12);color:var(--cyan);">FEE SPLIT</span> <span class="flow-node locked-coin">&#128274; LockedCAPCoin <span class="flow-amount">0.50</span></span> <span class="flow-arrow">&rarr;</span> <span class="flow-label" style="background:rgba(0,204,255,0.12);color:var(--cyan);">SPLIT</span>`,
+    `<span class="flow-label" style="visibility:hidden;">FEE</span> <span class="flow-arrow">&rarr;</span> <span class="flow-node released-coin">&#128275; CAPCoin <span class="flow-amount">0.49</span></span> <span style="font-size:10px;color:var(--purple);">[Bob: 98%]</span>`,
+    `<span class="flow-label" style="visibility:hidden;">FEE</span> <span class="flow-arrow">&rarr;</span> <span class="flow-node coin" style="background:rgba(0,204,255,0.12);border-color:rgba(0,204,255,0.25);color:var(--cyan);">&#9673; FeeTransfer <span class="flow-amount">0.01</span></span> <span style="font-size:10px;color:var(--cyan);">[Treasury: 2%]</span>`,
+  ]);
+
+  const aliceFinal = await fetchBalance('alice');
+  const bobFinal = await fetchBalance('bob');
+  const treasuryFinal = await fetchBalance('treasury');
+  setBalance('alice', aliceFinal.balance, aliceInit.balance);
+  setBalance('bob', bobFinal.balance, bobInit.balance);
+  setLockedBalance('alice', aliceFinal.lockedBalance);
+  setLockedBalance('bob', bobFinal.lockedBalance);
+  document.getElementById('tpBalance').innerHTML = `${treasuryFinal.balance.toFixed(2)}<span class="balance-unit">CAP</span>`;
+
+  log('alice', `Final: ${aliceFinal.balance.toFixed(2)} CAP`);
+  log('bob', `Final: ${bobFinal.balance.toFixed(2)} CAP (after 2% fee)`);
+  log('treasury', `Final: ${treasuryFinal.balance.toFixed(2)} CAP (+0.01 fee)`);
+  setStep(6, 'done', `Alice: ${aliceFinal.balance.toFixed(2)} | Bob: ${bobFinal.balance.toFixed(2)} | Treasury: ${treasuryFinal.balance.toFixed(2)} CAP`);
+  setAgentStatus('alice', 'Complete', 'active');
+  setAgentStatus('bob', 'Complete', 'active');
+  setThirdPartyStatus('Complete', 'active');
+  log('system', 'Protocol Fees demo complete');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// UC6: TIMEOUT REFUND
+// ══════════════════════════════════════════════════════════════════
+
+async function runTimeoutRefund() {
+  log('system', 'Timeout Refund demo — no delivery &rarr; timeout &rarr; full refund');
+  const { aliceInit, bobInit } = await initBalances();
+  await sleep(600);
+
+  // Step 1: Request with SLA
+  setStep(1, 'active');
+  setAgentStatus('alice', 'Creating request...', 'busy');
+  log('alice', 'Creating request with tight SLA: maxLatency=1000ms, penaltyRate=0%');
+  const reqCid = await createServiceRequest({
+    slaTerms: { maxLatencyMs: '1000', penaltyRate: '0.0' },
+  });
+  logTx('CREATE', reqCid, 'ServiceRequest { slaTerms: { maxLatencyMs: 1000, penaltyRate: 0.0 } }');
+  setStep(1, 'done', `Request with SLA created <span class="tx-hash contract"><span class="icon">&#9638;</span> ${txHash(reqCid)}</span>`);
+  await sleep(800);
+
+  // Step 2: Offer + Lock with past timestamp
+  setStep(2, 'active');
+  setAgentStatus('bob', 'Making offer...', 'busy');
+  log('bob', 'Making offer: 0.50 CAP');
+  const lock = await offerAndLock({ price: 0.50, acceptedAt: '2024-01-01T00:00:00Z' });
+  log('alice', 'Accepted with acceptedAt=2024-01-01T00:00:00Z (deadline already expired)');
+  setBalance('alice', lock.aliceAfterLock.balance, aliceInit.balance);
+  setLockedBalance('alice', lock.aliceAfterLock.lockedBalance);
+  setEscrow('alice', 0.50, lock.escrowCid, 'locked');
+  setEscrow('bob', 0.50, lock.escrowCid, 'locked');
+  logTx('LOCK', lock.paymentCid, 'CAPCoin(0.50) &rarr; LockedCAPCoin(0.50)');
+  setStep(2, 'done', 'Locked 0.50 CAP — deadline=2024-01-01T00:00:01Z (already passed!)');
+  setAgentStatus('alice', 'Escrow locked', 'active');
+  setAgentStatus('bob', 'Work authorized', 'active');
+  await sleep(1000);
+
+  // Step 3: Wait (visual delay — Bob doesn't deliver)
+  setStep(3, 'active');
+  setAgentStatus('bob', 'Not responding...', '');
+  log('system', 'Waiting for Bob to deliver... deadline has passed');
+  log('bob', '...');
+
+  for (let i = 3; i >= 1; i--) {
+    log('system', `Timeout in ${i}...`);
+    await sleep(1000);
+  }
+
+  log('system', 'Deadline expired — Bob did not deliver!');
+  setStep(3, 'done', 'Deadline expired — no delivery from Bob');
+  await sleep(600);
+
+  // Step 4: Claim Timeout (on Escrow directly, NOT PendingReview)
+  setStep(4, 'active');
+  setAgentStatus('alice', 'Claiming timeout...', 'busy');
+  log('alice', 'Claiming timeout on Escrow contract (no PendingReview exists)');
+
+  const escrowList = await api('GET', '/cap/v1/escrows?as=alice');
+  const activeEscrow = (escrowList.escrows || [])[0];
+  if (!activeEscrow) throw new Error('No escrow found');
+
+  const claimTime = new Date().toISOString();
+  await api('POST', `/cap/v1/escrows/${activeEscrow.contractId}/timeout`, {
+    consumer: 'alice', claimTime,
+  });
+
+  logTx('TIMEOUT', activeEscrow.contractId, `ClaimTimeout at ${claimTime}`);
+  log('system', 'LockedCAPCoin returned to Alice (full refund)');
+  setEscrow('alice', 0.50, null, 'released');
+  setEscrow('bob', 0.50, null, 'released');
+  setStep(4, 'done', 'Timeout claimed — full refund initiated');
+  setAgentStatus('alice', 'Timeout claimed', 'active');
+  await sleep(800);
+
+  // Step 5: Full Refund
+  setStep(5, 'active');
+  log('system', 'Verifying full refund...');
+
+  showAssetFlow([
+    `<span class="flow-label" style="background:rgba(255,68,102,0.12);color:var(--red);">TIMEOUT</span> <span style="font-size:10px;color:var(--red);">Bob failed to deliver within deadline</span>`,
+    `<span class="flow-label" style="background:rgba(0,255,136,0.12);color:var(--green);">REFUND</span> <span class="flow-node locked-coin" style="opacity:0.4;text-decoration:line-through;">&#128274; LockedCAPCoin <span class="flow-amount">0.50</span></span> <span class="flow-arrow" style="color:var(--green);">&rarr;</span> <span class="flow-node released-coin">&#128275; CAPCoin <span class="flow-amount">0.50</span></span> <span style="font-size:10px;color:var(--blue);">[returned to Alice]</span>`,
+  ]);
+
+  const aliceFinal = await fetchBalance('alice');
+  const bobFinal = await fetchBalance('bob');
+  setBalance('alice', aliceFinal.balance, aliceInit.balance);
+  setBalance('bob', bobFinal.balance, bobInit.balance);
+  setLockedBalance('alice', aliceFinal.lockedBalance);
+  setLockedBalance('bob', bobFinal.lockedBalance);
+
+  log('alice', `Final: ${aliceFinal.balance.toFixed(2)} CAP (full refund)`);
+  log('bob', `Final: ${bobFinal.balance.toFixed(2)} CAP (no payment)`);
+  setStep(5, 'done', `Alice: ${aliceFinal.balance.toFixed(2)} CAP (refunded) | Bob: ${bobFinal.balance.toFixed(2)} CAP`);
+  setAgentStatus('alice', 'Refunded', 'active');
+  setAgentStatus('bob', 'Timed out', '');
+  log('system', 'Timeout Refund demo complete');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CONTROL
+// ══════════════════════════════════════════════════════════════════
+
+async function runSelected() {
+  if (running || !currentUC) return;
+  running = true;
+  document.getElementById('btnRun').disabled = true;
+  resetDemoState();
+
+  // Re-render timeline to clear step states
+  renderTimeline(currentUC);
+
+  setUCBadge(currentUC.id, 'running');
+  try {
+    await currentUC.run();
+    setUCBadge(currentUC.id, 'done');
+  } catch (e) {
+    log('error', `Demo error: ${e.message}`);
+    setAgentStatus('alice', 'Error', '');
+    setAgentStatus('bob', 'Error', '');
+    setUCBadge(currentUC.id, 'error');
+  }
+  running = false;
+  document.getElementById('btnRun').disabled = false;
+}
+
+function resetDemo() {
+  if (running) return;
+  // Reset all badges
+  USE_CASES.forEach(uc => {
+    const badge = document.getElementById(`badge-${uc.id}`);
+    if (badge) { badge.className = 'uc-badge'; badge.textContent = uc.icon; }
+  });
+  if (currentUC) {
+    renderTimeline(currentUC);
+    configureThirdParty(currentUC);
+  }
+  resetDemoState();
+  log('system', 'Demo reset');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// WEBSOCKET
+// ══════════════════════════════════════════════════════════════════
 
 function connectWs() {
   try {
@@ -1063,387 +1822,13 @@ function connectWs() {
   } catch {}
 }
 
-// ── Demo Flow ──
+// ══════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════
 
-async function fetchBalance(agent) {
-  const data = await api('GET', `/cap/v1/wallet?as=${agent}`);
-  return {
-    balance: data.balance || 0,
-    lockedBalance: data.lockedBalance || 0,
-    totalBalance: data.totalBalance || data.balance || 0,
-    coins: data.coins || [],
-    lockedCoins: data.lockedCoins || [],
-  };
-}
-
-async function runDemo() {
-  if (running) return;
-  running = true;
-  document.getElementById('btnRun').disabled = true;
-
-  // Clear previous state
-  document.getElementById('eventLog').innerHTML = '';
-  for (let i = 1; i <= 8; i++) setStep(i, '', '');
-  setEscrow('alice', null);
-  setEscrow('bob', null);
-  clearAssetFlow();
-  clearLedgerState();
-  document.getElementById('bobResult').classList.remove('visible');
-  document.getElementById('aliceChange').className = 'balance-change';
-  document.getElementById('bobChange').className = 'balance-change';
-
-  log('system', 'Demo started &mdash; Canton Agent Protocol with CIP-0056 token standard');
-
-  try {
-    // ── Step 0: Initial balances ──
-    log('system', 'Fetching initial balances via Holding interface...');
-    const aliceInit = await fetchBalance('alice');
-    const bobInit = await fetchBalance('bob');
-    setBalance('alice', aliceInit.balance);
-    setBalance('bob', bobInit.balance);
-    setLockedBalance('alice', aliceInit.lockedBalance);
-    setLockedBalance('bob', bobInit.lockedBalance);
-    log('alice', `Balance: ${aliceInit.balance.toFixed(2)} CAP`, `(${aliceInit.coins.length} coins)`);
-    log('bob', `Balance: ${bobInit.balance.toFixed(2)} CAP`, `(${bobInit.coins.length} coins)`);
-
-    await sleep(800);
-
-    // ── Step 1: Discover ──
-    setStep(1, 'active');
-    setAgentStatus('alice', 'Searching...', 'busy');
-    log('alice', 'Searching for translation agents...');
-
-    const discoverResp = await api('GET', '/cap/v1/services/discover?capability=translation');
-    const listings = discoverResp.listings || [];
-
-    if (listings.length === 0) {
-      setStep(1, 'error', 'No translation agents found. Is Bob registered?');
-      log('error', 'No translation listings found. Make sure Bob agent is registered.');
-      throw new Error('No listings');
-    }
-
-    const bobListing = listings[0];
-    const listingCid = bobListing.contractId || '';
-    setStep(1, 'done', `Found: ${bobListing.capability} by ${(bobListing.provider || '').split('::')[0]} @ ${bobListing.basePrice} CAP <span class="tx-hash contract"><span class="icon">&#9638;</span> ${txHash(listingCid)}</span>`);
-    logTx('QUERY', listingCid, `ServiceListing found: ${bobListing.capability}`);
-    setAgentStatus('alice', 'Agent found', 'active');
-
-    await sleep(1200);
-
-    // ── Step 2: Request ──
-    setStep(2, 'active');
-    setAgentStatus('alice', 'Requesting...', 'busy');
-    log('alice', 'Creating service request: translate "Hello world" to Korean');
-
-    const requestResp = await api('POST', '/cap/v1/services/requests', {
-      consumer: 'alice',
-      provider: 'bob',
-      capability: 'translation',
-      params: JSON.stringify({ text: 'Hello world', targetLang: 'ko' }),
-      maxPrice: '1.0',
-    });
-
-    const requestCid = requestResp.contractId;
-    setStep(2, 'done', `ServiceRequest created <span class="tx-hash contract"><span class="icon">&#9638;</span> ${txHash(requestCid)}</span>`);
-    logTx('CREATE', requestCid, 'ServiceRequest { capability: translation, maxPrice: 1.0 }');
-    setAgentStatus('alice', 'Waiting for offer', 'busy');
-    setAgentStatus('bob', 'Request received', 'active');
-
-    await sleep(1200);
-
-    // ── Step 3: Offer ──
-    setStep(3, 'active');
-    setAgentStatus('bob', 'Preparing offer...', 'busy');
-    log('bob', 'Reviewing request and preparing offer...');
-
-    await sleep(600);
-    const reqList = await api('GET', '/cap/v1/services/requests?as=bob');
-    const pendingReq = (reqList.requests || []).find(r => r.capability === 'translation');
-    const actualReqCid = pendingReq ? pendingReq.contractId : requestCid;
-
-    const offerResp = await api('POST', `/cap/v1/services/requests/${actualReqCid}/offer`, {
-      provider: 'bob',
-      price: '0.50',
-      estimatedTimeMs: 5000,
-    });
-
-    const offerCid = offerResp.contractId || '';
-    setStep(3, 'done', `ServiceOffer: 0.50 CAP, ETA 5s <span class="tx-hash contract"><span class="icon">&#9638;</span> ${txHash(offerCid)}</span>`);
-    logTx('CREATE', offerCid, 'ServiceOffer { price: 0.50, estimatedTimeMs: 5000 }');
-    logTx('ARCHIVE', actualReqCid, 'ServiceRequest consumed by MakeOffer');
-    setAgentStatus('bob', 'Offer sent', 'active');
-    setAgentStatus('alice', 'Offer received', 'active');
-
-    await sleep(1200);
-
-    // ── Step 4: Split + Lock (LockedAmulet Pattern) ──
-    setStep(4, 'active');
-    setAgentStatus('alice', 'Accepting offer...', 'busy');
-    log('alice', 'Evaluating offer... price within budget');
-
-    // Get Alice's offer
-    const offerList = await api('GET', '/cap/v1/services/offers?as=alice');
-    const pendingOffer = (offerList.offers || [])[0];
-    if (!pendingOffer) {
-      setStep(4, 'error', 'No offer found');
-      throw new Error('No offer');
-    }
-
-    // Find a coin for payment
-    const aliceCoins = (await fetchBalance('alice')).coins;
-    const bigCoin = aliceCoins.find(c => c.amount >= 0.50);
-    if (!bigCoin) {
-      setStep(4, 'error', 'Insufficient balance');
-      throw new Error('No coin');
-    }
-
-    log('alice', `Using CAPCoin (${bigCoin.amount.toFixed(2)} CAP)`, shortCid(bigCoin.contractId));
-
-    let paymentCid;
-    let splitCid1, splitCid2;
-    if (Math.abs(bigCoin.amount - 0.50) < 0.001) {
-      paymentCid = bigCoin.contractId;
-    } else {
-      // Show the split operation
-      logTx('SPLIT', bigCoin.contractId, `CAPCoin(${bigCoin.amount.toFixed(2)}) &rarr; CAPCoin(0.50) + CAPCoin(${(bigCoin.amount - 0.50).toFixed(2)})`);
-      await api('POST', '/cap/v1/wallet/split', {
-        owner: 'alice',
-        contractId: bigCoin.contractId,
-        splitAmount: '0.50',
-      });
-      const afterSplit = (await fetchBalance('alice')).coins;
-      const splitCoin = afterSplit.find(c => Math.abs(c.amount - 0.50) < 0.001);
-      paymentCid = splitCoin ? splitCoin.contractId : afterSplit[afterSplit.length - 1].contractId;
-      splitCid1 = paymentCid;
-      const changeCoin = afterSplit.find(c => c.contractId !== paymentCid);
-      splitCid2 = changeCoin ? changeCoin.contractId : '';
-    }
-
-    // Accept the offer (this triggers Lock internally on the ledger)
-    log('alice', 'AcceptOffer: Lock 0.50 CAP in LockedCAPCoin (LockedAmulet pattern)');
-    const acceptResp = await api('POST', `/cap/v1/services/offers/${pendingOffer.contractId}/accept`, {
-      consumer: 'alice',
-      paymentCid: paymentCid,
-    });
-
-    const escrowCid = acceptResp.contractId || '';
-    logTx('LOCK', paymentCid, 'CAPCoin(0.50) &rarr; LockedCAPCoin(0.50) [beneficiary: Bob]');
-    logTx('CREATE', escrowCid, 'Escrow { amount: 0.50, lockedCoinCid: ... }');
-
-    // Show asset flow visualization
-    showAssetFlow([
-      `<span class="flow-label">SPLIT</span>
-       <span class="flow-node coin">&#9673; CAPCoin <span class="flow-amount">${bigCoin.amount.toFixed(2)}</span></span>
-       <span class="flow-arrow">&rarr;</span>
-       <span class="flow-node coin">&#9673; CAPCoin <span class="flow-amount">0.50</span></span>
-       <span style="color:var(--dim);">+</span>
-       <span class="flow-node coin">&#9673; CAPCoin <span class="flow-amount">${(bigCoin.amount - 0.50).toFixed(2)}</span></span>`,
-
-      `<span class="flow-label">LOCK</span>
-       <span class="flow-node coin">&#9673; CAPCoin <span class="flow-amount">0.50</span></span>
-       <span class="flow-arrow">&rarr;</span>
-       <span class="flow-node locked-coin">&#128274; LockedCAPCoin <span class="flow-amount">0.50</span></span>
-       <span style="font-size:10px;color:var(--dim);">[beneficiary: Bob]</span>`,
-
-      `<span class="flow-label">ESCROW</span>
-       <span class="flow-node escrow-node">&#9632; Escrow</span>
-       <span style="font-size:10px;color:var(--dim);">holds reference to</span>
-       <span class="flow-node locked-coin">&#128274; LockedCAPCoin</span>`,
-    ]);
-
-    setStep(4, 'done', `Split + Lock &rarr; Escrow created <span class="tx-hash lock"><span class="icon">&#128274;</span> ${txHash(escrowCid)}</span>`);
-
-    // Get locked coin info for display
-    const aliceAfterLock = await fetchBalance('alice');
-    setEscrow('alice', 0.50, escrowCid, 'locked');
-    setEscrow('bob', 0.50, escrowCid, 'locked');
-    setBalance('alice', aliceAfterLock.balance, aliceInit.balance);
-    setLockedBalance('alice', aliceAfterLock.lockedBalance);
-
-    // Show ledger state
-    showLedgerState([
-      { type: 'CAPCoin', typeClass: 'capcoin', cid: splitCid2 || '...', detail: `Alice: ${(bigCoin.amount - 0.50).toFixed(2)} CAP` },
-      { type: 'LockedCAPCoin', typeClass: 'locked', cid: paymentCid, detail: `0.50 CAP (locked)` },
-      { type: 'Escrow', typeClass: 'escrow-type', cid: escrowCid, detail: `Alice &rarr; Bob` },
-    ]);
-
-    setAgentStatus('alice', 'Escrow locked', 'active');
-    setAgentStatus('bob', 'Work authorized', 'active');
-
-    await sleep(2000);
-
-    // ── Step 5: Execute ──
-    setStep(5, 'active');
-    setAgentStatus('bob', 'Translating...', 'busy');
-    log('bob', 'Executing translation task...');
-    log('bob', 'Input: "Hello world" &rarr; Target: Korean (ko)');
-
-    await sleep(1500);
-
-    const translatedText = '\uD558\uB298\uC544\uB798 \uC138\uC0C1\uC544';
-    document.getElementById('bobResultText').textContent = `"Hello world" \u2192 "${translatedText}"`;
-    document.getElementById('bobResult').classList.add('visible');
-
-    setStep(5, 'done', `Result: "${translatedText}"`);
-    log('bob', `Translation complete: "${translatedText}"`);
-    setAgentStatus('bob', 'Ready to deliver', 'active');
-
-    await sleep(1200);
-
-    // ── Step 6: Deliver ──
-    setStep(6, 'active');
-    setAgentStatus('bob', 'Delivering...', 'busy');
-    log('bob', 'Submitting result to escrow contract...');
-
-    const escrowList = await api('GET', '/cap/v1/escrows?as=bob');
-    const activeEscrow = (escrowList.escrows || [])[0];
-    if (!activeEscrow) {
-      setStep(6, 'error', 'No escrow found');
-      throw new Error('No escrow');
-    }
-
-    const deliverResp = await api('POST', `/cap/v1/escrows/${activeEscrow.contractId}/deliver`, {
-      provider: 'bob',
-      resultHash: `translation:${translatedText}`,
-      resultUrl: '',
-    });
-
-    const reviewCid = deliverResp.contractId || '';
-    logTx('ARCHIVE', activeEscrow.contractId, 'Escrow consumed by Deliver');
-    logTx('CREATE', reviewCid, `PendingReview { resultHash: translation:... }`);
-
-    setStep(6, 'done', `Delivered to ledger &rarr; PendingReview <span class="tx-hash contract"><span class="icon">&#9638;</span> ${txHash(reviewCid)}</span>`);
-
-    // Update ledger state
-    showLedgerState([
-      { type: 'CAPCoin', typeClass: 'capcoin', cid: splitCid2 || '...', detail: `Alice: ${(bigCoin.amount - 0.50).toFixed(2)} CAP` },
-      { type: 'LockedCAPCoin', typeClass: 'locked', cid: paymentCid, detail: `0.50 CAP (still locked)` },
-      { type: 'PendingReview', typeClass: 'review-type', cid: reviewCid, detail: `Awaiting Alice` },
-    ]);
-
-    setAgentStatus('bob', 'Delivered', 'active');
-    setAgentStatus('alice', 'Reviewing...', 'busy');
-
-    await sleep(1200);
-
-    // ── Step 7: Approve + Rate ──
-    setStep(7, 'active');
-    log('alice', 'Reviewing translation result...');
-    log('alice', `Received: "${translatedText}" &mdash; looks correct`);
-
-    await sleep(800);
-
-    const reviewList = await api('GET', '/cap/v1/escrows?as=alice');
-    const pendingReview = (reviewList.pendingReviews || [])[0];
-    if (!pendingReview) {
-      setStep(7, 'error', 'No pending review found');
-      throw new Error('No review');
-    }
-
-    const approveResp = await api('POST', `/cap/v1/escrows/${pendingReview.contractId}/approve-with-rating`, {
-      consumer: 'alice',
-      consumerRating: 5,
-      consumerComment: 'Excellent translation!',
-    });
-
-    logTx('ARCHIVE', pendingReview.contractId, 'PendingReview consumed by ApproveAndPay');
-    log('alice', 'Approved delivery with rating: 5/5');
-    log('ledger', 'ApproveAndPay &rarr; ReleaseToBeneficiary on LockedCAPCoin');
-
-    setStep(7, 'done', `Approved with 5-star rating <span class="tx-hash release"><span class="icon">&#128275;</span> RELEASE</span>`);
-    setAgentStatus('alice', 'Approved', 'active');
-
-    await sleep(1000);
-
-    // ── Step 8: Release + Settlement ──
-    setStep(8, 'active');
-    logTx('RELEASE', paymentCid, 'LockedCAPCoin(0.50) &rarr; CAPCoin(0.50) [owner: Bob]');
-    log('ledger', 'LockedCAPCoin released to beneficiary (Bob)');
-
-    // Update asset flow to show release
-    showAssetFlow([
-      `<span class="flow-label">SPLIT</span>
-       <span class="flow-node coin" style="opacity:0.4;">&#9673; CAPCoin <span class="flow-amount">${bigCoin.amount.toFixed(2)}</span></span>
-       <span class="flow-arrow" style="opacity:0.4;">&rarr;</span>
-       <span class="flow-node coin" style="opacity:0.4;">&#9673; CAPCoin <span class="flow-amount">0.50</span></span>
-       <span style="color:var(--dim);opacity:0.4;">+</span>
-       <span class="flow-node coin">&#9673; CAPCoin <span class="flow-amount">${(bigCoin.amount - 0.50).toFixed(2)}</span></span>
-       <span style="font-size:10px;color:var(--dim);">[Alice keeps change]</span>`,
-
-      `<span class="flow-label">LOCK</span>
-       <span class="flow-node coin" style="opacity:0.4;">&#9673; CAPCoin <span class="flow-amount">0.50</span></span>
-       <span class="flow-arrow" style="opacity:0.4;">&rarr;</span>
-       <span class="flow-node locked-coin" style="opacity:0.4;">&#128274; LockedCAPCoin <span class="flow-amount">0.50</span></span>
-       <span style="font-size:10px;color:var(--dim);opacity:0.4;">[locked during service]</span>`,
-
-      `<span class="flow-label" style="background:rgba(0,255,136,0.12);color:var(--green);">RELEASE</span>
-       <span class="flow-node locked-coin" style="opacity:0.4;text-decoration:line-through;">&#128274; LockedCAPCoin <span class="flow-amount">0.50</span></span>
-       <span class="flow-arrow" style="color:var(--green);">&rarr;</span>
-       <span class="flow-node released-coin">&#128275; CAPCoin <span class="flow-amount">0.50</span></span>
-       <span style="font-size:10px;color:var(--green);">[Bob receives payment]</span>`,
-    ]);
-
-    setEscrow('alice', 0.50, null, 'released');
-    setEscrow('bob', 0.50, null, 'released');
-
-    const aliceFinal = await fetchBalance('alice');
-    const bobFinal = await fetchBalance('bob');
-    setBalance('alice', aliceFinal.balance, aliceInit.balance);
-    setBalance('bob', bobFinal.balance, bobInit.balance);
-    setLockedBalance('alice', aliceFinal.lockedBalance);
-    setLockedBalance('bob', bobFinal.lockedBalance);
-
-    log('alice', `Final balance: ${aliceFinal.balance.toFixed(2)} CAP`, `(${(aliceFinal.balance - aliceInit.balance).toFixed(2)})`);
-    log('bob', `Final balance: ${bobFinal.balance.toFixed(2)} CAP`, `(+${(bobFinal.balance - bobInit.balance).toFixed(2)})`);
-
-    // Final ledger state
-    showLedgerState([
-      { type: 'CAPCoin', typeClass: 'capcoin', cid: splitCid2 || '...', detail: `Alice: ${(bigCoin.amount - 0.50).toFixed(2)} CAP` },
-      { type: 'CAPCoin', typeClass: 'capcoin', cid: '(new)', detail: `Bob: +0.50 CAP` },
-      { type: 'Rating', typeClass: 'review-type', cid: '...', detail: `Alice rates Bob: 5/5` },
-    ]);
-
-    setStep(8, 'done', `Alice: ${aliceFinal.balance.toFixed(2)} CAP | Bob: ${bobFinal.balance.toFixed(2)} CAP <span class="tx-hash release"><span class="icon">&#10003;</span> SETTLED</span>`);
-    setAgentStatus('alice', 'Complete', 'active');
-    setAgentStatus('bob', 'Complete', 'active');
-
-    log('system', 'Demo complete &mdash; full CIP-0056 protocol flow verified on Canton ledger');
-
-  } catch (e) {
-    log('error', `Demo error: ${e.message}`);
-    setAgentStatus('alice', 'Error', '');
-    setAgentStatus('bob', 'Error', '');
-  }
-
-  running = false;
-  document.getElementById('btnRun').disabled = false;
-}
-
-function resetDemo() {
-  if (running) return;
-  document.getElementById('eventLog').innerHTML = '';
-  for (let i = 1; i <= 8; i++) {
-    setStep(i, '', '');
-    document.getElementById(`detail${i}`).textContent = '';
-  }
-  document.getElementById('aliceBalance').innerHTML = '&mdash;';
-  document.getElementById('bobBalance').innerHTML = '&mdash;';
-  document.getElementById('aliceLockedBalance').innerHTML = '&mdash;';
-  document.getElementById('bobLockedBalance').innerHTML = '&mdash;';
-  document.getElementById('aliceChange').className = 'balance-change';
-  document.getElementById('bobChange').className = 'balance-change';
-  setAgentStatus('alice', 'Idle', '');
-  setAgentStatus('bob', 'Idle', '');
-  setEscrow('alice', null);
-  setEscrow('bob', null);
-  clearAssetFlow();
-  clearLedgerState();
-  document.getElementById('bobResult').classList.remove('visible');
-  log('system', 'Demo reset');
-}
-
-// Init
 connectWs();
+renderSidebar();
+selectUseCase('happy-path');
 </script>
 </body>
 </html>
