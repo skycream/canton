@@ -1,5 +1,7 @@
 module Cap.Token where
 
+import Cap.Holding
+
 -- Simple fungible token for agent payments.
 -- In production, replaced by USDCx on Canton Network.
 template CAPCoin
@@ -9,6 +11,12 @@ template CAPCoin
   where
     signatory owner
     ensure amount > 0.0
+
+    -- CIP-0056: Holding interface so wallets can query any token uniformly
+    interface instance Holding for CAPCoin where
+      view = HoldingView with owner, amount
+      getOwner = owner
+      getAmount = amount
 
     -- Split a coin into two parts
     choice Split : (ContractId CAPCoin, ContractId CAPCoin)
@@ -21,6 +29,17 @@ template CAPCoin
         coin1 <- create CAPCoin with owner, amount = splitAmount
         coin2 <- create CAPCoin with owner, amount = amount - splitAmount
         return (coin1, coin2)
+
+    -- Lock coin for escrow (Canton LockedAmulet pattern)
+    choice Lock : ContractId LockedCAPCoin
+      with
+        beneficiary : Party
+      controller owner
+      do
+        create LockedCAPCoin with
+          originalOwner = owner
+          beneficiary
+          amount
 
     -- Propose transferring coin to a new owner
     choice ProposeTransfer : ContractId TransferProposal
@@ -42,6 +61,30 @@ template CAPCoin
         archive self
         archive otherCid
         create CAPCoin with owner, amount = amount + other.amount
+
+-- Locked coin: funds held in escrow until released or refunded.
+-- Follows Canton's LockedAmulet pattern (lock → release/refund).
+template LockedCAPCoin
+  with
+    originalOwner : Party
+    beneficiary : Party
+    amount : Decimal
+  where
+    signatory originalOwner
+    observer beneficiary
+    ensure amount > 0.0
+
+    -- Release funds to beneficiary (requires both parties' authority)
+    choice ReleaseToBeneficiary : ContractId CAPCoin
+      controller originalOwner, beneficiary
+      do
+        create CAPCoin with owner = beneficiary, amount
+
+    -- Refund funds to original owner
+    choice Refund : ContractId CAPCoin
+      controller originalOwner
+      do
+        create CAPCoin with owner = originalOwner, amount
 
 -- Transfer proposal: coin is locked (consumed), receiver must accept to get funds
 template TransferProposal

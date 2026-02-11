@@ -3,6 +3,7 @@ module Cap.Test where
 import Daml.Script
 import Cap.Types
 import Cap.Token
+import Cap.Holding
 import Cap.Agent
 import Cap.Service
 import Cap.Escrow
@@ -69,7 +70,7 @@ testFullFlow = script do
       price = 0.05
       estimatedTimeMs = 3000
 
-  -- 7. Alice accepts → Escrow
+  -- 7. Alice accepts → Escrow (Split + Lock)
   escrow <- submit alice do
     exerciseCmd offer AcceptOffer with
       paymentCid = aliceCoin
@@ -167,7 +168,7 @@ testRejectOffer = script do
   submit alice do exerciseCmd offer RejectOffer
   return ()
 
--- Test: Escrow cancellation
+-- Test: Escrow cancellation (with locked coin refund)
 testCancelEscrow : Script ()
 testCancelEscrow = script do
   alice <- allocateParty "Alice"
@@ -198,7 +199,7 @@ testCancelEscrow = script do
   assertMsg "Alice has 10.0 total" (total == 10.0)
   return ()
 
--- Test: Dispute resolution
+-- Test: Dispute resolution (provider concedes)
 testDispute : Script ()
 testDispute = script do
   alice <- allocateParty "Alice"
@@ -349,6 +350,167 @@ testTokenMerge = script do
 
   allCoins <- query @CAPCoin alice
   assertMsg "Only one coin left" (length allCoins == 1)
+  return ()
+
+-- ========== New CIP-0056 Token Standard Tests ==========
+
+-- Test: Lock and refund basic flow
+testLockAndRefund : Script ()
+testLockAndRefund = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  coin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 25.0
+
+  lockedCid <- submit alice do
+    exerciseCmd coin Lock with beneficiary = bob
+
+  -- Verify locked coin exists
+  Some locked <- queryContractId alice lockedCid
+  assertMsg "Original owner is alice" (locked.originalOwner == alice)
+  assertMsg "Beneficiary is bob" (locked.beneficiary == bob)
+  assertMsg "Amount is 25" (locked.amount == 25.0)
+
+  -- Refund (only originalOwner needed)
+  refundCid <- submit alice do
+    exerciseCmd lockedCid Refund
+
+  Some refund <- queryContractId alice refundCid
+  assertMsg "Refund owner is alice" (refund.owner == alice)
+  assertMsg "Refund amount is 25" (refund.amount == 25.0)
+  return ()
+
+-- Test: Lock and release to beneficiary (requires both parties)
+testLockAndRelease : Script ()
+testLockAndRelease = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  coin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 15.0
+
+  lockedCid <- submit alice do
+    exerciseCmd coin Lock with beneficiary = bob
+
+  -- Release requires both originalOwner and beneficiary
+  paymentCid <- submitMulti [alice, bob] [] do
+    exerciseCmd lockedCid ReleaseToBeneficiary
+
+  Some payment <- queryContractId bob paymentCid
+  assertMsg "Payment owner is bob" (payment.owner == bob)
+  assertMsg "Payment amount is 15" (payment.amount == 15.0)
+
+  -- Alice no longer has coins
+  aliceCoins <- query @CAPCoin alice
+  assertMsg "Alice has no coins" (null aliceCoins)
+  return ()
+
+-- Test: Beneficiary alone cannot release locked coin
+testBeneficiaryCannotRelease : Script ()
+testBeneficiaryCannotRelease = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  coin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 10.0
+
+  lockedCid <- submit alice do
+    exerciseCmd coin Lock with beneficiary = bob
+
+  -- Bob (beneficiary) alone cannot release
+  submitMustFail bob do
+    exerciseCmd lockedCid ReleaseToBeneficiary
+
+  -- Locked coin still exists
+  Some locked <- queryContractId alice lockedCid
+  assertMsg "Still locked" (locked.amount == 10.0)
+  return ()
+
+-- Test: CAPCoin implements Holding interface (CIP-0056 query)
+testHoldingInterface : Script ()
+testHoldingInterface = script do
+  alice <- allocateParty "Alice"
+
+  _coin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 42.0
+
+  holdings <- queryInterface @Holding alice
+  assertMsg "One holding" (length holdings == 1)
+  let (_, Some view) = headNote "holding" holdings
+  assertMsg "Owner matches" (view.owner == alice)
+  assertMsg "Amount matches" (view.amount == 42.0)
+  return ()
+
+-- Test: Provider abandon with locked coin refund
+testAbandonWithLockedCoin : Script ()
+testAbandonWithLockedCoin = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 20.0
+
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}"
+      maxPrice = 5.0, slaTerms = defaultSLA
+
+  offer <- submit bob do
+    exerciseCmd request MakeOffer with price = 3.0, estimatedTimeMs = 5000
+
+  escrow <- submit alice do
+    exerciseCmd offer AcceptOffer with paymentCid = aliceCoin
+
+  -- Provider abandons → consumer gets refund via locked coin
+  refundCid <- submit bob do
+    exerciseCmd escrow AbandonEscrow
+
+  Some refund <- queryContractId alice refundCid
+  assertMsg "Refund is 3.0" (refund.amount == 3.0)
+
+  allCoins <- query @CAPCoin alice
+  let total = foldl (\acc (_, c) -> acc + c.amount) 0.0 allCoins
+  assertMsg "Alice has 20.0 total" (total == 20.0)
+  return ()
+
+-- Test: Dispute resolved for provider (provider gets paid via locked coin)
+testDisputeResolveForProvider : Script ()
+testDisputeResolveForProvider = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 10.0
+
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "coding", params = "{}"
+      maxPrice = 5.0, slaTerms = defaultSLA
+
+  offer <- submit bob do
+    exerciseCmd request MakeOffer with price = 4.0, estimatedTimeMs = 10000
+
+  escrow <- submit alice do
+    exerciseCmd offer AcceptOffer with paymentCid = aliceCoin
+
+  review <- submit bob do
+    exerciseCmd escrow Deliver with
+      resultHash = "sha256:code123"
+      resultUrl = "https://results.cap/code"
+
+  dispute <- submit alice do
+    exerciseCmd review Dispute with reason = "Not satisfied with quality"
+
+  -- Consumer concedes → provider gets paid
+  paymentCid <- submit alice do
+    exerciseCmd dispute ResolveForProvider
+
+  Some payment <- queryContractId bob paymentCid
+  assertMsg "Bob gets 4.0" (payment.owner == bob)
+  assertMsg "Payment is 4.0" (payment.amount == 4.0)
   return ()
 
 headNote : Text -> [a] -> a

@@ -55,7 +55,7 @@ template ServiceOffer
   where
     signatory consumer, provider
 
-    -- Consumer accepts and locks funds in escrow
+    -- Consumer accepts and locks funds in escrow (Split+Lock pattern)
     choice AcceptOffer : ContractId Escrow
       with
         paymentCid : ContractId CAPCoin
@@ -64,18 +64,19 @@ template ServiceOffer
         coin <- fetch paymentCid
         assertMsg "Not your coin" (coin.owner == consumer)
         assertMsg "Insufficient funds" (coin.amount >= price)
-        archive paymentCid
-        -- Return change if overpaid
-        if coin.amount > price
+        -- Split if overpaid, then lock the payment portion
+        lockedCoinCid <- if coin.amount > price
           then do
-            _ <- create CAPCoin with owner = consumer, amount = coin.amount - price
-            pure ()
-          else pure ()
-        -- Lock funds in escrow
+            (payPart, _change) <- exercise paymentCid Split with splitAmount = price
+            exercise payPart Lock with beneficiary = provider
+          else
+            exercise paymentCid Lock with beneficiary = provider
+        -- Create escrow holding the locked coin reference
         create Escrow with
           consumer
           provider
           amount = price
+          lockedCoinCid
           capability
           params
           slaTerms

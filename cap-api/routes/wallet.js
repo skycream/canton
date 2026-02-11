@@ -16,12 +16,31 @@ router.get("/", async (req, res) => {
     const coins = result.result || [];
     const balance = coins.reduce((sum, c) => sum + Number(c.payload.amount), 0);
 
+    // Query locked coins (LockedAmulet pattern)
+    const lockedResult = await req.app.locals.queryContracts(
+      userId,
+      "Cap.Token:LockedCAPCoin"
+    );
+
+    const lockedCoins = lockedResult.result || [];
+    const lockedBalance = lockedCoins.reduce(
+      (sum, c) => sum + Number(c.payload.amount),
+      0
+    );
+
     res.json({
       agentId: userId,
       balance,
+      lockedBalance,
+      totalBalance: balance + lockedBalance,
       coins: coins.map((c) => ({
         contractId: c.contractId,
         amount: Number(c.payload.amount),
+      })),
+      lockedCoins: lockedCoins.map((c) => ({
+        contractId: c.contractId,
+        amount: Number(c.payload.amount),
+        beneficiary: c.payload.beneficiary,
       })),
     });
   } catch (e) {

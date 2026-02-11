@@ -10,6 +10,7 @@ template Escrow
     consumer : Party
     provider : Party
     amount : Decimal
+    lockedCoinCid : ContractId LockedCAPCoin
     capability : Text
     params : Text
     slaTerms : SLATerms
@@ -27,21 +28,22 @@ template Escrow
           consumer
           provider
           amount
+          lockedCoinCid
           resultHash
           resultUrl
           slaTerms
 
-    -- Consumer cancels before delivery
+    -- Consumer cancels before delivery → refund via locked coin
     choice CancelEscrow : ContractId CAPCoin
       controller consumer
       do
-        create CAPCoin with owner = consumer, amount
+        exercise lockedCoinCid Refund
 
-    -- Provider walks away, refunding consumer
+    -- Provider walks away → refund consumer via locked coin
     choice AbandonEscrow : ContractId CAPCoin
       controller provider
       do
-        create CAPCoin with owner = consumer, amount
+        exercise lockedCoinCid Refund
 
 -- Delivery submitted, awaiting consumer review
 template PendingReview
@@ -49,13 +51,14 @@ template PendingReview
     consumer : Party
     provider : Party
     amount : Decimal
+    lockedCoinCid : ContractId LockedCAPCoin
     resultHash : Text
     resultUrl : Text
     slaTerms : SLATerms
   where
     signatory consumer, provider
 
-    -- Consumer approves → provider gets paid, consumer rates provider
+    -- Consumer approves → provider gets paid via locked coin release
     choice ApproveAndPay : (ContractId CAPCoin, ContractId Rating)
       with
         consumerRating : Int
@@ -63,8 +66,7 @@ template PendingReview
       controller consumer
       do
         assertMsg "Rating must be 1-5" (consumerRating >= 1 && consumerRating <= 5)
-        payment <- create CAPCoin with owner = provider, amount
-        -- Consumer rates provider (only the rater creates their own rating)
+        payment <- exercise lockedCoinCid ReleaseToBeneficiary
         r1 <- create Rating with
           rater = consumer
           rated = provider
@@ -76,7 +78,7 @@ template PendingReview
     choice QuickApprove : ContractId CAPCoin
       controller consumer
       do
-        create CAPCoin with owner = provider, amount
+        exercise lockedCoinCid ReleaseToBeneficiary
 
     -- Consumer disputes the delivery
     choice Dispute : ContractId DisputeRecord
@@ -88,6 +90,7 @@ template PendingReview
           consumer
           provider
           amount
+          lockedCoinCid
           reason
           resultHash
           resultUrl
@@ -98,20 +101,21 @@ template DisputeRecord
     consumer : Party
     provider : Party
     amount : Decimal
+    lockedCoinCid : ContractId LockedCAPCoin
     reason : Text
     resultHash : Text
     resultUrl : Text
   where
     signatory consumer, provider
 
-    -- Provider concedes → consumer gets refund
+    -- Provider concedes → consumer gets refund via locked coin
     choice ResolveForConsumer : ContractId CAPCoin
       controller provider
       do
-        create CAPCoin with owner = consumer, amount
+        exercise lockedCoinCid Refund
 
-    -- Consumer concedes → provider gets paid
+    -- Consumer concedes → provider gets paid via locked coin release
     choice ResolveForProvider : ContractId CAPCoin
       controller consumer
       do
-        create CAPCoin with owner = provider, amount
+        exercise lockedCoinCid ReleaseToBeneficiary

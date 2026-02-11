@@ -1,0 +1,16 @@
+module Cap.Holding where
+
+-- CIP-0056 compatible Holding interface.
+-- Any token (CAPCoin, USDCx, Canton Coin) implements this
+-- so wallets can query holdings uniformly.
+
+data HoldingView = HoldingView
+  with
+    owner : Party
+    amount : Decimal
+  deriving (Show, Eq)
+
+interface Holding where
+  viewtype HoldingView
+  getOwner : Party
+  getAmount : Decimal
