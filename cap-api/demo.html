@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canton Agent Protocol — Live Demo</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --card: #12121a;
+    --border: #1e1e2e;
+    --text: #e0e0e8;
+    --dim: #555566;
+    --green: #00ff88;
+    --blue: #4488ff;
+    --purple: #8855ff;
+    --orange: #ff8844;
+    --red: #ff4466;
+    --yellow: #ffcc00;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    min-width: 960px;
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    padding: 28px 20px 20px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #0f0f18 0%, var(--bg) 100%);
+  }
+  header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  header h1 span { color: var(--green); }
+  header .subtitle {
+    color: var(--dim);
+    font-size: 12px;
+    margin-bottom: 16px;
+  }
+  .btn-group { display: flex; gap: 10px; justify-content: center; }
+  .btn {
+    padding: 10px 28px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn:hover { border-color: var(--dim); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-run {
+    background: linear-gradient(135deg, #00cc6a, #00aa55);
+    border-color: #00aa55;
+    color: #000;
+    font-weight: 700;
+  }
+  .btn-run:hover:not(:disabled) { background: linear-gradient(135deg, #00ff88, #00cc6a); }
+  .btn-reset { color: var(--dim); }
+
+  /* Main Grid */
+  .main {
+    display: grid;
+    grid-template-columns: 240px 1fr 240px;
+    gap: 0;
+    min-height: 540px;
+  }
+
+  /* Agent Cards */
+  .agent-card {
+    padding: 24px 20px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .agent-card:last-child { border-right: none; border-left: 1px solid var(--border); }
+  .agent-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .agent-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .alice-avatar { background: rgba(68, 136, 255, 0.15); border: 1px solid rgba(68, 136, 255, 0.3); }
+  .bob-avatar { background: rgba(136, 85, 255, 0.15); border: 1px solid rgba(136, 85, 255, 0.3); }
+  .agent-name { font-size: 16px; font-weight: 700; }
+  .agent-role {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    display: inline-block;
+    margin-top: 2px;
+  }
+  .alice-role { background: rgba(68, 136, 255, 0.15); color: var(--blue); }
+  .bob-role { background: rgba(136, 85, 255, 0.15); color: var(--purple); }
+
+  .stat-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--dim);
+    margin-bottom: 4px;
+  }
+  .balance-value {
+    font-size: 28px;
+    font-weight: 700;
+    transition: color 0.3s;
+  }
+  .balance-unit { font-size: 12px; color: var(--dim); font-weight: 400; margin-left: 4px; }
+  .balance-change {
+    font-size: 11px;
+    margin-top: 2px;
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+  .balance-change.visible { opacity: 1; }
+  .balance-change.negative { color: var(--red); }
+  .balance-change.positive { color: var(--green); }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--dim);
+    transition: background 0.3s;
+  }
+  .status-dot.active { background: var(--green); box-shadow: 0 0 8px rgba(0,255,136,0.5); }
+  .status-dot.busy { background: var(--blue); box-shadow: 0 0 8px rgba(68,136,255,0.5); animation: pulse-dot 1s infinite; }
+  .status-text { font-size: 12px; }
+
+  .escrow-box {
+    padding: 10px 12px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s;
+  }
+  .escrow-box.locked {
+    border-color: var(--orange);
+    background: rgba(255, 136, 68, 0.08);
+  }
+  .escrow-amount { font-weight: 700; font-size: 16px; }
+
+  .result-box {
+    padding: 12px;
+    border-radius: 6px;
+    background: rgba(0,255,136,0.05);
+    border: 1px solid rgba(0,255,136,0.2);
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+  .result-box.visible { opacity: 1; }
+  .result-label { color: var(--green); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .result-text { font-size: 14px; }
+
+  /* Timeline */
+  .timeline {
+    padding: 20px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-left: none;
+    border-right: none;
+  }
+  .step {
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: all 0.3s;
+    position: relative;
+  }
+  .step.active {
+    background: rgba(68, 136, 255, 0.06);
+    border-color: rgba(68, 136, 255, 0.2);
+  }
+  .step.done {
+    background: rgba(0, 255, 136, 0.04);
+    border-color: rgba(0, 255, 136, 0.15);
+  }
+  .step.error {
+    background: rgba(255, 68, 102, 0.06);
+    border-color: rgba(255, 68, 102, 0.2);
+  }
+  .step-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--card);
+    border: 2px solid var(--border);
+    color: var(--dim);
+    transition: all 0.3s;
+  }
+  .step.active .step-num {
+    border-color: var(--blue);
+    color: var(--blue);
+    box-shadow: 0 0 12px rgba(68,136,255,0.3);
+    animation: pulse-ring 1.5s infinite;
+  }
+  .step.done .step-num {
+    border-color: var(--green);
+    background: var(--green);
+    color: #000;
+  }
+  .step.error .step-num {
+    border-color: var(--red);
+    color: var(--red);
+  }
+  .step-content { min-width: 0; }
+  .step-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--dim);
+    transition: color 0.3s;
+  }
+  .step.active .step-title, .step.done .step-title { color: var(--text); }
+  .step-desc {
+    font-size: 11px;
+    color: var(--dim);
+    margin-top: 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .step-arrow {
+    font-size: 16px;
+    color: var(--dim);
+    transition: color 0.3s;
+    font-weight: 300;
+    min-width: 24px;
+    text-align: center;
+  }
+  .step.active .step-arrow { color: var(--blue); }
+  .step.done .step-arrow { color: var(--green); }
+  .step-detail {
+    grid-column: 2 / 4;
+    font-size: 11px;
+    color: var(--dim);
+    background: rgba(0,0,0,0.3);
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin-top: 4px;
+    font-family: inherit;
+    word-break: break-all;
+    display: none;
+  }
+  .step.active .step-detail, .step.done .step-detail { display: block; }
+
+  /* Event Log */
+  .event-log-container {
+    border-top: 1px solid var(--border);
+    background: #08080d;
+  }
+  .event-log-header {
+    padding: 10px 20px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--dim);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .event-log-header .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+  .event-log {
+    height: 180px;
+    overflow-y: auto;
+    padding: 8px 20px;
+    font-size: 11px;
+    scroll-behavior: smooth;
+  }
+  .event-log::-webkit-scrollbar { width: 6px; }
+  .event-log::-webkit-scrollbar-track { background: transparent; }
+  .event-log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .log-entry {
+    padding: 3px 0;
+    display: flex;
+    gap: 10px;
+    animation: fadeIn 0.3s;
+  }
+  .log-time { color: var(--dim); white-space: nowrap; min-width: 80px; }
+  .log-tag {
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    min-width: 56px;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .log-tag.alice { background: rgba(68,136,255,0.15); color: var(--blue); }
+  .log-tag.bob { background: rgba(136,85,255,0.15); color: var(--purple); }
+  .log-tag.ledger { background: rgba(0,255,136,0.12); color: var(--green); }
+  .log-tag.system { background: rgba(255,204,0,0.12); color: var(--yellow); }
+  .log-tag.error { background: rgba(255,68,102,0.12); color: var(--red); }
+  .log-msg { color: var(--text); word-break: break-all; }
+  .log-data { color: var(--dim); }
+
+  /* Animations */
+  @keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgba(68,136,255,0.4); }
+    70% { box-shadow: 0 0 0 8px rgba(68,136,255,0); }
+    100% { box-shadow: 0 0 0 0 rgba(68,136,255,0); }
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes balancePop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+  .balance-pop { animation: balancePop 0.4s ease; }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 12px;
+    color: var(--dim);
+    font-size: 10px;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--blue); text-decoration: none; }
+
+  /* Connection badge */
+  .ws-badge {
+    position: fixed;
+    top: 12px;
+    right: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--dim);
+    background: var(--card);
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+  }
+  .ws-badge .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--dim);
+    transition: background 0.3s;
+  }
+  .ws-badge .dot.connected { background: var(--green); }
+</style>
+</head>
+<body>
+
+<div class="ws-badge">
+  <div class="dot" id="wsDot"></div>
+  <span id="wsStatus">Disconnected</span>
+</div>
+
+<header>
+  <h1><span>Canton</span> Agent Protocol</h1>
+  <div class="subtitle">Real-time AI agent-to-agent commerce on Canton Network</div>
+  <div class="btn-group">
+    <button class="btn btn-run" id="btnRun" onclick="runDemo()">Run Demo</button>
+    <button class="btn btn-reset" onclick="resetDemo()">Reset</button>
+  </div>
+</header>
+
+<div class="main">
+  <!-- Alice -->
+  <div class="agent-card">
+    <div>
+      <div class="agent-header">
+        <div class="agent-avatar alice-avatar">A</div>
+        <div>
+          <div class="agent-name">Alice</div>
+          <span class="agent-role alice-role">Consumer</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="stat-label">Balance</div>
+      <div class="balance-value" id="aliceBalance" style="color: var(--blue);">—</div>
+      <div class="balance-change" id="aliceChange"></div>
+    </div>
+    <div>
+      <div class="stat-label">Status</div>
+      <div class="status-row">
+        <div class="status-dot" id="aliceDot"></div>
+        <span class="status-text" id="aliceStatus">Idle</span>
+      </div>
+    </div>
+    <div>
+      <div class="stat-label">Escrow</div>
+      <div class="escrow-box" id="aliceEscrow">
+        <span style="color: var(--dim);">No active escrow</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timeline -->
+  <div class="timeline" id="timeline">
+    <div class="step" id="step1">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <div class="step-title">Discover</div>
+        <div class="step-desc">Alice searches for a translation agent</div>
+      </div>
+      <div class="step-arrow">&rarr;</div>
+      <div class="step-detail" id="detail1"></div>
+    </div>
+    <div class="step" id="step2">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <div class="step-title">Request</div>
+        <div class="step-desc">Alice sends translation request to Bob</div>
+      </div>
+      <div class="step-arrow">&rarr;</div>
+      <div class="step-detail" id="detail2"></div>
+    </div>
+    <div class="step" id="step3">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <div class="step-title">Offer</div>
+        <div class="step-desc">Bob proposes price for the service</div>
+      </div>
+      <div class="step-arrow">&larr;</div>
+      <div class="step-detail" id="detail3"></div>
+    </div>
+    <div class="step" id="step4">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <div class="step-title">Accept + Escrow</div>
+        <div class="step-desc">Alice accepts offer, funds locked in escrow</div>
+      </div>
+      <div class="step-arrow">&rarr;</div>
+      <div class="step-detail" id="detail4"></div>
+    </div>
+    <div class="step" id="step5">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <div class="step-title">Execute</div>
+        <div class="step-desc">Bob translates "Hello world" to Korean</div>
+      </div>
+      <div class="step-arrow">&larr;</div>
+      <div class="step-detail" id="detail5"></div>
+    </div>
+    <div class="step" id="step6">
+      <div class="step-num">6</div>
+      <div class="step-content">
+        <div class="step-title">Deliver</div>
+        <div class="step-desc">Bob delivers result to the ledger</div>
+      </div>
+      <div class="step-arrow">&larr;</div>
+      <div class="step-detail" id="detail6"></div>
+    </div>
+    <div class="step" id="step7">
+      <div class="step-num">7</div>
+      <div class="step-content">
+        <div class="step-title">Approve + Rate</div>
+        <div class="step-desc">Alice approves result and rates Bob</div>
+      </div>
+      <div class="step-arrow">&rarr;</div>
+      <div class="step-detail" id="detail7"></div>
+    </div>
+    <div class="step" id="step8">
+      <div class="step-num">8</div>
+      <div class="step-content">
+        <div class="step-title">Settlement</div>
+        <div class="step-desc">Payment released to Bob from escrow</div>
+      </div>
+      <div class="step-arrow">&#10003;</div>
+      <div class="step-detail" id="detail8"></div>
+    </div>
+  </div>
+
+  <!-- Bob -->
+  <div class="agent-card">
+    <div>
+      <div class="agent-header">
+        <div class="agent-avatar bob-avatar">B</div>
+        <div>
+          <div class="agent-name">Bob</div>
+          <span class="agent-role bob-role">Provider</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="stat-label">Balance</div>
+      <div class="balance-value" id="bobBalance" style="color: var(--purple);">—</div>
+      <div class="balance-change" id="bobChange"></div>
+    </div>
+    <div>
+      <div class="stat-label">Status</div>
+      <div class="status-row">
+        <div class="status-dot" id="bobDot"></div>
+        <span class="status-text" id="bobStatus">Idle</span>
+      </div>
+    </div>
+    <div>
+      <div class="stat-label">Escrow</div>
+      <div class="escrow-box" id="bobEscrow">
+        <span style="color: var(--dim);">No active escrow</span>
+      </div>
+    </div>
+    <div>
+      <div class="stat-label">Result</div>
+      <div class="result-box" id="bobResult">
+        <div class="result-label">Translation Output</div>
+        <div class="result-text" id="bobResultText"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Event Log -->
+<div class="event-log-container">
+  <div class="event-log-header">
+    <div class="dot"></div>
+    Event Log
+  </div>
+  <div class="event-log" id="eventLog"></div>
+</div>
+
+<footer>
+  Canton Agent Protocol v0.1.0 &mdash; Powered by <a href="https://www.canton.network/" target="_blank">Canton Network</a> + Daml Smart Contracts
+</footer>
+
+<script>
+const API = '';  // same origin
+let running = false;
+let ws = null;
+
+// ── Helpers ──
+
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+async function api(method, path, body) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const resp = await fetch(`${API}${path}`, opts);
+  return resp.json();
+}
+
+function timestamp() {
+  return new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function log(tag, msg, data) {
+  const el = document.getElementById('eventLog');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  const dataStr = data ? `  <span class="log-data">${typeof data === 'string' ? data : JSON.stringify(data)}</span>` : '';
+  entry.innerHTML = `<span class="log-time">${timestamp()}</span><span class="log-tag ${tag}">${tag.toUpperCase()}</span><span class="log-msg">${msg}${dataStr}</span>`;
+  el.appendChild(entry);
+  el.scrollTop = el.scrollHeight;
+}
+
+function setStep(n, state, detail) {
+  const el = document.getElementById(`step${n}`);
+  el.className = `step ${state}`;
+  if (detail !== undefined) {
+    document.getElementById(`detail${n}`).textContent = detail;
+  }
+}
+
+function setAgentStatus(agent, status, state) {
+  document.getElementById(`${agent}Status`).textContent = status;
+  const dot = document.getElementById(`${agent}Dot`);
+  dot.className = 'status-dot';
+  if (state === 'busy') dot.classList.add('busy');
+  if (state === 'active') dot.classList.add('active');
+}
+
+function setBalance(agent, amount, prevAmount) {
+  const el = document.getElementById(`${agent}Balance`);
+  const unit = `<span class="balance-unit">CAP</span>`;
+  el.innerHTML = `${Number(amount).toFixed(2)}${unit}`;
+  el.classList.remove('balance-pop');
+  void el.offsetWidth; // reflow
+  el.classList.add('balance-pop');
+
+  if (prevAmount !== undefined && prevAmount !== null) {
+    const diff = amount - prevAmount;
+    if (Math.abs(diff) > 0.001) {
+      const changeEl = document.getElementById(`${agent}Change`);
+      changeEl.textContent = `${diff > 0 ? '+' : ''}${diff.toFixed(2)} CAP`;
+      changeEl.className = `balance-change visible ${diff > 0 ? 'positive' : 'negative'}`;
+    }
+  }
+}
+
+function setEscrow(agent, amount) {
+  const el = document.getElementById(`${agent}Escrow`);
+  if (amount) {
+    el.className = 'escrow-box locked';
+    el.innerHTML = `<span style="color: var(--orange);">Locked:</span> <span class="escrow-amount">${Number(amount).toFixed(2)}</span> <span style="color: var(--dim);">CAP</span>`;
+  } else {
+    el.className = 'escrow-box';
+    el.innerHTML = `<span style="color: var(--dim);">No active escrow</span>`;
+  }
+}
+
+// ── WebSocket ──
+
+function connectWs() {
+  try {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${proto}//${location.host}/cap/v1/ws?agentId=demo`);
+    ws.onopen = () => {
+      document.getElementById('wsDot').classList.add('connected');
+      document.getElementById('wsStatus').textContent = 'Connected';
+    };
+    ws.onmessage = (e) => {
+      try {
+        const evt = JSON.parse(e.data);
+        log('ledger', `Event: ${evt.type}`, evt);
+      } catch {}
+    };
+    ws.onclose = () => {
+      document.getElementById('wsDot').classList.remove('connected');
+      document.getElementById('wsStatus').textContent = 'Disconnected';
+      setTimeout(connectWs, 3000);
+    };
+  } catch {}
+}
+
+// ── Demo Flow ──
+
+async function fetchBalance(agent) {
+  const data = await api('GET', `/cap/v1/wallet?as=${agent}`);
+  return { balance: data.balance || 0, coins: data.coins || [] };
+}
+
+async function runDemo() {
+  if (running) return;
+  running = true;
+  document.getElementById('btnRun').disabled = true;
+
+  // Clear previous state
+  document.getElementById('eventLog').innerHTML = '';
+  for (let i = 1; i <= 8; i++) setStep(i, '', '');
+  setEscrow('alice', null);
+  setEscrow('bob', null);
+  document.getElementById('bobResult').classList.remove('visible');
+  document.getElementById('aliceChange').className = 'balance-change';
+  document.getElementById('bobChange').className = 'balance-change';
+
+  log('system', 'Demo started — Canton Agent Protocol live flow');
+
+  try {
+    // ── Step 0: Initial balances ──
+    log('system', 'Fetching initial balances...');
+    const aliceInit = await fetchBalance('alice');
+    const bobInit = await fetchBalance('bob');
+    setBalance('alice', aliceInit.balance);
+    setBalance('bob', bobInit.balance);
+    log('alice', `Balance: ${aliceInit.balance.toFixed(2)} CAP`, `(${aliceInit.coins.length} coins)`);
+    log('bob', `Balance: ${bobInit.balance.toFixed(2)} CAP`, `(${bobInit.coins.length} coins)`);
+
+    await sleep(800);
+
+    // ── Step 1: Discover ──
+    setStep(1, 'active');
+    setAgentStatus('alice', 'Searching...', 'busy');
+    log('alice', 'Searching for translation agents...');
+
+    const discoverResp = await api('GET', '/cap/v1/services/discover?capability=translation');
+    const listings = discoverResp.listings || [];
+
+    if (listings.length === 0) {
+      setStep(1, 'error', 'No translation agents found. Is Bob registered?');
+      log('error', 'No translation listings found. Make sure Bob agent is registered.');
+      throw new Error('No listings');
+    }
+
+    const bobListing = listings[0];
+    setStep(1, 'done', `Found: ${bobListing.capability} by ${(bobListing.provider || '').split('::')[0]} @ ${bobListing.basePrice} CAP`);
+    log('alice', `Found ${listings.length} translation agent(s)`, `provider=${(bobListing.provider||'').split('::')[0]}`);
+    setAgentStatus('alice', 'Agent found', 'active');
+
+    await sleep(1200);
+
+    // ── Step 2: Request ──
+    setStep(2, 'active');
+    setAgentStatus('alice', 'Requesting...', 'busy');
+    log('alice', 'Creating service request: translate "Hello world" to Korean');
+
+    const requestResp = await api('POST', '/cap/v1/services/requests', {
+      consumer: 'alice',
+      provider: 'bob',
+      capability: 'translation',
+      params: JSON.stringify({ text: 'Hello world', targetLang: 'ko' }),
+      maxPrice: '1.0',
+    });
+
+    const requestCid = requestResp.contractId;
+    setStep(2, 'done', `Request created: ${(requestCid || '').substring(0, 20)}...`);
+    log('alice', 'Service request submitted', `cid=${(requestCid||'').substring(0, 24)}...`);
+    setAgentStatus('alice', 'Waiting for offer', 'busy');
+    setAgentStatus('bob', 'Request received', 'active');
+
+    await sleep(1200);
+
+    // ── Step 3: Offer ──
+    setStep(3, 'active');
+    setAgentStatus('bob', 'Preparing offer...', 'busy');
+    log('bob', 'Reviewing request and preparing offer...');
+
+    // Query requests to get the contract ID
+    await sleep(600);
+    const reqList = await api('GET', '/cap/v1/services/requests?as=bob');
+    const pendingReq = (reqList.requests || []).find(r => r.capability === 'translation');
+    const actualReqCid = pendingReq ? pendingReq.contractId : requestCid;
+
+    const offerResp = await api('POST', `/cap/v1/services/requests/${actualReqCid}/offer`, {
+      provider: 'bob',
+      price: '0.50',
+      estimatedTimeMs: 5000,
+    });
+
+    setStep(3, 'done', `Offered: 0.50 CAP, estimated 5s`);
+    log('bob', 'Offer submitted: 0.50 CAP', 'estimatedTime=5000ms');
+    setAgentStatus('bob', 'Offer sent', 'active');
+    setAgentStatus('alice', 'Offer received', 'active');
+
+    await sleep(1200);
+
+    // ── Step 4: Accept + Escrow ──
+    setStep(4, 'active');
+    setAgentStatus('alice', 'Accepting offer...', 'busy');
+    log('alice', 'Evaluating offer... price within budget');
+
+    // Get Alice's offer
+    const offerList = await api('GET', '/cap/v1/services/offers?as=alice');
+    const pendingOffer = (offerList.offers || [])[0];
+    if (!pendingOffer) {
+      setStep(4, 'error', 'No offer found');
+      throw new Error('No offer');
+    }
+
+    // Split a coin for payment
+    log('alice', 'Splitting coin for 0.50 CAP payment...');
+    const aliceCoins = (await fetchBalance('alice')).coins;
+    const bigCoin = aliceCoins.find(c => c.amount >= 0.50);
+    if (!bigCoin) {
+      setStep(4, 'error', 'Insufficient balance');
+      throw new Error('No coin');
+    }
+
+    let paymentCid;
+    if (Math.abs(bigCoin.amount - 0.50) < 0.001) {
+      paymentCid = bigCoin.contractId;
+    } else {
+      await api('POST', '/cap/v1/wallet/split', {
+        owner: 'alice',
+        contractId: bigCoin.contractId,
+        splitAmount: '0.50',
+      });
+      // Get the split coin
+      const afterSplit = (await fetchBalance('alice')).coins;
+      const splitCoin = afterSplit.find(c => Math.abs(c.amount - 0.50) < 0.001);
+      paymentCid = splitCoin ? splitCoin.contractId : afterSplit[afterSplit.length - 1].contractId;
+    }
+
+    // Accept the offer
+    const acceptResp = await api('POST', `/cap/v1/services/offers/${pendingOffer.contractId}/accept`, {
+      consumer: 'alice',
+      paymentCid: paymentCid,
+    });
+
+    setStep(4, 'done', `Offer accepted, 0.50 CAP locked in escrow`);
+    log('ledger', 'Escrow contract created — funds locked on-chain');
+    setEscrow('alice', 0.50);
+    setEscrow('bob', 0.50);
+
+    // Update balances after escrow lock
+    const aliceAfterEscrow = await fetchBalance('alice');
+    setBalance('alice', aliceAfterEscrow.balance, aliceInit.balance);
+
+    setAgentStatus('alice', 'Escrow locked', 'active');
+    setAgentStatus('bob', 'Work authorized', 'active');
+
+    await sleep(1500);
+
+    // ── Step 5: Execute ──
+    setStep(5, 'active');
+    setAgentStatus('bob', 'Translating...', 'busy');
+    log('bob', 'Executing translation task...');
+    log('bob', 'Input: "Hello world" → Target: Korean (ko)');
+
+    // Simulated work
+    await sleep(1500);
+
+    const translatedText = '\uD558\uB298\uC544\uB798 \uC138\uC0C1\uC544';
+    document.getElementById('bobResultText').textContent = `"Hello world" → "${translatedText}"`;
+    document.getElementById('bobResult').classList.add('visible');
+
+    setStep(5, 'done', `Result: "${translatedText}"`);
+    log('bob', `Translation complete: "${translatedText}"`);
+    setAgentStatus('bob', 'Ready to deliver', 'active');
+
+    await sleep(1200);
+
+    // ── Step 6: Deliver ──
+    setStep(6, 'active');
+    setAgentStatus('bob', 'Delivering...', 'busy');
+    log('bob', 'Submitting result to escrow contract...');
+
+    // Query escrows to find the active one
+    const escrowList = await api('GET', '/cap/v1/escrows?as=bob');
+    const activeEscrow = (escrowList.escrows || [])[0];
+    if (!activeEscrow) {
+      setStep(6, 'error', 'No escrow found');
+      throw new Error('No escrow');
+    }
+
+    const deliverResp = await api('POST', `/cap/v1/escrows/${activeEscrow.contractId}/deliver`, {
+      provider: 'bob',
+      resultHash: `translation:${translatedText}`,
+      resultUrl: '',
+    });
+
+    setStep(6, 'done', `Delivered to ledger, awaiting review`);
+    log('ledger', 'Delivery recorded on-chain, escrow → PendingReview');
+    setAgentStatus('bob', 'Delivered', 'active');
+    setAgentStatus('alice', 'Reviewing...', 'busy');
+
+    await sleep(1200);
+
+    // ── Step 7: Approve + Rate ──
+    setStep(7, 'active');
+    log('alice', 'Reviewing translation result...');
+    log('alice', `Received: "${translatedText}" — looks correct`);
+
+    await sleep(800);
+
+    // Query pending reviews
+    const reviewList = await api('GET', '/cap/v1/escrows?as=alice');
+    const pendingReview = (reviewList.pendingReviews || [])[0];
+    if (!pendingReview) {
+      setStep(7, 'error', 'No pending review found');
+      throw new Error('No review');
+    }
+
+    const approveResp = await api('POST', `/cap/v1/escrows/${pendingReview.contractId}/approve-with-rating`, {
+      consumer: 'alice',
+      consumerRating: 5,
+      consumerComment: 'Excellent translation!',
+    });
+
+    setStep(7, 'done', `Approved with 5-star rating`);
+    log('alice', 'Approved delivery with rating: 5/5');
+    log('ledger', 'ApproveAndPay executed — escrow settled on-chain');
+    setEscrow('alice', null);
+    setEscrow('bob', null);
+    setAgentStatus('alice', 'Approved', 'active');
+
+    await sleep(1000);
+
+    // ── Step 8: Settlement ──
+    setStep(8, 'active');
+    log('ledger', 'Payment released from escrow to provider');
+
+    const aliceFinal = await fetchBalance('alice');
+    const bobFinal = await fetchBalance('bob');
+    setBalance('alice', aliceFinal.balance, aliceInit.balance);
+    setBalance('bob', bobFinal.balance, bobInit.balance);
+
+    log('alice', `Final balance: ${aliceFinal.balance.toFixed(2)} CAP`, `(${(aliceFinal.balance - aliceInit.balance).toFixed(2)})`);
+    log('bob', `Final balance: ${bobFinal.balance.toFixed(2)} CAP`, `(${(bobFinal.balance - bobInit.balance).toFixed(2)})`);
+
+    setStep(8, 'done', `Alice: ${aliceFinal.balance.toFixed(2)} CAP | Bob: ${bobFinal.balance.toFixed(2)} CAP`);
+    setAgentStatus('alice', 'Complete', 'active');
+    setAgentStatus('bob', 'Complete', 'active');
+
+    log('system', 'Demo complete — full protocol flow verified on Canton ledger');
+
+  } catch (e) {
+    log('error', `Demo error: ${e.message}`);
+    setAgentStatus('alice', 'Error', '');
+    setAgentStatus('bob', 'Error', '');
+  }
+
+  running = false;
+  document.getElementById('btnRun').disabled = false;
+}
+
+function resetDemo() {
+  if (running) return;
+  document.getElementById('eventLog').innerHTML = '';
+  for (let i = 1; i <= 8; i++) {
+    setStep(i, '', '');
+    document.getElementById(`detail${i}`).textContent = '';
+  }
+  document.getElementById('aliceBalance').innerHTML = '&mdash;';
+  document.getElementById('bobBalance').innerHTML = '&mdash;';
+  document.getElementById('aliceChange').className = 'balance-change';
+  document.getElementById('bobChange').className = 'balance-change';
+  setAgentStatus('alice', 'Idle', '');
+  setAgentStatus('bob', 'Idle', '');
+  setEscrow('alice', null);
+  setEscrow('bob', null);
+  document.getElementById('bobResult').classList.remove('visible');
+  log('system', 'Demo reset');
+}
+
+// Init
+connectWs();
+</script>
+</body>
+</html>
