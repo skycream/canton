@@ -86,6 +86,17 @@ template LockedCAPCoin
       do
         create CAPCoin with owner = originalOwner, amount
 
+    -- Split release: partial payment to beneficiary, remainder refunded to owner
+    choice SplitRelease : (ContractId CAPCoin, ContractId CAPCoin)
+      with beneficiaryAmount : Decimal
+      controller originalOwner, beneficiary
+      do
+        assertMsg "Split amount must be positive" (beneficiaryAmount > 0.0)
+        assertMsg "Split amount must be less than total" (beneficiaryAmount < amount)
+        refundCoin <- create CAPCoin with owner = originalOwner, amount = amount - beneficiaryAmount
+        payCoin <- create CAPCoin with owner = beneficiary, amount = beneficiaryAmount
+        return (refundCoin, payCoin)
+
 -- Transfer proposal: coin is locked (consumed), receiver must accept to get funds
 template TransferProposal
   with
@@ -114,3 +125,18 @@ template TransferProposal
       controller sender
       do
         create CAPCoin with owner = sender, amount
+
+-- Fee transfer: pending fee that treasury can collect
+template FeeTransfer
+  with
+    payer : Party
+    treasury : Party
+    amount : Decimal
+  where
+    signatory payer
+    observer treasury
+    ensure amount > 0.0
+
+    choice CollectFee : ContractId CAPCoin
+      controller treasury
+      do create CAPCoin with owner = treasury, amount

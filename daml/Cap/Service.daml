@@ -1,5 +1,6 @@
 module Cap.Service where
 
+import DA.Time (addRelTime)
 import Cap.Types
 import Cap.Token
 import Cap.Escrow
@@ -13,6 +14,7 @@ template ServiceRequest
     params : Text
     maxPrice : Decimal
     slaTerms : SLATerms
+    feeConfig : Optional FeeConfig
   where
     signatory consumer
     observer provider
@@ -33,6 +35,7 @@ template ServiceRequest
           price
           estimatedTimeMs
           slaTerms
+          feeConfig
 
     choice DeclineRequest : ()
       controller provider
@@ -52,6 +55,7 @@ template ServiceOffer
     price : Decimal
     estimatedTimeMs : Int
     slaTerms : SLATerms
+    feeConfig : Optional FeeConfig
   where
     signatory consumer, provider
 
@@ -59,6 +63,7 @@ template ServiceOffer
     choice AcceptOffer : ContractId Escrow
       with
         paymentCid : ContractId CAPCoin
+        acceptedAt : Time
       controller consumer
       do
         coin <- fetch paymentCid
@@ -71,6 +76,7 @@ template ServiceOffer
             exercise payPart Lock with beneficiary = provider
           else
             exercise paymentCid Lock with beneficiary = provider
+        let deadline = addRelTime acceptedAt (convertMsToRelTime slaTerms.maxLatencyMs)
         -- Create escrow holding the locked coin reference
         create Escrow with
           consumer
@@ -80,6 +86,9 @@ template ServiceOffer
           capability
           params
           slaTerms
+          createdAt = acceptedAt
+          deadline
+          feeConfig
 
     choice RejectOffer : ()
       controller consumer

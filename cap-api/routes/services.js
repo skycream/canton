@@ -58,7 +58,7 @@ router.post("/listings", async (req, res) => {
 // POST /cap/v1/services/requests - Create a service request
 router.post("/requests", async (req, res) => {
   try {
-    const { consumer, provider, capability, params, maxPrice, slaTerms } = req.body;
+    const { consumer, provider, capability, params, maxPrice, slaTerms, feeConfig } = req.body;
     if (!consumer || !provider || !capability) {
       return res
         .status(400)
@@ -75,6 +75,7 @@ router.post("/requests", async (req, res) => {
         params: typeof params === "string" ? params : JSON.stringify(params || {}),
         maxPrice: maxPrice?.toString() || "1.0",
         slaTerms: slaTerms || { maxLatencyMs: "30000", penaltyRate: "0.0" },
+        feeConfig: feeConfig || null,
       }
     );
 
@@ -260,7 +261,7 @@ router.post("/offers/:id/withdraw", async (req, res) => {
 // POST /cap/v1/services/offers/:id/accept - Accept an offer (creates escrow)
 router.post("/offers/:id/accept", async (req, res) => {
   try {
-    const { consumer, paymentCid } = req.body;
+    const { consumer, paymentCid, acceptedAt } = req.body;
     if (!consumer || !paymentCid) {
       return res.status(400).json({ error: "consumer and paymentCid required" });
     }
@@ -270,7 +271,7 @@ router.post("/offers/:id/accept", async (req, res) => {
       "Cap.Service:ServiceOffer",
       req.params.id,
       "AcceptOffer",
-      { paymentCid }
+      { paymentCid, acceptedAt: acceptedAt || new Date().toISOString() }
     );
 
     req.app.locals.broadcast({

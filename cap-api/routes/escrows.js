@@ -20,6 +20,10 @@ router.get("/", async (req, res) => {
       userId,
       "Cap.Escrow:DisputeRecord"
     );
+    const arbitrated = await req.app.locals.queryContracts(
+      userId,
+      "Cap.Arbiter:ArbitratedDispute"
+    );
 
     res.json({
       escrows: (escrows.result || []).map((c) => ({
@@ -37,6 +41,11 @@ router.get("/", async (req, res) => {
         status: "disputed",
         ...c.payload,
       })),
+      arbitratedDisputes: (arbitrated.result || []).map((c) => ({
+        contractId: c.contractId,
+        status: "arbitrated",
+        ...c.payload,
+      })),
     });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -46,7 +55,7 @@ router.get("/", async (req, res) => {
 // POST /cap/v1/escrows/:id/deliver - Provider delivers work
 router.post("/:id/deliver", async (req, res) => {
   try {
-    const { provider, resultHash, resultUrl } = req.body;
+    const { provider, resultHash, resultUrl, deliveredAt } = req.body;
     if (!provider || !resultHash) {
       return res.status(400).json({ error: "provider and resultHash required" });
     }
@@ -59,6 +68,7 @@ router.post("/:id/deliver", async (req, res) => {
       {
         resultHash,
         resultUrl: resultUrl || "",
+        deliveredAt: deliveredAt || new Date().toISOString(),
       }
     );
 
@@ -189,6 +199,33 @@ router.post("/:id/cancel", async (req, res) => {
   }
 });
 
+// POST /cap/v1/escrows/:id/timeout - Consumer claims timeout refund
+router.post("/:id/timeout", async (req, res) => {
+  try {
+    const { consumer, claimTime } = req.body;
+    if (!consumer) {
+      return res.status(400).json({ error: "consumer required" });
+    }
+
+    const result = await req.app.locals.exerciseChoice(
+      consumer,
+      "Cap.Escrow:Escrow",
+      req.params.id,
+      "ClaimTimeout",
+      { claimTime: claimTime || new Date().toISOString() }
+    );
+
+    req.app.locals.broadcast({
+      type: "escrow.timeout",
+      consumer,
+    });
+
+    res.json({ status: "ok", result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // POST /cap/v1/escrows/:id/abandon - Provider abandons escrow (refunds consumer)
 router.post("/:id/abandon", async (req, res) => {
   try {
@@ -262,6 +299,137 @@ router.post("/:id/resolve-for-provider", async (req, res) => {
     req.app.locals.broadcast({
       type: "dispute.resolved",
       winner: "provider",
+    });
+
+    res.json({ status: "ok", result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /cap/v1/escrows/:id/escalate - Escalate dispute to arbiter
+router.post("/:id/escalate", async (req, res) => {
+  try {
+    const { consumer, arbiter } = req.body;
+    if (!consumer || !arbiter) {
+      return res.status(400).json({ error: "consumer and arbiter required" });
+    }
+
+    const result = await req.app.locals.exerciseChoice(
+      consumer,
+      "Cap.Escrow:DisputeRecord",
+      req.params.id,
+      "EscalateToArbiter",
+      { arbiter }
+    );
+
+    req.app.locals.broadcast({
+      type: "dispute.escalated",
+      consumer,
+      arbiter,
+    });
+
+    res.json({ status: "ok", result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /cap/v1/escrows/:id/submit-evidence - Party submits evidence
+router.post("/:id/submit-evidence", async (req, res) => {
+  try {
+    const { submitter, newEvidence } = req.body;
+    if (!submitter || !newEvidence) {
+      return res.status(400).json({ error: "submitter and newEvidence required" });
+    }
+
+    const result = await req.app.locals.exerciseChoice(
+      submitter,
+      "Cap.Arbiter:ArbitratedDispute",
+      req.params.id,
+      "SubmitEvidence",
+      { newEvidence, submitter }
+    );
+
+    res.json({ status: "ok", result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /cap/v1/escrows/:id/rule-for-consumer - Arbiter rules for consumer
+router.post("/:id/rule-for-consumer", async (req, res) => {
+  try {
+    const { arbiter } = req.body;
+    if (!arbiter) {
+      return res.status(400).json({ error: "arbiter required" });
+    }
+
+    const result = await req.app.locals.exerciseChoice(
+      arbiter,
+      "Cap.Arbiter:ArbitratedDispute",
+      req.params.id,
+      "RuleForConsumer",
+      {}
+    );
+
+    req.app.locals.broadcast({
+      type: "dispute.ruled",
+      winner: "consumer",
+    });
+
+    res.json({ status: "ok", result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /cap/v1/escrows/:id/rule-for-provider - Arbiter rules for provider
+router.post("/:id/rule-for-provider", async (req, res) => {
+  try {
+    const { arbiter } = req.body;
+    if (!arbiter) {
+      return res.status(400).json({ error: "arbiter required" });
+    }
+
+    const result = await req.app.locals.exerciseChoice(
+      arbiter,
+      "Cap.Arbiter:ArbitratedDispute",
+      req.params.id,
+      "RuleForProvider",
+      {}
+    );
+
+    req.app.locals.broadcast({
+      type: "dispute.ruled",
+      winner: "provider",
+    });
+
+    res.json({ status: "ok", result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /cap/v1/escrows/:id/split-ruling - Arbiter splits funds
+router.post("/:id/split-ruling", async (req, res) => {
+  try {
+    const { arbiter, consumerAmount } = req.body;
+    if (!arbiter || consumerAmount === undefined) {
+      return res.status(400).json({ error: "arbiter and consumerAmount required" });
+    }
+
+    const result = await req.app.locals.exerciseChoice(
+      arbiter,
+      "Cap.Arbiter:ArbitratedDispute",
+      req.params.id,
+      "SplitRuling",
+      { consumerAmount: consumerAmount.toString() }
+    );
+
+    req.app.locals.broadcast({
+      type: "dispute.ruled",
+      ruling: "split",
     });
 
     res.json({ status: "ok", result });

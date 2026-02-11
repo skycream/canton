@@ -1,0 +1,44 @@
+module Cap.Arbiter where
+
+import Cap.Token
+
+-- Dispute escalated to a neutral arbiter for resolution
+template ArbitratedDispute
+  with
+    consumer : Party
+    provider : Party
+    arbiter : Party
+    amount : Decimal
+    lockedCoinCid : ContractId LockedCAPCoin
+    reason : Text
+    resultHash : Text
+    resultUrl : Text
+    evidence : [Text]
+  where
+    signatory consumer, provider
+    observer arbiter
+
+    -- Either party submits additional evidence
+    choice SubmitEvidence : ContractId ArbitratedDispute
+      with newEvidence : Text; submitter : Party
+      controller submitter
+      do
+        assertMsg "Must be party to dispute" (submitter == consumer || submitter == provider)
+        create this with evidence = evidence ++ [newEvidence]
+
+    -- Arbiter rules entirely for consumer (full refund)
+    choice RuleForConsumer : ContractId CAPCoin
+      controller arbiter
+      do exercise lockedCoinCid Refund
+
+    -- Arbiter rules entirely for provider (full payment)
+    choice RuleForProvider : ContractId CAPCoin
+      controller arbiter
+      do exercise lockedCoinCid ReleaseToBeneficiary
+
+    -- Arbiter splits funds between consumer and provider
+    choice SplitRuling : (ContractId CAPCoin, ContractId CAPCoin)
+      with consumerAmount : Decimal
+      controller arbiter
+      do exercise lockedCoinCid SplitRelease
+           with beneficiaryAmount = amount - consumerAmount

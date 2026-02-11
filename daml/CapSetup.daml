@@ -14,6 +14,12 @@ setup = script do
   bob <- allocatePartyWithHint "Bob" (PartyIdHint "bob")
   charlie <- allocatePartyWithHint "Charlie" (PartyIdHint "charlie")
 
+  -- Arbiter party for dispute resolution
+  arbiter <- allocatePartyWithHint "Arbiter" (PartyIdHint "arbiter")
+
+  -- Treasury party for protocol fees
+  treasury <- allocatePartyWithHint "Treasury" (PartyIdHint "treasury")
+
   -- Register agent profiles
   submit alice do
     createCmd AgentProfile with
@@ -74,5 +80,11 @@ setup = script do
   createUser (User bobId (Some bob)) [CanActAs bob, CanReadAs bob]
   createUser (User charlieId (Some charlie)) [CanActAs charlie, CanReadAs charlie]
   createUser (User registryId (Some registry)) [CanReadAs registry]
+
+  arbiterId <- validateUserId "arbiter"
+  createUser (User arbiterId (Some arbiter)) [CanActAs arbiter, CanReadAs arbiter]
+
+  treasuryId <- validateUserId "treasury"
+  createUser (User treasuryId (Some treasury)) [CanActAs treasury, CanReadAs treasury]
 
   return ()

@@ -33,10 +33,14 @@ PARTIES=$(curl -s http://localhost:7575/v1/parties -H "Authorization: Bearer $TO
 ALICE=$(echo "$PARTIES" | python3 -c "import sys,json; [print(p['identifier']) for p in json.load(sys.stdin)['result'] if p.get('displayName')=='Alice']")
 BOB=$(echo "$PARTIES" | python3 -c "import sys,json; [print(p['identifier']) for p in json.load(sys.stdin)['result'] if p.get('displayName')=='Bob']")
 CHARLIE=$(echo "$PARTIES" | python3 -c "import sys,json; [print(p['identifier']) for p in json.load(sys.stdin)['result'] if p.get('displayName')=='Charlie']")
+ARBITER=$(echo "$PARTIES" | python3 -c "import sys,json; [print(p['identifier']) for p in json.load(sys.stdin)['result'] if p.get('displayName')=='Arbiter']")
+TREASURY=$(echo "$PARTIES" | python3 -c "import sys,json; [print(p['identifier']) for p in json.load(sys.stdin)['result'] if p.get('displayName')=='Treasury']")
 
-echo "  Alice:   ${ALICE:0:30}..."
-echo "  Bob:     ${BOB:0:30}..."
-echo "  Charlie: ${CHARLIE:0:30}..."
+echo "  Alice:    ${ALICE:0:30}..."
+echo "  Bob:      ${BOB:0:30}..."
+echo "  Charlie:  ${CHARLIE:0:30}..."
+echo "  Arbiter:  ${ARBITER:0:30}..."
+echo "  Treasury: ${TREASURY:0:30}..."
 echo ""
 
 # 0. Health
@@ -158,10 +162,204 @@ R=$(curl -s "$API/cap/v1/services/requests?as=charlie")
 CHARLIE_REQS=$(echo "$R" | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('requests',[])))")
 check "Charlie sees 0 requests" "$CHARLIE_REQS" "0"
 
-# 15. Reputation
+# 15. Reputation (bidirectional)
 echo "--- [16] Reputation ---"
 R=$(curl -s "$API/cap/v1/reputation/bob")
 check "Reputation endpoint" "$R" '"agentId"'
+check "Has asProvider field" "$R" '"asProvider"'
+check "Has asConsumer field" "$R" '"asConsumer"'
+
+# =============================================
+# Phase 3: Rating Invitations
+# =============================================
+echo "--- [17] Rating Invitations ---"
+R=$(curl -s "$API/cap/v1/reputation/bob/invitations")
+check "Bob has rating invitations" "$R" '"invitations"'
+# Bob should have an invitation to rate Alice from the QuickApprove above
+INV_COUNT=$(echo "$R" | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('invitations',[])))")
+check "Bob has ≥1 invitation" "$(python3 -c "print('yes' if $INV_COUNT >= 1 else 'no')")" "yes"
+INV_CID=$(echo "$R" | python3 -c "import sys,json; invs=json.load(sys.stdin).get('invitations',[]); print(invs[0]['contractId'] if invs else '')")
+
+# Bob rates Alice
+echo "--- [18] Bob Rates Alice ---"
+if [ -n "$INV_CID" ]; then
+  R=$(curl -s -X POST "$API/cap/v1/reputation/bob/rate/$INV_CID" \
+    -H 'Content-Type: application/json' \
+    -d '{"score": 4, "comment": "Good consumer, clear requirements"}')
+  check "Bob submitted rating" "$R" '"status":"ok"'
+else
+  echo "  [SKIP] No invitation found"
+fi
+
+# Check reputation now shows bidirectional data
+R=$(curl -s "$API/cap/v1/reputation/$ALICE")
+check "Alice has reputation entry" "$R" '"agentId"'
+
+# =============================================
+# Phase 4: Protocol Fees
+# =============================================
+echo "--- [19] Fee Flow: Request with feeConfig ---"
+# Get Alice's updated coin for the fee test
+R=$(curl -s "$API/cap/v1/wallet?as=alice")
+ALICE_COIN2=$(echo "$R" | python3 -c "import sys,json; coins=json.load(sys.stdin)['coins']; print(coins[0]['contractId'] if coins else '')")
+
+R=$(curl -s -X POST "$API/cap/v1/services/requests" \
+  -H 'Content-Type: application/json' \
+  -d "{
+    \"consumer\": \"$ALICE\",
+    \"provider\": \"$BOB\",
+    \"capability\": \"translation\",
+    \"params\": {\"text\": \"Fee test\", \"target\": \"ja\"},
+    \"maxPrice\": 10.0,
+    \"feeConfig\": {\"feeRate\": \"0.02\", \"treasury\": \"$TREASURY\"}
+  }")
+check "Fee request created" "$R" '"status":"ok"'
+
+# Bob offers
+R=$(curl -s "$API/cap/v1/services/requests?as=bob")
+FEE_REQ_CID=$(echo "$R" | python3 -c "import sys,json; r=json.load(sys.stdin)['requests']; print(r[0]['contractId'] if r else '')")
+
+echo "--- [20] Fee Flow: Offer + Accept ---"
+R=$(curl -s -X POST "$API/cap/v1/services/requests/$FEE_REQ_CID/offer" \
+  -H 'Content-Type: application/json' \
+  -d "{\"provider\": \"$BOB\", \"price\": 5.0, \"estimatedTimeMs\": 5000}")
+check "Fee offer made" "$R" '"status":"ok"'
+
+R=$(curl -s "$API/cap/v1/services/offers?as=alice")
+FEE_OFFER_CID=$(echo "$R" | python3 -c "import sys,json; o=json.load(sys.stdin)['offers']; print(o[0]['contractId'] if o else '')")
+
+R=$(curl -s -X POST "$API/cap/v1/services/offers/$FEE_OFFER_CID/accept" \
+  -H 'Content-Type: application/json' \
+  -d "{\"consumer\": \"$ALICE\", \"paymentCid\": \"$ALICE_COIN2\"}")
+check "Fee escrow created" "$R" '"status":"ok"'
+
+# Deliver + Approve with rating
+echo "--- [21] Fee Flow: Deliver + Approve ---"
+R=$(curl -s "$API/cap/v1/escrows?as=bob")
+FEE_ESCROW_CID=$(echo "$R" | python3 -c "import sys,json; e=json.load(sys.stdin)['escrows']; print(e[0]['contractId'] if e else '')")
+
+R=$(curl -s -X POST "$API/cap/v1/escrows/$FEE_ESCROW_CID/deliver" \
+  -H 'Content-Type: application/json' \
+  -d "{\"provider\": \"$BOB\", \"resultHash\": \"sha256:fee_test_hash\", \"resultUrl\": \"cap://results/fee-test\"}")
+check "Fee delivery submitted" "$R" '"status":"ok"'
+
+R=$(curl -s "$API/cap/v1/escrows?as=alice")
+FEE_REVIEW_CID=$(echo "$R" | python3 -c "import sys,json; r=json.load(sys.stdin)['pendingReviews']; print(r[0]['contractId'] if r else '')")
+
+R=$(curl -s -X POST "$API/cap/v1/escrows/$FEE_REVIEW_CID/approve-with-rating" \
+  -H 'Content-Type: application/json' \
+  -d "{\"consumer\": \"$ALICE\", \"consumerRating\": 5, \"consumerComment\": \"Excellent translation with fees\"}")
+check "Fee approval with rating" "$R" '"status":"ok"'
+
+# Check fee stats
+echo "--- [22] Fee Stats ---"
+R=$(curl -s "$API/cap/v1/fees/stats?as=treasury")
+check "Fee stats endpoint" "$R" '"pendingCount"'
+PENDING=$(echo "$R" | python3 -c "import sys,json; print(json.load(sys.stdin).get('pendingCount', 0))")
+check "Has pending fees" "$(python3 -c "print('yes' if $PENDING >= 1 else 'no')")" "yes"
+
+# List pending fees
+R=$(curl -s "$API/cap/v1/fees/pending?as=treasury")
+check "Pending fees listed" "$R" '"pending"'
+TOTAL_PENDING=$(echo "$R" | python3 -c "import sys,json; print(json.load(sys.stdin).get('totalPending', 0))")
+check "Fee amount > 0" "$(python3 -c "print('yes' if $TOTAL_PENDING > 0 else 'no')")" "yes"
+
+# Collect fees
+echo "--- [23] Fee Collection ---"
+R=$(curl -s -X POST "$API/cap/v1/fees/collect" \
+  -H 'Content-Type: application/json' \
+  -d "{\"treasury\": \"$TREASURY\"}")
+check "Fees collected" "$R" '"status":"ok"'
+
+R=$(curl -s "$API/cap/v1/fees/stats?as=treasury")
+COLLECTED=$(echo "$R" | python3 -c "import sys,json; print(json.load(sys.stdin).get('totalCollected', 0))")
+check "Treasury has collected coins" "$(python3 -c "print('yes' if $COLLECTED > 0 else 'no')")" "yes"
+
+# =============================================
+# Phase 2: Dispute + Arbiter Resolution
+# =============================================
+echo "--- [24] Dispute Flow: Setup ---"
+# Create a new service request for dispute testing
+R=$(curl -s "$API/cap/v1/wallet?as=alice")
+ALICE_COIN3=$(echo "$R" | python3 -c "import sys,json; coins=json.load(sys.stdin)['coins']; print(coins[0]['contractId'] if coins else '')")
+
+R=$(curl -s -X POST "$API/cap/v1/services/requests" \
+  -H 'Content-Type: application/json' \
+  -d "{
+    \"consumer\": \"$ALICE\",
+    \"provider\": \"$BOB\",
+    \"capability\": \"translation\",
+    \"params\": {\"text\": \"Dispute test\", \"target\": \"zh\"},
+    \"maxPrice\": 10.0
+  }")
+check "Dispute request created" "$R" '"status":"ok"'
+
+R=$(curl -s "$API/cap/v1/services/requests?as=bob")
+DISP_REQ_CID=$(echo "$R" | python3 -c "import sys,json; r=json.load(sys.stdin)['requests']; print(r[0]['contractId'] if r else '')")
+
+R=$(curl -s -X POST "$API/cap/v1/services/requests/$DISP_REQ_CID/offer" \
+  -H 'Content-Type: application/json' \
+  -d "{\"provider\": \"$BOB\", \"price\": 2.0, \"estimatedTimeMs\": 5000}")
+check "Dispute offer made" "$R" '"status":"ok"'
+
+R=$(curl -s "$API/cap/v1/services/offers?as=alice")
+DISP_OFFER_CID=$(echo "$R" | python3 -c "import sys,json; o=json.load(sys.stdin)['offers']; print(o[0]['contractId'] if o else '')")
+
+R=$(curl -s -X POST "$API/cap/v1/services/offers/$DISP_OFFER_CID/accept" \
+  -H 'Content-Type: application/json' \
+  -d "{\"consumer\": \"$ALICE\", \"paymentCid\": \"$ALICE_COIN3\"}")
+check "Dispute escrow created" "$R" '"status":"ok"'
+
+echo "--- [25] Dispute Flow: Deliver + Dispute ---"
+R=$(curl -s "$API/cap/v1/escrows?as=bob")
+DISP_ESCROW_CID=$(echo "$R" | python3 -c "import sys,json; e=json.load(sys.stdin)['escrows']; print(e[0]['contractId'] if e else '')")
+
+R=$(curl -s -X POST "$API/cap/v1/escrows/$DISP_ESCROW_CID/deliver" \
+  -H 'Content-Type: application/json' \
+  -d "{\"provider\": \"$BOB\", \"resultHash\": \"sha256:dispute_hash\", \"resultUrl\": \"cap://results/dispute\"}")
+check "Dispute delivery submitted" "$R" '"status":"ok"'
+
+R=$(curl -s "$API/cap/v1/escrows?as=alice")
+DISP_REVIEW_CID=$(echo "$R" | python3 -c "import sys,json; r=json.load(sys.stdin)['pendingReviews']; print(r[0]['contractId'] if r else '')")
+
+R=$(curl -s -X POST "$API/cap/v1/escrows/$DISP_REVIEW_CID/dispute" \
+  -H 'Content-Type: application/json' \
+  -d "{\"consumer\": \"$ALICE\", \"reason\": \"Translation quality below acceptable standard\"}")
+check "Dispute raised" "$R" '"status":"ok"'
+
+# Verify dispute exists
+R=$(curl -s "$API/cap/v1/escrows?as=alice")
+DISPUTE_CID=$(echo "$R" | python3 -c "import sys,json; d=json.load(sys.stdin)['disputes']; print(d[0]['contractId'] if d else '')")
+check "Dispute record exists" "$R" '"disputed"'
+
+echo "--- [26] Arbiter: Escalate + Rule ---"
+R=$(curl -s -X POST "$API/cap/v1/escrows/$DISPUTE_CID/escalate" \
+  -H 'Content-Type: application/json' \
+  -d "{\"consumer\": \"$ALICE\", \"arbiter\": \"$ARBITER\"}")
+check "Dispute escalated to arbiter" "$R" '"status":"ok"'
+
+# Verify arbitrated dispute
+R=$(curl -s "$API/cap/v1/escrows?as=arbiter")
+check "Arbiter sees arbitrated dispute" "$R" '"arbitratedDisputes"'
+ARB_DISP_CID=$(echo "$R" | python3 -c "import sys,json; d=json.load(sys.stdin)['arbitratedDisputes']; print(d[0]['contractId'] if d else '')")
+
+# Submit evidence
+R=$(curl -s -X POST "$API/cap/v1/escrows/$ARB_DISP_CID/submit-evidence" \
+  -H 'Content-Type: application/json' \
+  -d "{\"submitter\": \"$ALICE\", \"newEvidence\": \"Screenshot of poor translation quality\"}")
+check "Evidence submitted" "$R" '"status":"ok"'
+
+# Arbiter rules for consumer (refund)
+R=$(curl -s -X POST "$API/cap/v1/escrows/$ARB_DISP_CID/rule-for-consumer" \
+  -H 'Content-Type: application/json' \
+  -d "{\"arbiter\": \"$ARBITER\"}")
+check "Arbiter ruled for consumer" "$R" '"status":"ok"'
+
+# Verify consumer got refunded
+R=$(curl -s "$API/cap/v1/wallet?as=alice")
+ALICE_FINAL=$(echo "$R" | python3 -c "import sys,json; print(json.load(sys.stdin)['balance'])")
+echo "         Alice final: $ALICE_FINAL CAP coins"
+check "Alice has coins after refund" "$(python3 -c "print('yes' if $ALICE_FINAL > 0 else 'no')")" "yes"
 
 echo ""
 echo "========================================="

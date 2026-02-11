@@ -8,6 +8,7 @@ const serviceRoutes = require("./routes/services");
 const escrowRoutes = require("./routes/escrows");
 const reputationRoutes = require("./routes/reputation");
 const walletRoutes = require("./routes/wallet");
+const feeRoutes = require("./routes/fees");
 
 const app = express();
 app.use(cors());
@@ -183,7 +184,7 @@ async function resolvePartyId(userId) {
 // Middleware: resolve party fields in request body
 app.use(async (req, res, next) => {
   if (req.body && typeof req.body === "object") {
-    const partyFields = ["consumer", "provider", "agentId", "owner", "newOwner", "receiver"];
+    const partyFields = ["consumer", "provider", "agentId", "owner", "newOwner", "receiver", "arbiter", "treasury", "submitter"];
     for (const field of partyFields) {
       if (req.body[field] && typeof req.body[field] === "string" && !req.body[field].includes("::")) {
         req.body[field] = await resolvePartyId(req.body[field]);
@@ -208,6 +209,7 @@ app.use("/cap/v1/services", serviceRoutes);
 app.use("/cap/v1/escrows", escrowRoutes);
 app.use("/cap/v1/reputation", reputationRoutes);
 app.use("/cap/v1/wallet", walletRoutes);
+app.use("/cap/v1/fees", feeRoutes);
 
 // Party resolution
 app.get("/cap/v1/parties", async (req, res) => {
@@ -261,6 +263,7 @@ app.get("/cap/v1", (req, res) => {
       escrows: "/cap/v1/escrows",
       reputation: "/cap/v1/reputation/:agentId",
       wallet: "/cap/v1/wallet",
+      fees: "/cap/v1/fees",
       health: "/cap/v1/health",
     },
   });

@@ -7,8 +7,30 @@ template Rating
     rated : Party
     score : Int         -- 1 to 5
     comment : Text
+    role : Text         -- "consumer" or "provider" — who is being rated
   where
     signatory rater
     observer rated
 
     ensure score >= 1 && score <= 5
+
+-- Invitation for a party to submit a rating after settlement
+template RatingInvitation
+  with
+    rater : Party
+    rated : Party
+    role : Text         -- role of the rater: "consumer" or "provider"
+    capability : Text
+  where
+    signatory rater, rated
+
+    choice SubmitRating : ContractId Rating
+      with score : Int; comment : Text
+      controller rater
+      do
+        assertMsg "Rating must be 1-5" (score >= 1 && score <= 5)
+        create Rating with rater, rated, score, comment, role
+
+    choice DeclineRating : ()
+      controller rater
+      do return ()

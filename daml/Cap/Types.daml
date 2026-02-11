@@ -1,5 +1,11 @@
 module Cap.Types where
 
+import DA.Time (RelTime, convertMicrosecondsToRelTime)
+
+-- In Daml, RelTime uses microseconds. Convert ms (Int) to RelTime.
+convertMsToRelTime : Int -> RelTime
+convertMsToRelTime ms = convertMicrosecondsToRelTime (ms * 1000)
+
 -- Service Level Agreement terms for agent-to-agent contracts
 data SLATerms = SLATerms
   with
@@ -13,3 +19,10 @@ defaultSLA = SLATerms
   with
     maxLatencyMs = 30000
     penaltyRate = 0.0
+
+-- Protocol fee configuration
+data FeeConfig = FeeConfig
+  with
+    feeRate : Decimal     -- 0.0 to 1.0 (e.g., 0.02 = 2%)
+    treasury : Party
+  deriving (Show, Eq)

@@ -3,6 +3,25 @@ module Cap.Escrow where
 import Cap.Types
 import Cap.Token
 import Cap.Reputation
+import Cap.Arbiter
+
+-- Helper: apply fee to a provider's coin, creating a FeeTransfer if needed
+-- Returns the provider's net coin (after fee deduction)
+applyFee : Party -> ContractId CAPCoin -> Decimal -> Optional FeeConfig -> Update (ContractId CAPCoin)
+applyFee provider providerCoinCid paymentAmount feeConfigOpt =
+  case feeConfigOpt of
+    None -> return providerCoinCid
+    Some fc -> do
+      if fc.feeRate > 0.0
+        then do
+          let feeAmount = paymentAmount * fc.feeRate
+          let netAmount = paymentAmount - feeAmount
+          (netCoin, feeCoin) <- exercise providerCoinCid Split with splitAmount = netAmount
+          archive feeCoin
+          create FeeTransfer with payer = provider, treasury = fc.treasury, amount = feeAmount
+          return netCoin
+        else
+          return providerCoinCid
 
 -- Funds locked for a deal between consumer and provider
 template Escrow
@@ -14,6 +33,9 @@ template Escrow
     capability : Text
     params : Text
     slaTerms : SLATerms
+    createdAt : Time
+    deadline : Time
+    feeConfig : Optional FeeConfig
   where
     signatory consumer, provider
 
@@ -22,6 +44,7 @@ template Escrow
       with
         resultHash : Text
         resultUrl : Text
+        deliveredAt : Time
       controller provider
       do
         create PendingReview with
@@ -32,6 +55,9 @@ template Escrow
           resultHash
           resultUrl
           slaTerms
+          deliveredAt
+          deadline
+          feeConfig
 
     -- Consumer cancels before delivery → refund via locked coin
     choice CancelEscrow : ContractId CAPCoin
@@ -45,6 +71,15 @@ template Escrow
       do
         exercise lockedCoinCid Refund
 
+    -- Consumer claims timeout refund after deadline
+    choice ClaimTimeout : ContractId CAPCoin
+      with
+        claimTime : Time
+      controller consumer
+      do
+        assertMsg "Cannot claim before deadline" (claimTime > deadline)
+        exercise lockedCoinCid Refund
+
 -- Delivery submitted, awaiting consumer review
 template PendingReview
   with
@@ -55,10 +90,16 @@ template PendingReview
     resultHash : Text
     resultUrl : Text
     slaTerms : SLATerms
+    deliveredAt : Time
+    deadline : Time
+    feeConfig : Optional FeeConfig
   where
     signatory consumer, provider
 
     -- Consumer approves → provider gets paid via locked coin release
+    -- If late delivery and penaltyRate > 0, penalty is applied
+    -- If feeConfig is set, protocol fee is deducted from provider's payment
+    -- Order: penalty first (on full amount), then fee (on net payment)
     choice ApproveAndPay : (ContractId CAPCoin, ContractId Rating)
       with
         consumerRating : Int
@@ -66,19 +107,47 @@ template PendingReview
       controller consumer
       do
         assertMsg "Rating must be 1-5" (consumerRating >= 1 && consumerRating <= 5)
-        payment <- exercise lockedCoinCid ReleaseToBeneficiary
+        let isLate = deliveredAt > deadline && slaTerms.penaltyRate > 0.0
+        let penalty = if isLate then amount * slaTerms.penaltyRate else 0.0
+        let netAfterPenalty = amount - penalty
+        -- Step 1: Release or split-release based on penalty
+        providerCoinCid <- if isLate
+          then do
+            (_refundCoin, payCoin) <- exercise lockedCoinCid SplitRelease
+              with beneficiaryAmount = netAfterPenalty
+            return payCoin
+          else
+            exercise lockedCoinCid ReleaseToBeneficiary
+        -- Step 2: Apply fee on provider's payment
+        finalPayment <- applyFee provider providerCoinCid netAfterPenalty feeConfig
         r1 <- create Rating with
           rater = consumer
           rated = provider
           score = consumerRating
           comment = consumerComment
-        return (payment, r1)
+          role = "consumer"
+        -- Create invitation for provider to rate consumer
+        create RatingInvitation with
+          rater = provider
+          rated = consumer
+          role = "provider"
+          capability = resultHash
+        return (finalPayment, r1)
 
     -- Quick approve without detailed ratings
-    choice QuickApprove : ContractId CAPCoin
+    choice QuickApprove : (ContractId CAPCoin, ContractId RatingInvitation)
       controller consumer
       do
-        exercise lockedCoinCid ReleaseToBeneficiary
+        providerCoinCid <- exercise lockedCoinCid ReleaseToBeneficiary
+        -- Apply fee on provider's payment
+        finalPayment <- applyFee provider providerCoinCid amount feeConfig
+        -- Create invitation for provider to rate consumer
+        invitation <- create RatingInvitation with
+          rater = provider
+          rated = consumer
+          role = "provider"
+          capability = resultHash
+        return (finalPayment, invitation)
 
     -- Consumer disputes the delivery
     choice Dispute : ContractId DisputeRecord
@@ -119,3 +188,20 @@ template DisputeRecord
       controller consumer
       do
         exercise lockedCoinCid ReleaseToBeneficiary
+
+    -- Consumer escalates dispute to a neutral arbiter
+    choice EscalateToArbiter : ContractId ArbitratedDispute
+      with
+        arbiter : Party
+      controller consumer
+      do
+        create ArbitratedDispute with
+          consumer
+          provider
+          arbiter
+          amount
+          lockedCoinCid
+          reason
+          resultHash
+          resultUrl
+          evidence = []
