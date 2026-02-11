@@ -245,8 +245,11 @@ app.get("/cap/v1/health", async (req, res) => {
   });
 });
 
-// Demo UI
+// Static pages
 const path = require("path");
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
 app.get("/demo", (req, res) => {
   res.sendFile(path.join(__dirname, "demo.html"));
 });

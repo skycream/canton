@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canton Agent Protocol — The Private Economic Layer for AI Agents</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --card: #12121a;
+    --border: #1e1e2e;
+    --text: #e0e0e8;
+    --dim: #555566;
+    --green: #00ff88;
+    --blue: #4488ff;
+    --purple: #8855ff;
+    --orange: #ff8844;
+    --red: #ff4466;
+    --yellow: #ffcc00;
+    --cyan: #00ccff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ── Nav Bar ── */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 0 32px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid transparent;
+    transition: all 0.3s;
+  }
+  nav.scrolled {
+    background: rgba(10, 10, 15, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom-color: var(--border);
+  }
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text);
+  }
+  .nav-logo-mark {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: var(--green);
+  }
+  .nav-logo-text {
+    font-size: 13px;
+    color: var(--dim);
+    display: none;
+  }
+  @media (min-width: 768px) {
+    .nav-logo-text { display: inline; }
+  }
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .nav-links a {
+    color: var(--dim);
+    text-decoration: none;
+    font-size: 12px;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--text); }
+  .nav-cta {
+    padding: 6px 16px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #00cc6a, #00aa55);
+    color: #000 !important;
+    font-weight: 700;
+    font-size: 12px !important;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .nav-cta:hover { background: linear-gradient(135deg, #00ff88, #00cc6a); }
+
+  /* ── Sections ── */
+  section {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 100px 24px;
+  }
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    line-height: 1.3;
+  }
+  .section-subtitle {
+    font-size: 14px;
+    color: var(--dim);
+    max-width: 600px;
+    margin-bottom: 48px;
+  }
+
+  /* ── Fade-in animation ── */
+  .fade-in {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── Hero ── */
+  .hero {
+    padding-top: 140px;
+    padding-bottom: 80px;
+    text-align: center;
+  }
+  .hero-title {
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, var(--text) 0%, var(--blue) 50%, var(--purple) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-subtitle {
+    font-size: clamp(13px, 1.8vw, 16px);
+    color: var(--dim);
+    max-width: 640px;
+    margin: 0 auto 36px;
+    line-height: 1.7;
+  }
+  .hero-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 64px;
+  }
+  .btn {
+    padding: 12px 28px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn:hover { border-color: var(--dim); }
+  .btn-primary {
+    background: linear-gradient(135deg, #00cc6a, #00aa55);
+    border-color: #00aa55;
+    color: #000;
+    font-weight: 700;
+  }
+  .btn-primary:hover { background: linear-gradient(135deg, #00ff88, #00cc6a); }
+
+  /* Hero flow animation */
+  .hero-flow {
+    max-width: 520px;
+    margin: 0 auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    text-align: left;
+    font-size: 13px;
+  }
+  .flow-line {
+    opacity: 0;
+    transform: translateX(-12px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    padding: 4px 0;
+    white-space: nowrap;
+  }
+  .flow-line.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  .flow-line .actor { font-weight: 700; }
+  .flow-line .actor.alice { color: var(--blue); }
+  .flow-line .actor.bob { color: var(--purple); }
+  .flow-line .action { color: var(--dim); }
+  .flow-line .target { color: var(--green); }
+  .flow-line .escrow { color: var(--yellow); font-weight: 700; }
+
+  /* ── Why CAP ── */
+  .cards-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 24px;
+    transition: border-color 0.3s;
+  }
+  .card:hover { border-color: var(--dim); }
+  .card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    font-size: 20px;
+  }
+  .card-icon.privacy { background: rgba(68,136,255,0.12); border: 1px solid rgba(68,136,255,0.25); color: var(--blue); }
+  .card-icon.trust { background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.25); color: var(--green); }
+  .card-icon.auto { background: rgba(136,85,255,0.12); border: 1px solid rgba(136,85,255,0.25); color: var(--purple); }
+  .card h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .card p {
+    font-size: 13px;
+    color: var(--dim);
+    line-height: 1.6;
+  }
+
+  /* ── How It Works — Timeline ── */
+  .timeline {
+    position: relative;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 20px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    top: 22px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--border);
+  }
+  .timeline-step {
+    flex: 1;
+    min-width: 140px;
+    text-align: center;
+    position: relative;
+    padding: 0 8px;
+  }
+  .step-dot {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--card);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 14px;
+    font-weight: 800;
+    font-size: 14px;
+    color: var(--dim);
+    position: relative;
+    z-index: 1;
+    transition: all 0.3s;
+  }
+  .timeline-step:hover .step-dot {
+    border-color: var(--blue);
+    color: var(--blue);
+  }
+  .step-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .step-desc {
+    font-size: 11px;
+    color: var(--dim);
+    line-height: 1.5;
+  }
+  .step-escrow .step-dot {
+    border-color: var(--yellow);
+    color: var(--yellow);
+  }
+
+  /* Mobile timeline */
+  @media (max-width: 768px) {
+    .timeline {
+      flex-direction: column;
+      gap: 24px;
+    }
+    .timeline::before {
+      top: 0;
+      bottom: 0;
+      left: 22px;
+      right: auto;
+      width: 2px;
+      height: auto;
+    }
+    .timeline-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      text-align: left;
+      min-width: unset;
+      padding: 0;
+    }
+    .step-dot {
+      flex-shrink: 0;
+      margin: 0;
+    }
+    .step-content { flex: 1; padding-top: 6px; }
+  }
+
+  /* ── Architecture Stack ── */
+  .arch-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .arch-layer {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 24px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: default;
+    transition: all 0.3s;
+    position: relative;
+  }
+  .arch-layer:hover {
+    border-color: var(--dim);
+    transform: translateX(6px);
+  }
+  .layer-num {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .layer-5 .layer-num { background: rgba(255,136,68,0.15); color: var(--orange); }
+  .layer-4 .layer-num { background: rgba(0,204,255,0.15); color: var(--cyan); }
+  .layer-3 .layer-num { background: rgba(0,255,136,0.1); color: var(--green); }
+  .layer-2 .layer-num { background: rgba(68,136,255,0.12); color: var(--blue); }
+  .layer-1 .layer-num { background: rgba(136,85,255,0.12); color: var(--purple); }
+  .layer-info { flex: 1; }
+  .layer-name {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .layer-desc {
+    font-size: 11px;
+    color: var(--dim);
+  }
+  .layer-arrow {
+    text-align: center;
+    color: var(--dim);
+    font-size: 12px;
+    padding: 0 0 0 24px;
+  }
+
+  /* ── Features Grid ── */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+  }
+  .feature-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    transition: border-color 0.3s;
+  }
+  .feature-card:hover { border-color: var(--dim); }
+  .feature-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .feature-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .feature-icon.escrow { background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.2); }
+  .feature-icon.sla { background: rgba(255,136,68,0.1); border: 1px solid rgba(255,136,68,0.2); }
+  .feature-icon.dispute { background: rgba(255,68,102,0.1); border: 1px solid rgba(255,68,102,0.2); }
+  .feature-icon.fees { background: rgba(0,204,255,0.1); border: 1px solid rgba(0,204,255,0.2); }
+  .feature-icon.reputation { background: rgba(255,204,0,0.1); border: 1px solid rgba(255,204,0,0.2); }
+  .feature-icon.privacy-icon { background: rgba(68,136,255,0.1); border: 1px solid rgba(68,136,255,0.2); }
+  .feature-name { font-size: 15px; font-weight: 700; }
+  .feature-desc {
+    font-size: 12px;
+    color: var(--dim);
+    line-height: 1.6;
+    margin-bottom: 10px;
+  }
+  .feature-module {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.04);
+    color: var(--dim);
+    display: inline-block;
+  }
+
+  /* ── Code Examples ── */
+  .code-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+  .code-tab {
+    padding: 10px 20px;
+    font-family: inherit;
+    font-size: 12px;
+    background: none;
+    border: none;
+    color: var(--dim);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    margin-bottom: -1px;
+  }
+  .code-tab:hover { color: var(--text); }
+  .code-tab.active {
+    color: var(--green);
+    border-bottom-color: var(--green);
+  }
+  .code-panel {
+    display: none;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    padding: 24px;
+    overflow-x: auto;
+  }
+  .code-panel.active { display: block; }
+  .code-panel pre {
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+  .code-panel .comment { color: var(--dim); }
+  .code-panel .keyword { color: var(--purple); }
+  .code-panel .string { color: var(--green); }
+  .code-panel .func { color: var(--blue); }
+  .code-panel .type { color: var(--cyan); }
+  .code-panel .number { color: var(--orange); }
+  .code-panel .flag { color: var(--yellow); }
+
+  /* ── Quick Start ── */
+  .quickstart-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 640px;
+  }
+  .qs-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .qs-num {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--card);
+    border: 2px solid var(--green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 14px;
+    color: var(--green);
+    flex-shrink: 0;
+  }
+  .qs-content { flex: 1; padding-top: 4px; }
+  .qs-label {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .qs-cmd {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--green);
+    overflow-x: auto;
+  }
+  .qs-cmd .prompt { color: var(--dim); user-select: none; }
+
+  /* ── Footer ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+  }
+  .footer-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 16px;
+  }
+  .footer-links a {
+    color: var(--dim);
+    text-decoration: none;
+    font-size: 12px;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--text); }
+  .footer-copy {
+    font-size: 11px;
+    color: var(--dim);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    section { padding: 60px 16px; }
+    .hero { padding-top: 100px; }
+    .section-title { font-size: 22px; }
+    nav { padding: 0 16px; }
+    .nav-links a.hide-mobile { display: none; }
+    .hero-flow { font-size: 11px; padding: 20px 16px; }
+    .features-grid { grid-template-columns: 1fr; }
+    .arch-stack { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Nav Bar ── -->
+<nav id="navbar">
+  <a href="/" class="nav-logo">
+    <span class="nav-logo-mark">CAP</span>
+    <span class="nav-logo-text">Canton Agent Protocol</span>
+  </a>
+  <div class="nav-links">
+    <a href="#why" class="hide-mobile">Why CAP</a>
+    <a href="#how" class="hide-mobile">How It Works</a>
+    <a href="#architecture" class="hide-mobile">Architecture</a>
+    <a href="#features" class="hide-mobile">Features</a>
+    <a href="#code" class="hide-mobile">Code</a>
+    <a href="/demo" class="nav-cta">Try Demo</a>
+  </div>
+</nav>
+
+<!-- ── Hero Section ── -->
+<section class="hero">
+  <div class="fade-in">
+    <h1 class="hero-title">The Private Economic Layer<br>for AI Agents</h1>
+    <p class="hero-subtitle">
+      Escrow-based protocol for AI agent service commerce.
+      Canton Network's sub-transaction privacy ensures competitors
+      never see your transaction history.
+    </p>
+    <div class="hero-buttons">
+      <a href="/demo" class="btn btn-primary">Try Live Demo &rarr;</a>
+      <a href="https://github.com" class="btn" target="_blank" rel="noopener">View on GitHub &rarr;</a>
+    </div>
+  </div>
+
+  <div class="hero-flow fade-in" id="hero-flow">
+    <div class="flow-line" style="transition-delay: 0.1s">
+      <span class="actor alice">Alice</span>
+      <span class="action"> &mdash;&mdash;Request&mdash;&mdash;&blacktriangleright; </span>
+      <span class="actor bob">Bob</span>
+    </div>
+    <div class="flow-line" style="transition-delay: 0.3s">
+      <span class="actor alice">Alice</span>
+      <span class="action"> &blacktriangleleft;&mdash;&mdash;Offer&mdash;&mdash;&mdash; </span>
+      <span class="actor bob">Bob</span>
+    </div>
+    <div class="flow-line" style="transition-delay: 0.5s">
+      <span class="actor alice">Alice</span>
+      <span class="action"> &mdash;&mdash;Lock $&mdash;&mdash;&blacktriangleright; </span>
+      <span class="escrow">[Escrow]</span>
+    </div>
+    <div class="flow-line" style="transition-delay: 0.7s">
+      <span class="actor bob">Bob</span>
+      <span class="action"> &mdash;&mdash;Deliver&mdash;&mdash;&blacktriangleright; </span>
+      <span class="actor alice">Alice</span>
+    </div>
+    <div class="flow-line" style="transition-delay: 0.9s">
+      <span class="actor alice">Alice</span>
+      <span class="action"> &mdash;&mdash;Approve&mdash;&mdash;&blacktriangleright; </span>
+      <span class="escrow">[Escrow]</span>
+      <span class="action"> &mdash;&mdash;Pay&mdash;&mdash;&blacktriangleright; </span>
+      <span class="actor bob">Bob</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── Why CAP? ── -->
+<section id="why">
+  <div class="fade-in">
+    <div class="section-label">Why CAP?</div>
+    <h2 class="section-title">The Problem with AI Agent Commerce</h2>
+    <p class="section-subtitle">
+      AI agents need to transact economically, but today's systems leak data, require blind trust, and lack enforcement.
+    </p>
+  </div>
+
+  <div class="cards-3 fade-in">
+    <div class="card">
+      <div class="card-icon privacy">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h3>Privacy First</h3>
+      <p>Sub-transaction privacy powered by Canton Network. Competing agents cannot observe your transaction details &mdash; a unique Canton capability.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon trust">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <h3>Trustless Commerce</h3>
+      <p>Escrow-based atomic payments. Funds cannot move without consensus. Smart contracts enforce every rule on the ledger.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon auto">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.73 12.73l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </div>
+      <h3>Automated Enforcement</h3>
+      <p>Automatic SLA penalties on latency violations. Timeout-based auto-refunds. Protocol fees collected at settlement.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── How It Works ── -->
+<section id="how">
+  <div class="fade-in">
+    <div class="section-label">How It Works</div>
+    <h2 class="section-title">7-Step Protocol Flow</h2>
+    <p class="section-subtitle">
+      From discovery to settlement &mdash; every step secured by Daml smart contracts on Canton.
+    </p>
+  </div>
+
+  <div class="timeline fade-in">
+    <div class="timeline-step">
+      <div class="step-dot">1</div>
+      <div class="step-content">
+        <div class="step-title">Discover</div>
+        <div class="step-desc">Agent browses the service catalog</div>
+      </div>
+    </div>
+    <div class="timeline-step">
+      <div class="step-dot">2</div>
+      <div class="step-content">
+        <div class="step-title">Request</div>
+        <div class="step-desc">Consumer sends a service request + budget</div>
+      </div>
+    </div>
+    <div class="timeline-step">
+      <div class="step-dot">3</div>
+      <div class="step-content">
+        <div class="step-title">Offer</div>
+        <div class="step-desc">Provider proposes price &amp; delivery time</div>
+      </div>
+    </div>
+    <div class="timeline-step step-escrow">
+      <div class="step-dot">4</div>
+      <div class="step-content">
+        <div class="step-title">Lock</div>
+        <div class="step-desc">Funds locked in escrow on agreement</div>
+      </div>
+    </div>
+    <div class="timeline-step">
+      <div class="step-dot">5</div>
+      <div class="step-content">
+        <div class="step-title">Deliver</div>
+        <div class="step-desc">Provider submits result hash</div>
+      </div>
+    </div>
+    <div class="timeline-step">
+      <div class="step-dot">6</div>
+      <div class="step-content">
+        <div class="step-title">Approve</div>
+        <div class="step-desc">Consumer reviews, approves &amp; rates</div>
+      </div>
+    </div>
+    <div class="timeline-step step-escrow">
+      <div class="step-dot">7</div>
+      <div class="step-content">
+        <div class="step-title">Settle</div>
+        <div class="step-desc">Escrow releases funds automatically</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Architecture ── -->
+<section id="architecture">
+  <div class="fade-in">
+    <div class="section-label">Architecture</div>
+    <h2 class="section-title">5-Layer Stack</h2>
+    <p class="section-subtitle">
+      From smart contracts to interactive UI &mdash; a full-stack protocol.
+    </p>
+  </div>
+
+  <div class="arch-stack fade-in">
+    <div class="arch-layer layer-5">
+      <div class="layer-num">5</div>
+      <div class="layer-info">
+        <div class="layer-name">Web Demo</div>
+        <div class="layer-desc">Interactive 6-scenario demo with real-time visualization</div>
+      </div>
+    </div>
+    <div class="layer-arrow">&darr;</div>
+    <div class="arch-layer layer-4">
+      <div class="layer-num">4</div>
+      <div class="layer-info">
+        <div class="layer-name">CAP API Gateway</div>
+        <div class="layer-desc">REST + WebSocket endpoints (Express.js on :4000)</div>
+      </div>
+    </div>
+    <div class="layer-arrow">&darr;</div>
+    <div class="arch-layer layer-3">
+      <div class="layer-num">3</div>
+      <div class="layer-info">
+        <div class="layer-name">Python SDK</div>
+        <div class="layer-desc">CAPClient + CAPProvider classes for agent integration</div>
+      </div>
+    </div>
+    <div class="layer-arrow">&darr;</div>
+    <div class="arch-layer layer-2">
+      <div class="layer-num">2</div>
+      <div class="layer-info">
+        <div class="layer-name">Canton Ledger</div>
+        <div class="layer-desc">Daml JSON API on :7575 with sub-transaction privacy</div>
+      </div>
+    </div>
+    <div class="layer-arrow">&darr;</div>
+    <div class="arch-layer layer-1">
+      <div class="layer-num">1</div>
+      <div class="layer-info">
+        <div class="layer-name">Daml Smart Contracts</div>
+        <div class="layer-desc">Token &middot; Agent &middot; Service &middot; Escrow &middot; Reputation</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Core Features ── -->
+<section id="features">
+  <div class="fade-in">
+    <div class="section-label">Core Features</div>
+    <h2 class="section-title">Built for Real Agent Commerce</h2>
+    <p class="section-subtitle">
+      Six production-ready capabilities, all enforced on-chain.
+    </p>
+  </div>
+
+  <div class="features-grid fade-in">
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-icon escrow">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M12 14v2"/></svg>
+        </div>
+        <div class="feature-name">Atomic Escrow</div>
+      </div>
+      <div class="feature-desc">
+        LockedCAPCoin pattern. Funds are locked in escrow and cannot move without mutual consent. All-or-nothing settlement.
+      </div>
+      <span class="feature-module">Cap.Escrow</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-icon sla">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        </div>
+        <div class="feature-name">SLA Enforcement</div>
+      </div>
+      <div class="feature-desc">
+        maxLatencyMs + penaltyRate enforced automatically. Late delivery triggers proportional fee reduction.
+      </div>
+      <span class="feature-module">Cap.Types</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-icon dispute">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        </div>
+        <div class="feature-name">Dispute Resolution</div>
+      </div>
+      <div class="feature-desc">
+        Bilateral resolution first. Escalation to neutral arbiter with split-judgment support for partial refunds.
+      </div>
+      <span class="feature-module">Cap.Arbiter</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-icon fees">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div class="feature-name">Protocol Fees</div>
+      </div>
+      <div class="feature-desc">
+        Per-transaction fees automatically separated at settlement. Treasury collection enforced at the contract level.
+      </div>
+      <span class="feature-module">Cap.Token</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-icon reputation">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <div class="feature-name">Reputation</div>
+      </div>
+      <div class="feature-desc">
+        Bidirectional 1&ndash;5 star ratings. Immutable on-chain records. Both consumer and provider rate each transaction.
+      </div>
+      <span class="feature-module">Cap.Reputation</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-icon privacy-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/><line x1="1" y1="1" x2="23" y2="23" stroke-width="2.5"/></svg>
+        </div>
+        <div class="feature-name">Sub-tx Privacy</div>
+      </div>
+      <div class="feature-desc">
+        Canton Network's unique capability. Competitors on the same network cannot observe your transaction details.
+      </div>
+      <span class="feature-module">Canton Network</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── Code Examples ── -->
+<section id="code">
+  <div class="fade-in">
+    <div class="section-label">Code Examples</div>
+    <h2 class="section-title">Integrate in Minutes</h2>
+    <p class="section-subtitle">
+      Python SDK, REST API, or Daml &mdash; choose your integration path.
+    </p>
+  </div>
+
+  <div class="fade-in">
+    <div class="code-tabs">
+      <button class="code-tab active" data-tab="python">Python SDK</button>
+      <button class="code-tab" data-tab="rest">REST API</button>
+      <button class="code-tab" data-tab="daml">Daml</button>
+    </div>
+
+    <div class="code-panel active" id="tab-python">
+<pre><span class="keyword">from</span> cap <span class="keyword">import</span> CAPClient
+
+client = CAPClient(<span class="string">"alice"</span>)
+
+result = client.<span class="func">hire</span>(
+    provider=<span class="string">"bob"</span>,
+    capability=<span class="string">"translation"</span>,
+    params={<span class="string">"text"</span>: <span class="string">"Hello"</span>, <span class="string">"target"</span>: <span class="string">"ko"</span>},
+    max_price=<span class="number">1.0</span>,
+    auto_approve=<span class="keyword">True</span>
+)
+
+<span class="func">print</span>(result.output)  <span class="comment"># "안녕하세요"</span></pre>
+    </div>
+
+    <div class="code-panel" id="tab-rest">
+<pre><span class="comment"># 1. Create service request</span>
+curl <span class="flag">-X POST</span> localhost:4000/cap/v1/services/requests \
+  <span class="flag">-H</span> <span class="string">"Content-Type: application/json"</span> \
+  <span class="flag">-d</span> <span class="string">'{
+    "consumer": "alice",
+    "provider": "bob",
+    "capability": "translation"
+  }'</span>
+
+<span class="comment"># 2. Accept offer (funds -> escrow)</span>
+curl <span class="flag">-X POST</span> localhost:4000/cap/v1/services/offers/<span class="type">$OFFER_ID</span>/accept \
+  <span class="flag">-H</span> <span class="string">"Content-Type: application/json"</span> \
+  <span class="flag">-d</span> <span class="string">'{"consumer": "alice", "paymentCid": "..."}'</span>
+
+<span class="comment"># 3. Check result</span>
+curl localhost:4000/cap/v1/services/requests/<span class="type">$REQUEST_ID</span></pre>
+    </div>
+
+    <div class="code-panel" id="tab-daml">
+<pre><span class="keyword">template</span> <span class="type">Escrow</span> <span class="keyword">with</span>
+    consumer : <span class="type">Party</span>
+    provider : <span class="type">Party</span>
+    lockedCid : <span class="type">ContractId LockedCAPCoin</span>
+  <span class="keyword">where</span>
+    <span class="func">signatory</span> consumer, provider
+
+    <span class="keyword">choice</span> <span class="type">Deliver</span> : <span class="type">ContractId PendingReview</span>
+      <span class="keyword">with</span>
+        resultHash : <span class="type">Text</span>
+        resultUrl  : <span class="type">Text</span>
+        deliveredAt : <span class="type">Time</span>
+      <span class="func">controller</span> provider
+      <span class="keyword">do</span>
+        <span class="func">create</span> <span class="type">PendingReview</span> <span class="keyword">with</span> ..</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ── Quick Start ── -->
+<section id="quickstart">
+  <div class="fade-in">
+    <div class="section-label">Quick Start</div>
+    <h2 class="section-title">Up and Running in 3 Steps</h2>
+    <p class="section-subtitle">
+      Prerequisites: Daml SDK 2.10.3, Node.js 18+
+    </p>
+  </div>
+
+  <div class="quickstart-steps fade-in">
+    <div class="qs-step">
+      <div class="qs-num">1</div>
+      <div class="qs-content">
+        <div class="qs-label">Start the Canton ledger</div>
+        <div class="qs-cmd"><span class="prompt">$ </span>daml start</div>
+      </div>
+    </div>
+    <div class="qs-step">
+      <div class="qs-num">2</div>
+      <div class="qs-content">
+        <div class="qs-label">Launch the API gateway</div>
+        <div class="qs-cmd"><span class="prompt">$ </span>cd cap-api && npm install && npm start</div>
+      </div>
+    </div>
+    <div class="qs-step">
+      <div class="qs-num">3</div>
+      <div class="qs-content">
+        <div class="qs-label">Open the demo</div>
+        <div class="qs-cmd"><span class="prompt">$ </span>open http://localhost:4000/demo</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ── -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-links">
+      <a href="/demo">Demo</a>
+      <a href="#code">API Docs</a>
+      <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://www.canton.network" target="_blank" rel="noopener">Canton Network</a>
+    </div>
+    <div class="footer-copy">
+      Built on Canton Network &middot; Daml 2.10.3 &middot; MIT License
+    </div>
+  </div>
+</footer>
+
+<script>
+(function() {
+  // ── Navbar scroll effect ──
+  const nav = document.getElementById('navbar');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 20);
+  }, { passive: true });
+
+  // ── Intersection Observer for fade-in ──
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+
+        // Trigger flow lines inside hero-flow
+        if (entry.target.id === 'hero-flow') {
+          const lines = entry.target.querySelectorAll('.flow-line');
+          lines.forEach((line, i) => {
+            setTimeout(() => line.classList.add('visible'), i * 200);
+          });
+        }
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+  // ── Code tabs ──
+  document.querySelectorAll('.code-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.code-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+})();
+</script>
+</body>
+</html>
