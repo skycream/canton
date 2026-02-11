@@ -148,6 +148,51 @@ async function resolveRegistryParty() {
   return null;
 }
 
+// Resolve all party IDs and cache them
+const partyCache = new Map();
+
+async function resolvePartyId(userId) {
+  const key = toUserId(userId);
+  if (partyCache.has(key)) return partyCache.get(key);
+  // If it already looks like a full party ID, cache and return
+  if (userId.includes("::")) {
+    partyCache.set(key, userId);
+    return userId;
+  }
+  try {
+    const token = createToken(key);
+    const resp = await fetch(`${LEDGER_URL}/v1/parties`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    });
+    const data = await resp.json();
+    if (data.result) {
+      for (const p of data.result) {
+        const shortName = p.identifier.split("::")[0].toLowerCase();
+        partyCache.set(shortName, p.identifier);
+      }
+    }
+  } catch (e) {
+    console.error("Party resolution failed:", e.message);
+  }
+  return partyCache.get(key) || userId;
+}
+
+// Middleware: resolve party fields in request body
+app.use(async (req, res, next) => {
+  if (req.body && typeof req.body === "object") {
+    const partyFields = ["consumer", "provider", "agentId", "owner", "newOwner", "receiver"];
+    for (const field of partyFields) {
+      if (req.body[field] && typeof req.body[field] === "string" && !req.body[field].includes("::")) {
+        req.body[field] = await resolvePartyId(req.body[field]);
+      }
+    }
+  }
+  next();
+});
+
 // Make helpers available to routes
 app.locals.createContract = createContract;
 app.locals.exerciseChoice = exerciseChoice;
@@ -163,6 +208,30 @@ app.use("/cap/v1/services", serviceRoutes);
 app.use("/cap/v1/escrows", escrowRoutes);
 app.use("/cap/v1/reputation", reputationRoutes);
 app.use("/cap/v1/wallet", walletRoutes);
+
+// Party resolution
+app.get("/cap/v1/parties", async (req, res) => {
+  const userId = req.query.as || "alice";
+  try {
+    const token = createToken(toUserId(userId));
+    const resp = await fetch(`${LEDGER_URL}/v1/parties`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    });
+    const data = await resp.json();
+    const parties = {};
+    for (const p of data.result || []) {
+      const shortName = p.identifier.split("::")[0].toLowerCase();
+      parties[shortName] = p.identifier;
+      partyCache.set(shortName, p.identifier);
+    }
+    res.json({ parties });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // Health check
 app.get("/cap/v1/health", async (req, res) => {

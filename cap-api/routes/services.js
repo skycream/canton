@@ -3,7 +3,8 @@ const router = require("express").Router();
 // GET /cap/v1/services/discover?capability=X - Find agents by capability
 router.get("/discover", async (req, res) => {
   try {
-    const userId = req.query.as || "registry";
+    // Discovery always uses registry party (has observer rights on all listings)
+    const userId = "registry";
     const capability = req.query.capability;
 
     const query = capability ? { capability } : {};
