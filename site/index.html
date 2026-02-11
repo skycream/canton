@@ -33,7 +33,56 @@
     --glow-blue: 0 0 40px rgba(68,136,255,0.06);
     --glow-green: 0 0 40px rgba(0,232,122,0.06);
     --glow-purple: 0 0 40px rgba(136,85,255,0.06);
+    --nav-scrolled-bg: rgba(8, 8, 13, 0.88);
+    --hero-glow-1: rgba(68,136,255,0.06);
+    --hero-glow-2: rgba(136,85,255,0.03);
+    --btn-primary-from: #00d06a;
+    --btn-primary-to: #00aa55;
+    --btn-primary-hover-from: #00e87a;
+    --btn-primary-hover-to: #00cc6a;
+    --btn-primary-text: #000;
+    --btn-primary-shadow: rgba(0,208,106,0.2);
+    --btn-primary-hover-shadow: rgba(0,232,122,0.3);
+    --code-bg: var(--bg);
   }
+
+  /* ── Light Theme ── */
+  [data-theme="light"] {
+    --bg: #f7f7fb;
+    --bg-alt: #eeeef4;
+    --card: #ffffff;
+    --card-hover: #f5f5fa;
+    --border: #d8d8e4;
+    --border-hover: #c0c0d0;
+    --text: #1a1a2e;
+    --text-secondary: #4a4a64;
+    --dim: #6a6a82;
+    --green: #00a85c;
+    --green-dim: rgba(0,168,92,0.10);
+    --blue: #2b6bdd;
+    --blue-dim: rgba(43,107,221,0.08);
+    --purple: #6633cc;
+    --purple-dim: rgba(102,51,204,0.08);
+    --orange: #d96a20;
+    --red: #d93050;
+    --yellow: #b89400;
+    --cyan: #0094bb;
+    --glow-blue: 0 4px 24px rgba(43,107,221,0.08);
+    --glow-green: 0 4px 24px rgba(0,168,92,0.08);
+    --glow-purple: 0 4px 24px rgba(102,51,204,0.08);
+    --nav-scrolled-bg: rgba(247, 247, 251, 0.92);
+    --hero-glow-1: rgba(43,107,221,0.06);
+    --hero-glow-2: rgba(102,51,204,0.04);
+    --btn-primary-from: #00b860;
+    --btn-primary-to: #009a50;
+    --btn-primary-hover-from: #00cc6a;
+    --btn-primary-hover-to: #00aa55;
+    --btn-primary-text: #fff;
+    --btn-primary-shadow: rgba(0,168,92,0.18);
+    --btn-primary-hover-shadow: rgba(0,184,96,0.25);
+    --code-bg: #f0f0f6;
+  }
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
@@ -63,7 +112,7 @@
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
   nav.scrolled {
-    background: rgba(8, 8, 13, 0.88);
+    background: var(--nav-scrolled-bg);
     backdrop-filter: blur(20px) saturate(1.2);
     -webkit-backdrop-filter: blur(20px) saturate(1.2);
     border-bottom-color: var(--border);
@@ -109,19 +158,48 @@
   .nav-cta {
     padding: 8px 20px;
     border-radius: 8px;
-    background: linear-gradient(135deg, #00d06a, #00aa55);
-    color: #000 !important;
+    background: linear-gradient(135deg, var(--btn-primary-from), var(--btn-primary-to));
+    color: var(--btn-primary-text) !important;
     font-weight: 700;
     font-size: 13px !important;
     text-decoration: none;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 12px rgba(0,208,106,0.2);
+    box-shadow: 0 2px 12px var(--btn-primary-shadow);
   }
   .nav-cta:hover {
-    background: linear-gradient(135deg, #00e87a, #00cc6a);
-    box-shadow: 0 4px 20px rgba(0,232,122,0.3);
+    background: linear-gradient(135deg, var(--btn-primary-hover-from), var(--btn-primary-hover-to));
+    box-shadow: 0 4px 20px var(--btn-primary-hover-shadow);
     transform: translateY(-1px);
   }
+
+  /* ── Theme Toggle ── */
+  .theme-toggle {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--dim);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+  }
+  .theme-toggle:hover {
+    border-color: var(--border-hover);
+    color: var(--text);
+    background: var(--card-hover);
+  }
+  .theme-toggle .icon-sun,
+  .theme-toggle .icon-moon { display: none; }
+  [data-theme="light"] .theme-toggle .icon-moon { display: block; }
+  [data-theme="light"] .theme-toggle .icon-sun { display: none; }
+  :root .theme-toggle .icon-sun { display: block; }
+  :root .theme-toggle .icon-moon { display: none; }
+  [data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+  [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
 
   /* ── Sections ── */
   section {
@@ -186,7 +264,7 @@
     transform: translateX(-50%);
     width: 600px;
     height: 600px;
-    background: radial-gradient(circle, rgba(68,136,255,0.06) 0%, rgba(136,85,255,0.03) 40%, transparent 70%);
+    background: radial-gradient(circle, var(--hero-glow-1) 0%, var(--hero-glow-2) 40%, transparent 70%);
     pointer-events: none;
   }
   .hero-title {
@@ -236,15 +314,15 @@
     box-shadow: var(--glow-blue);
   }
   .btn-primary {
-    background: linear-gradient(135deg, #00d06a, #00aa55);
+    background: linear-gradient(135deg, var(--btn-primary-from), var(--btn-primary-to));
     border-color: transparent;
-    color: #000;
+    color: var(--btn-primary-text);
     font-weight: 700;
-    box-shadow: 0 2px 16px rgba(0,208,106,0.2);
+    box-shadow: 0 2px 16px var(--btn-primary-shadow);
   }
   .btn-primary:hover {
-    background: linear-gradient(135deg, #00e87a, #00cc6a);
-    box-shadow: 0 4px 24px rgba(0,232,122,0.3);
+    background: linear-gradient(135deg, var(--btn-primary-hover-from), var(--btn-primary-hover-to));
+    box-shadow: 0 4px 24px var(--btn-primary-hover-shadow);
     transform: translateY(-1px);
   }
 
@@ -259,7 +337,7 @@
     text-align: left;
     font-family: var(--mono);
     font-size: 13px;
-    box-shadow: 0 4px 40px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 40px rgba(0,0,0,0.12);
   }
   .flow-line {
     opacity: 0;
@@ -657,7 +735,7 @@
   }
   .feature-code {
     font-family: var(--mono);
-    background: var(--bg);
+    background: var(--code-bg);
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 14px;
@@ -841,6 +919,10 @@
     <a href="#features" class="hide-mobile">Features</a>
     <a href="#code" class="hide-mobile">Code</a>
     <a href="#quickstart" class="nav-cta">Get Started</a>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+      <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.73 12.73l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
   </div>
 </nav>
 
@@ -1525,6 +1607,24 @@ curl <span class="flag">-X POST</span> localhost:4000/cap/v1/fees/collect \
   }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
 
   document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+  // ── Theme toggle ──
+  const themeToggle = document.getElementById('theme-toggle');
+  const html = document.documentElement;
+  const stored = localStorage.getItem('cap-theme');
+  if (stored) {
+    html.setAttribute('data-theme', stored);
+  } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+    html.setAttribute('data-theme', 'light');
+  } else {
+    html.setAttribute('data-theme', 'dark');
+  }
+  themeToggle.addEventListener('click', () => {
+    const current = html.getAttribute('data-theme');
+    const next = current === 'light' ? 'dark' : 'light';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('cap-theme', next);
+  });
 
   // ── Code tabs ──
   document.querySelectorAll('.code-tab').forEach(tab => {
