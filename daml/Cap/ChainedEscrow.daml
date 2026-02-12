@@ -1,0 +1,152 @@
+module Cap.ChainedEscrow where
+
+import DA.Time (addRelTime)
+import Cap.Types
+import Cap.Token
+
+-- Multi-party escrow: A → B → C chained delegation.
+-- Consumer hires a coordinator who sub-contracts to specialists.
+-- Funds flow: Consumer → Coordinator escrow, Coordinator → Specialist sub-escrows.
+
+-- A chained deal where a coordinator delegates sub-tasks to specialists
+template ChainedEscrow
+  with
+    consumer : Party
+    coordinator : Party
+    totalAmount : Decimal
+    lockedCoinCid : ContractId LockedCAPCoin
+    capability : Text
+    params : Text
+    slaTerms : SLATerms
+    createdAt : Time
+    deadline : Time
+    subTasks : [SubTask]         -- List of sub-tasks to be delegated
+    completedSubTasks : Int
+    feeConfig : Optional FeeConfig
+  where
+    signatory consumer, coordinator
+
+    -- Coordinator creates a sub-escrow for a specialist
+    choice CreateSubEscrow : ContractId SubEscrow
+      with
+        specialist : Party
+        subAmount : Decimal
+        subCapability : Text
+        subParams : Text
+        paymentCoinCid : ContractId CAPCoin
+        subCreatedAt : Time
+      controller coordinator
+      do
+        -- Lock sub-payment for specialist
+        coin <- fetch paymentCoinCid
+        assertMsg "Not coordinator's coin" (coin.owner == coordinator)
+        assertMsg "Insufficient sub-payment" (coin.amount >= subAmount)
+        subLockedCid <- if coin.amount > subAmount
+          then do
+            (payPart, _change) <- exercise paymentCoinCid Split with splitAmount = subAmount
+            exercise payPart Lock with beneficiary = specialist
+          else
+            exercise paymentCoinCid Lock with beneficiary = specialist
+        let subDeadline = addRelTime subCreatedAt (convertMsToRelTime slaTerms.maxLatencyMs)
+        create SubEscrow with
+          parentConsumer = consumer
+          coordinator
+          specialist
+          subAmount
+          subLockedCoinCid = subLockedCid
+          subCapability
+          subParams
+          subCreatedAt
+          subDeadline
+          parentEscrowCid = self
+
+    -- Consumer approves the full chain and releases funds to coordinator
+    choice ApproveChain : ContractId CAPCoin
+      controller consumer
+      do exercise lockedCoinCid ReleaseToBeneficiary
+
+    -- Consumer cancels the chain → refund
+    choice CancelChain : ContractId CAPCoin
+      controller consumer
+      do exercise lockedCoinCid Refund
+
+    -- Coordinator abandons → refund
+    choice AbandonChain : ContractId CAPCoin
+      controller coordinator
+      do exercise lockedCoinCid Refund
+
+-- Sub-escrow between coordinator and specialist
+template SubEscrow
+  with
+    parentConsumer : Party
+    coordinator : Party
+    specialist : Party
+    subAmount : Decimal
+    subLockedCoinCid : ContractId LockedCAPCoin
+    subCapability : Text
+    subParams : Text
+    subCreatedAt : Time
+    subDeadline : Time
+    parentEscrowCid : ContractId ChainedEscrow
+  where
+    signatory coordinator, specialist
+
+    -- Specialist delivers result
+    choice DeliverSub : ContractId SubEscrowReview
+      with
+        resultHash : Text
+        resultUrl : Text
+        deliveredAt : Time
+      controller specialist
+      do
+        create SubEscrowReview with
+          parentConsumer
+          coordinator
+          specialist
+          subAmount
+          subLockedCoinCid
+          resultHash
+          resultUrl
+          deliveredAt
+          subDeadline
+          parentEscrowCid
+
+    -- Coordinator cancels sub-escrow → refund to coordinator
+    choice CancelSub : ContractId CAPCoin
+      controller coordinator
+      do exercise subLockedCoinCid Refund
+
+-- Review of a sub-task delivery
+template SubEscrowReview
+  with
+    parentConsumer : Party
+    coordinator : Party
+    specialist : Party
+    subAmount : Decimal
+    subLockedCoinCid : ContractId LockedCAPCoin
+    resultHash : Text
+    resultUrl : Text
+    deliveredAt : Time
+    subDeadline : Time
+    parentEscrowCid : ContractId ChainedEscrow
+  where
+    signatory coordinator, specialist
+
+    -- Coordinator approves sub-delivery → specialist gets paid
+    choice ApproveSub : ContractId CAPCoin
+      controller coordinator
+      do exercise subLockedCoinCid ReleaseToBeneficiary
+
+    -- Coordinator rejects → refund to coordinator
+    choice RejectSub : ContractId CAPCoin
+      controller coordinator
+      do exercise subLockedCoinCid Refund
+
+-- Sub-task specification (data type, not a contract)
+data SubTask = SubTask
+  with
+    capability : Text
+    description : Text
+    budgetAmount : Decimal
+    specialist : Optional Party
+  deriving (Show, Eq)

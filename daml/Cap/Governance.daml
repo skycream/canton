@@ -1,0 +1,83 @@
+module Cap.Governance where
+
+-- Protocol parameter change proposal
+template ParameterProposal
+  with
+    proposer : Party
+    registry : Party
+    paramName : Text          -- e.g., "defaultFeeRate", "minCollateral", "disputeTimeout"
+    currentValue : Text
+    proposedValue : Text
+    reason : Text
+    votesFor : [Party]
+    votesAgainst : [Party]
+    requiredVotes : Int       -- Minimum votes to pass
+    createdAt : Time
+    deadline : Time
+  where
+    signatory proposer
+    observer registry
+
+    -- A party votes for the proposal
+    choice VoteFor : ContractId ParameterProposal
+      with voter : Party
+      controller voter
+      do
+        assertMsg "Already voted" (voter `notElem` votesFor && voter `notElem` votesAgainst)
+        let newVotesFor = votesFor ++ [voter]
+        create this with votesFor = newVotesFor
+
+    -- A party votes against the proposal
+    choice VoteAgainst : ContractId ParameterProposal
+      with voter : Party
+      controller voter
+      do
+        assertMsg "Already voted" (voter `notElem` votesFor && voter `notElem` votesAgainst)
+        let newVotesAgainst = votesAgainst ++ [voter]
+        create this with votesAgainst = newVotesAgainst
+
+    -- Execute proposal if enough votes (proposer triggers)
+    choice ExecuteProposal : ContractId ProtocolParameter
+      controller proposer
+      do
+        assertMsg "Not enough votes" (length votesFor >= requiredVotes)
+        assertMsg "More against than for" (length votesFor > length votesAgainst)
+        create ProtocolParameter with
+          registry
+          paramName
+          paramValue = proposedValue
+          updatedBy = proposer
+          updatedAt = deadline
+
+    -- Cancel proposal
+    choice CancelProposal : ()
+      controller proposer
+      do return ()
+
+-- Active protocol parameter (on-chain configuration)
+template ProtocolParameter
+  with
+    registry : Party
+    paramName : Text
+    paramValue : Text
+    updatedBy : Party
+    updatedAt : Time
+  where
+    signatory updatedBy
+    observer registry
+
+    key (registry, paramName) : (Party, Text)
+    maintainer key._1
+
+    -- Update parameter via new governance vote
+    choice UpdateParameter : ContractId ProtocolParameter
+      with
+        newValue : Text
+        updater : Party
+        updateTime : Time
+      controller updater
+      do
+        create this with
+          paramValue = newValue
+          updatedBy = updater
+          updatedAt = updateTime

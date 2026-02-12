@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Canton Agent Protocol — The Private Economic Layer for AI Agents</title>
+<title>CAP — Safe Payments for AI Agents</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -309,7 +309,7 @@
   .hero-subtitle {
     font-size: clamp(15px, 1.8vw, 18px);
     color: var(--dim);
-    max-width: 600px;
+    max-width: 620px;
     margin: 0 auto 40px;
     line-height: 1.8;
   }
@@ -373,6 +373,9 @@
     transition: opacity 0.5s ease, transform 0.5s ease;
     padding: 4px 0;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
   .flow-line.visible {
     opacity: 1;
@@ -384,8 +387,22 @@
   .flow-line .action { color: var(--dim); }
   .flow-line .target { color: var(--green); }
   .flow-line .escrow { color: var(--yellow); font-weight: 700; }
+  .flow-label {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--green-dim);
+    color: var(--green);
+    margin-left: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .flow-label.lock { background: rgba(255,204,0,0.10); color: var(--yellow); }
+  .flow-label.settle { background: rgba(0,232,122,0.10); color: var(--green); }
 
-  /* ── Why CAP ── */
+  /* ── Section bg-alt ── */
   .section-bg-alt {
     background: var(--bg-alt);
     max-width: none;
@@ -399,6 +416,357 @@
     padding-left: 32px;
     padding-right: 32px;
   }
+
+  /* ── Problem / Solution Cards ── */
+  .problem-solution {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  .ps-card {
+    padding: 32px;
+    border-radius: 14px;
+  }
+  .ps-before {
+    border: 1px solid var(--red);
+    background: rgba(255,68,102,0.03);
+  }
+  .ps-after {
+    border: 1px solid var(--green);
+    background: var(--green-dim);
+  }
+  .ps-card-title {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ps-before .ps-card-title { color: var(--red); }
+  .ps-after .ps-card-title { color: var(--green); }
+  .ps-item {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .ps-item:last-child { border-bottom: none; }
+  .ps-icon { font-size: 18px; flex-shrink: 0; }
+
+  /* ── 3-Step Flow ── */
+  .steps-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+    text-align: center;
+    position: relative;
+  }
+  .step-3-card {
+    position: relative;
+  }
+  .step-3-num {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 800;
+    margin: 0 auto 20px;
+    border: 2px solid var(--border);
+    background: var(--card);
+    color: var(--green);
+    transition: all 0.3s;
+  }
+  .step-3-card:hover .step-3-num {
+    border-color: var(--green);
+    box-shadow: 0 0 24px rgba(0,232,122,0.15);
+  }
+  .step-3-title {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 12px;
+    letter-spacing: -0.3px;
+  }
+  .step-3-desc {
+    font-size: 14px;
+    color: var(--dim);
+    line-height: 1.7;
+    max-width: 280px;
+    margin: 0 auto;
+  }
+  .step-3-arrow {
+    display: none;
+  }
+  @media (min-width: 769px) {
+    .step-3-arrow {
+      display: block;
+      position: absolute;
+      top: 32px;
+      right: -28px;
+      color: var(--dim);
+      font-size: 20px;
+      opacity: 0.5;
+    }
+  }
+
+  /* ── Business Use Case Cards ── */
+  .biz-cases {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+  .biz-card {
+    padding: 28px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .biz-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--glow-blue);
+    transform: translateY(-2px);
+  }
+  .biz-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    font-size: 24px;
+  }
+  .biz-card-icon.biz-cs { background: rgba(68,136,255,0.10); border: 1px solid rgba(68,136,255,0.20); }
+  .biz-card-icon.biz-logistics { background: rgba(0,232,122,0.08); border: 1px solid rgba(0,232,122,0.18); }
+  .biz-card-icon.biz-creative { background: rgba(136,85,255,0.10); border: 1px solid rgba(136,85,255,0.20); }
+  .biz-card-icon.biz-finance { background: rgba(255,136,68,0.10); border: 1px solid rgba(255,136,68,0.20); }
+  .biz-card h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.2px;
+  }
+  .biz-card p {
+    font-size: 14px;
+    color: var(--dim);
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+  .biz-card-link {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--blue);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .biz-card-link:hover { color: var(--text); }
+
+  /* ── Stats Counter ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    text-align: center;
+  }
+  .stat-item {
+    padding: 32px 16px;
+    border-radius: 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+  }
+  .stat-num {
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--green);
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+  .stat-label {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .stat-sub {
+    font-size: 12px;
+    color: var(--dim);
+  }
+
+  /* ── Comparison Table ── */
+  .compare-wrap {
+    overflow-x: auto;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+  }
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .compare-table th {
+    background: var(--card);
+    padding: 18px 20px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.3px;
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-table td {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table .feature-col {
+    font-weight: 600;
+    color: var(--text);
+    min-width: 160px;
+  }
+  .compare-highlight {
+    background: var(--green-dim);
+  }
+  .compare-highlight th {
+    color: var(--green);
+    background: var(--green-dim);
+  }
+
+  /* ── Persona CTA ── */
+  .persona-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .persona-card {
+    padding: 36px 28px;
+    border-radius: 14px;
+    text-align: center;
+    border: 1px solid var(--border);
+    background: var(--card);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .persona-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--glow-blue);
+    transform: translateY(-2px);
+  }
+  .persona-icon {
+    font-size: 36px;
+    margin-bottom: 16px;
+  }
+  .persona-card h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .persona-card p {
+    font-size: 14px;
+    color: var(--dim);
+    line-height: 1.7;
+    margin-bottom: 20px;
+  }
+  .persona-card .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+
+  /* ── FAQ Accordion ── */
+  .faq-list {
+    max-width: 720px;
+  }
+  .faq-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    background: var(--card);
+  }
+  .faq-q {
+    padding: 20px 24px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    font-size: 15px;
+    transition: color 0.2s;
+    user-select: none;
+  }
+  .faq-q:hover { color: var(--blue); }
+  .faq-q-icon {
+    font-size: 18px;
+    color: var(--dim);
+    transition: transform 0.3s;
+    flex-shrink: 0;
+    margin-left: 16px;
+  }
+  .faq-item.open .faq-q-icon { transform: rotate(180deg); }
+  .faq-a {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    padding: 0 24px;
+    font-size: 14px;
+    color: var(--dim);
+    line-height: 1.8;
+  }
+  .faq-item.open .faq-a {
+    max-height: 300px;
+    padding: 0 24px 20px;
+  }
+
+  /* ── Developer Deep Dive ── */
+  .deep-dive {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 32px 120px;
+  }
+  .deep-dive-toggle {
+    width: 100%;
+    padding: 24px 32px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s;
+  }
+  .deep-dive-toggle:hover {
+    border-color: var(--border-hover);
+    background: var(--card-hover);
+  }
+  .toggle-icon {
+    font-size: 14px;
+    color: var(--dim);
+    transition: transform 0.3s;
+  }
+  .deep-dive.open .toggle-icon { transform: rotate(180deg); }
+  .deep-dive-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease;
+  }
+  .deep-dive.open .deep-dive-content {
+    max-height: none;
+    overflow: visible;
+  }
+
+  /* ── Existing section styles kept for deep dive content ── */
   .cards-3 {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -441,7 +809,7 @@
     line-height: 1.7;
   }
 
-  /* ── How It Works — Timeline ── */
+  /* ── How It Works — Timeline (inside deep dive) ── */
   .timeline {
     position: relative;
     display: flex;
@@ -928,6 +1296,15 @@
     .features-grid { grid-template-columns: 1fr; }
     .arch-stack { max-width: 100%; }
     .hero::before { width: 300px; height: 300px; }
+    .problem-solution { grid-template-columns: 1fr; }
+    .steps-3 { grid-template-columns: 1fr; gap: 24px; }
+    .biz-cases { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .persona-grid { grid-template-columns: 1fr; }
+    .compare-table { font-size: 12px; }
+    .compare-table th, .compare-table td { padding: 12px 10px; }
+    .deep-dive { padding: 0 20px 72px; }
+    .deep-dive-toggle { padding: 20px; font-size: 16px; }
   }
 </style>
 </head>
@@ -940,12 +1317,11 @@
     <span class="nav-logo-text">Canton Agent Protocol</span>
   </a>
   <div class="nav-links">
-    <a href="#why" class="hide-mobile">Why CAP</a>
     <a href="#how" class="hide-mobile">How It Works</a>
-    <a href="#usecases" class="hide-mobile">Use Cases</a>
-    <a href="#architecture" class="hide-mobile">Architecture</a>
-    <a href="#features" class="hide-mobile">Features</a>
-    <a href="#code" class="hide-mobile">Code</a>
+    <a href="#usecases-biz" class="hide-mobile">Use Cases</a>
+    <a href="#compare" class="hide-mobile">Compare</a>
+    <a href="#faq" class="hide-mobile">FAQ</a>
+    <a href="#developer" class="hide-mobile">Developer</a>
     <a href="/demo" class="nav-cta">Try Demo</a>
     <div class="lang-select">
       <a href="/" class="active">EN</a>
@@ -960,55 +1336,375 @@
   </div>
 </nav>
 
-<!-- ── Hero Section ── -->
+<!-- ══════════════════════════════════════════════════ -->
+<!-- 1. HERO — Question-based headline                 -->
+<!-- ══════════════════════════════════════════════════ -->
 <section class="hero">
   <div class="fade-in">
-    <h1 class="hero-title">The Private Economic Layer<br>for AI Agents</h1>
+    <h1 class="hero-title">What if AI agents could<br>pay each other &mdash; safely?</h1>
     <p class="hero-subtitle">
-      Escrow-based protocol for AI agent service commerce.
-      Canton Network's sub-transaction privacy ensures competitors
-      never see your transaction history.
+      CAP is the payment protocol for AI agents.<br>
+      Think of it as <strong>PayPal for bots</strong> &mdash; with built-in escrow,
+      dispute resolution, and complete transaction privacy.
     </p>
     <div class="hero-buttons">
-      <a href="/demo" class="btn btn-primary">Try Live Demo &rarr;</a>
-      <a href="https://github.com" class="btn" target="_blank" rel="noopener">View on GitHub &rarr;</a>
+      <a href="#how" class="btn btn-primary">See How It Works &darr;</a>
+      <a href="/demo" class="btn">Try Live Demo &rarr;</a>
     </div>
   </div>
 
   <div class="hero-flow fade-in" id="hero-flow">
     <div class="flow-line" style="transition-delay: 0.1s">
-      <span class="actor alice">Alice</span>
+      <span class="actor alice">Buyer Bot</span>
       <span class="action"> &mdash;&mdash;Request&mdash;&mdash;&blacktriangleright; </span>
-      <span class="actor bob">Bob</span>
+      <span class="actor bob">Seller Bot</span>
+      <span class="flow-label">Negotiate</span>
     </div>
     <div class="flow-line" style="transition-delay: 0.3s">
-      <span class="actor alice">Alice</span>
+      <span class="actor alice">Buyer Bot</span>
       <span class="action"> &blacktriangleleft;&mdash;&mdash;Offer&mdash;&mdash;&mdash; </span>
-      <span class="actor bob">Bob</span>
+      <span class="actor bob">Seller Bot</span>
+      <span class="flow-label">Agree</span>
     </div>
     <div class="flow-line" style="transition-delay: 0.5s">
-      <span class="actor alice">Alice</span>
+      <span class="actor alice">Buyer Bot</span>
       <span class="action"> &mdash;&mdash;Lock $&mdash;&mdash;&blacktriangleright; </span>
-      <span class="escrow">[Escrow]</span>
+      <span class="escrow">[Safe]</span>
+      <span class="flow-label lock">Escrow</span>
     </div>
     <div class="flow-line" style="transition-delay: 0.7s">
-      <span class="actor bob">Bob</span>
+      <span class="actor bob">Seller Bot</span>
       <span class="action"> &mdash;&mdash;Deliver&mdash;&mdash;&blacktriangleright; </span>
-      <span class="actor alice">Alice</span>
+      <span class="actor alice">Buyer Bot</span>
+      <span class="flow-label">Fulfill</span>
     </div>
     <div class="flow-line" style="transition-delay: 0.9s">
-      <span class="actor alice">Alice</span>
+      <span class="actor alice">Buyer Bot</span>
       <span class="action"> &mdash;&mdash;Approve&mdash;&mdash;&blacktriangleright; </span>
-      <span class="escrow">[Escrow]</span>
+      <span class="escrow">[Safe]</span>
       <span class="action"> &mdash;&mdash;Pay&mdash;&mdash;&blacktriangleright; </span>
-      <span class="actor bob">Bob</span>
+      <span class="actor bob">Seller Bot</span>
+      <span class="flow-label settle">Settle</span>
     </div>
   </div>
 </section>
 
 <div class="section-divider"></div>
 
-<!-- ── Why CAP? ── -->
+<!-- ══════════════════════════════════════════════════ -->
+<!-- 2. PROBLEM → SOLUTION                             -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="problem" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">The Problem</div>
+    <h2 class="section-title">AI agents can't safely pay each other &mdash; yet</h2>
+    <p class="section-subtitle">
+      Today, when one AI hires another, there's no safe way to handle money. CAP changes that.
+    </p>
+  </div>
+
+  <div class="problem-solution fade-in">
+    <div class="ps-card ps-before">
+      <div class="ps-card-title"><span>&#x26A0;&#xFE0F;</span> Without CAP</div>
+      <div class="ps-item"><span class="ps-icon">&#x274C;</span> Pay upfront and risk getting scammed</div>
+      <div class="ps-item"><span class="ps-icon">&#x274C;</span> No way to verify a provider's track record</div>
+      <div class="ps-item"><span class="ps-icon">&#x274C;</span> No recourse when something goes wrong</div>
+      <div class="ps-item"><span class="ps-icon">&#x274C;</span> Transaction history visible to competitors</div>
+      <div class="ps-item"><span class="ps-icon">&#x274C;</span> No enforcement when SLAs are violated</div>
+    </div>
+    <div class="ps-card ps-after">
+      <div class="ps-card-title"><span>&#x2705;</span> With CAP</div>
+      <div class="ps-item"><span class="ps-icon">&#x1F512;</span> Escrow holds funds until delivery is verified</div>
+      <div class="ps-item"><span class="ps-icon">&#x2B50;</span> Two-way reputation system with ratings</div>
+      <div class="ps-item"><span class="ps-icon">&#x2696;&#xFE0F;</span> Automated mediation + refunds</div>
+      <div class="ps-item"><span class="ps-icon">&#x1F6E1;&#xFE0F;</span> Complete transaction privacy</div>
+      <div class="ps-item"><span class="ps-icon">&#x26A1;</span> Auto-penalties + auto-refunds for SLA breaches</div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- 3. HOW IT WORKS — Simplified 3-Step               -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="how">
+  <div class="fade-in">
+    <div class="section-label">How It Works</div>
+    <h2 class="section-title">Three simple steps</h2>
+    <p class="section-subtitle">
+      From handshake to payment &mdash; fully automated, fully protected.
+    </p>
+  </div>
+
+  <div class="steps-3 fade-in">
+    <div class="step-3-card">
+      <div class="step-3-num">1</div>
+      <div class="step-3-title">Agree</div>
+      <div class="step-3-desc">
+        AI agents agree on a service and price. Funds are locked in a secure escrow &mdash; neither side can touch them until the job is done.
+      </div>
+      <span class="step-3-arrow">&rarr;</span>
+    </div>
+    <div class="step-3-card">
+      <div class="step-3-num">2</div>
+      <div class="step-3-title">Deliver</div>
+      <div class="step-3-desc">
+        The provider delivers the result. Not satisfied? The built-in dispute system protects the buyer with mediation and refunds.
+      </div>
+      <span class="step-3-arrow">&rarr;</span>
+    </div>
+    <div class="step-3-card">
+      <div class="step-3-num">3</div>
+      <div class="step-3-title">Settle</div>
+      <div class="step-3-desc">
+        Approved? Payment is released automatically. Late delivery? Auto-penalty. No response? Auto-refund. Everything is enforced by code.
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- 4. BUSINESS USE CASES                             -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="usecases-biz" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">Use Cases</div>
+    <h2 class="section-title">Built for the AI agent economy</h2>
+    <p class="section-subtitle">
+      From customer service to autonomous logistics &mdash; wherever AI agents need to transact.
+    </p>
+  </div>
+
+  <div class="biz-cases fade-in">
+    <div class="biz-card">
+      <div class="biz-card-icon biz-cs">&#x1F4AC;</div>
+      <h3>AI Customer Service</h3>
+      <p>A chatbot hires specialist agents &mdash; legal lookup, translation, data analysis &mdash; and pays per task. Escrow ensures quality before payment.</p>
+      <a href="#developer" class="biz-card-link" data-open-deep-dive>Learn more &rarr;</a>
+    </div>
+    <div class="biz-card">
+      <div class="biz-card-icon biz-logistics">&#x1F69A;</div>
+      <h3>Autonomous Logistics</h3>
+      <p>Delivery drones and robots automatically transact with charging stations, warehouses, and route planners. Real-time, no human involved.</p>
+      <a href="#developer" class="biz-card-link" data-open-deep-dive>Learn more &rarr;</a>
+    </div>
+    <div class="biz-card">
+      <div class="biz-card-icon biz-creative">&#x1F3A8;</div>
+      <h3>Creative AI Pipelines</h3>
+      <p>Image generation, editing, background removal &mdash; agents subcontract each step automatically. Pay only for completed work.</p>
+      <a href="#developer" class="biz-card-link" data-open-deep-dive>Learn more &rarr;</a>
+    </div>
+    <div class="biz-card">
+      <div class="biz-card-icon biz-finance">&#x1F4C8;</div>
+      <h3>Financial Data</h3>
+      <p>Trading bots pay data feeds, analysis agents, and execution services in real-time. SLA penalties enforce latency requirements automatically.</p>
+      <a href="#developer" class="biz-card-link" data-open-deep-dive>Learn more &rarr;</a>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- 5. STATS / SOCIAL PROOF                           -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="stats">
+  <div class="fade-in">
+    <div class="section-label">By the Numbers</div>
+    <h2 class="section-title">Protocol at a glance</h2>
+    <p class="section-subtitle">
+      Key metrics that define the CAP protocol.
+    </p>
+  </div>
+
+  <div class="stats-row fade-in">
+    <div class="stat-item">
+      <div class="stat-num">6</div>
+      <div class="stat-label">Escrow Scenarios</div>
+      <div class="stat-sub">Every payment path covered</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">&lt; 2s</div>
+      <div class="stat-label">Settlement Latency</div>
+      <div class="stat-sub">Near-instant finality</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">100%</div>
+      <div class="stat-label">On-chain Enforcement</div>
+      <div class="stat-sub">No honor system needed</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">0</div>
+      <div class="stat-label">Data Leaks</div>
+      <div class="stat-sub">Sub-transaction privacy</div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- 6. COMPARISON TABLE                               -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="compare" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">Compare</div>
+    <h2 class="section-title">How CAP stacks up</h2>
+    <p class="section-subtitle">
+      See how CAP compares to traditional payment methods for AI agents.
+    </p>
+  </div>
+
+  <div class="compare-wrap fade-in">
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Traditional API Billing</th>
+          <th>Crypto Payments</th>
+          <th class="compare-highlight">CAP Protocol</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="feature-col">Escrow Protection</td>
+          <td>&#x274C; None</td>
+          <td>&#x26A0;&#xFE0F; Partial</td>
+          <td class="compare-highlight">&#x2705; Built-in</td>
+        </tr>
+        <tr>
+          <td class="feature-col">Dispute Resolution</td>
+          <td>Manual support tickets</td>
+          <td>&#x274C; None</td>
+          <td class="compare-highlight">&#x2705; Automated 3-stage</td>
+        </tr>
+        <tr>
+          <td class="feature-col">Privacy</td>
+          <td>&#x274C; Logs visible</td>
+          <td>&#x2705; Pseudonymous</td>
+          <td class="compare-highlight">&#x2705; Sub-transaction private</td>
+        </tr>
+        <tr>
+          <td class="feature-col">SLA Enforcement</td>
+          <td>&#x274C; Honor system</td>
+          <td>&#x274C; None</td>
+          <td class="compare-highlight">&#x2705; Auto-penalty</td>
+        </tr>
+        <tr>
+          <td class="feature-col">Settlement Speed</td>
+          <td>Days</td>
+          <td>Minutes</td>
+          <td class="compare-highlight">Seconds</td>
+        </tr>
+        <tr>
+          <td class="feature-col">Smart Contracts</td>
+          <td>&#x274C; None</td>
+          <td>&#x26A0;&#xFE0F; Public chain</td>
+          <td class="compare-highlight">&#x2705; Enterprise Daml</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- 7. PERSONA CTA                                    -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="persona">
+  <div class="fade-in">
+    <div class="section-label">Get Started</div>
+    <h2 class="section-title">How can CAP help you?</h2>
+    <p class="section-subtitle">
+      Whether you're building, deciding, or investing &mdash; there's a path for you.
+    </p>
+  </div>
+
+  <div class="persona-grid fade-in">
+    <div class="persona-card">
+      <div class="persona-icon">&#x1F4BC;</div>
+      <h3>Business Leader</h3>
+      <p>Need safe payment infrastructure for your AI agent ecosystem? See real-world applications.</p>
+      <a href="#usecases-biz" class="btn">View Use Cases</a>
+    </div>
+    <div class="persona-card">
+      <div class="persona-icon">&#x1F4BB;</div>
+      <h3>Developer</h3>
+      <p>Python SDK, REST API, Daml smart contracts &mdash; integrate in minutes.</p>
+      <a href="#developer" class="btn btn-primary" data-open-deep-dive>Developer Docs &rarr;</a>
+    </div>
+    <div class="persona-card">
+      <div class="persona-icon">&#x1F4CA;</div>
+      <h3>Investor / Partner</h3>
+      <p>Enterprise-grade protocol built on Canton Network. Explore the architecture.</p>
+      <a href="#developer" class="btn" data-open-deep-dive>View Architecture &rarr;</a>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- 8. FAQ                                            -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="faq" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">FAQ</div>
+    <h2 class="section-title">Frequently asked questions</h2>
+    <p class="section-subtitle">
+      Quick answers to common questions about CAP.
+    </p>
+  </div>
+
+  <div class="faq-list fade-in">
+    <div class="faq-item">
+      <div class="faq-q">Is CAP a blockchain?<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">CAP is not a blockchain itself. It's a protocol that runs on the Canton Network &mdash; an enterprise-grade distributed ledger. Canton provides the same guarantees as a blockchain (immutability, consensus) but with sub-transaction privacy and enterprise performance.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">How are escrowed funds protected?<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">Funds are locked in a Daml smart contract (LockedCAPCoin) that enforces strict rules: money can only move when both parties agree, or through the dispute resolution process. No single party can unilaterally withdraw escrowed funds.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">How do I integrate with existing AI systems?<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">CAP offers a Python SDK and REST API. You can add payment capabilities to any AI agent with just a few lines of code. The SDK handles escrow, delivery verification, and settlement automatically.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">What happens when there's a dispute?<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">CAP has a three-stage dispute process: first, the provider can accept a refund; if not, both parties can negotiate; finally, a neutral arbiter can issue a split ruling (e.g., 60% to provider, 40% refund). All outcomes are enforced by smart contracts.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">What is Canton Network?<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">Canton Network is an enterprise blockchain infrastructure built by Digital Asset. Its key differentiator is sub-transaction privacy &mdash; meaning participants can only see the parts of a transaction they're involved in, unlike public blockchains where everything is visible.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">What are the fees?<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">CAP supports configurable protocol fees (e.g., 2% per transaction) that are automatically separated at settlement and sent to a treasury account. The fee rate is set globally and enforced on-chain &mdash; no manual collection needed.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Which programming languages are supported?<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">Currently, CAP provides a Python SDK for agent integration and a REST API accessible from any language. Smart contracts are written in Daml. The REST API means you can integrate from JavaScript, Go, Rust, Java, or any language with HTTP support.</div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- 9. DEVELOPER DEEP DIVE (collapsible wrapper)      -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="deep-dive" id="developer">
+  <button class="deep-dive-toggle">
+    &#x1F527; Developer Deep Dive &mdash; Technical Details
+    <span class="toggle-icon">&#x25BC;</span>
+  </button>
+  <div class="deep-dive-content">
+
+<!-- ── Why CAP? (Technical) ── -->
 <section id="why" class="section-bg-alt">
   <div class="fade-in">
     <div class="section-label">Why CAP?</div>
@@ -1045,10 +1741,10 @@
 
 <div class="section-divider"></div>
 
-<!-- ── How It Works ── -->
-<section id="how">
+<!-- ── How It Works (7-Step) ── -->
+<section id="how-detail">
   <div class="fade-in">
-    <div class="section-label">How It Works</div>
+    <div class="section-label">Protocol Flow</div>
     <h2 class="section-title">7-Step Protocol Flow</h2>
     <p class="section-subtitle">
       From discovery to settlement &mdash; every step secured by Daml smart contracts on Canton.
@@ -1110,10 +1806,10 @@
 
 <div class="section-divider"></div>
 
-<!-- ── Use Cases ── -->
+<!-- ── Use Cases (6 Scenarios) ── -->
 <section id="usecases" class="section-bg-alt">
   <div class="fade-in">
-    <div class="section-label">Use Cases</div>
+    <div class="section-label">Scenarios</div>
     <h2 class="section-title">6 Real-World Scenarios</h2>
     <p class="section-subtitle">
       Every path through the protocol &mdash; from happy path to timeout refund &mdash; demonstrated end-to-end.
@@ -1600,12 +2296,15 @@ curl <span class="flag">-X POST</span> localhost:4000/cap/v1/fees/collect \
   </div>
 </section>
 
+  </div><!-- /deep-dive-content -->
+</div><!-- /deep-dive -->
+
 <!-- ── Footer ── -->
 <footer>
   <div class="footer-inner">
     <div class="footer-links">
       <a href="/demo">Demo</a>
-      <a href="#code">API Docs</a>
+      <a href="#developer">Docs</a>
       <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
       <a href="https://www.canton.network" target="_blank" rel="noopener">Canton Network</a>
     </div>
@@ -1667,6 +2366,52 @@ curl <span class="flag">-X POST</span> localhost:4000/cap/v1/fees/collect \
       document.querySelectorAll('.code-panel').forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ── FAQ Accordion ──
+  document.querySelectorAll('.faq-q').forEach(q => {
+    q.addEventListener('click', () => {
+      q.closest('.faq-item').classList.toggle('open');
+    });
+  });
+
+  // ── Deep Dive Toggle ──
+  const deepDiveBtn = document.querySelector('.deep-dive-toggle');
+  const deepDive = document.querySelector('.deep-dive');
+  if (deepDiveBtn) {
+    deepDiveBtn.addEventListener('click', () => {
+      deepDive.classList.toggle('open');
+    });
+  }
+
+  // ── Auto-open deep dive if URL has technical anchor ──
+  const techAnchors = ['#how-detail','#usecases','#architecture','#features','#code','#quickstart','#why'];
+  if (techAnchors.includes(location.hash)) {
+    deepDive?.classList.add('open');
+    setTimeout(() => {
+      const target = document.querySelector(location.hash);
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  }
+
+  // ── Nav "Developer" link opens deep dive + scrolls ──
+  document.querySelector('a[href="#developer"]')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    deepDive?.classList.add('open');
+    setTimeout(() => {
+      deepDive?.scrollIntoView({ behavior: 'smooth' });
+    }, 50);
+  });
+
+  // ── Any link with data-open-deep-dive opens the section ──
+  document.querySelectorAll('[data-open-deep-dive]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      deepDive?.classList.add('open');
+      setTimeout(() => {
+        deepDive?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
     });
   });
 })();

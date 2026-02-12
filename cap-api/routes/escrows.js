@@ -157,7 +157,7 @@ router.post("/:id/dispute", async (req, res) => {
       "Cap.Escrow:PendingReview",
       req.params.id,
       "Dispute",
-      { reason }
+      { reason, disputedAt: new Date().toISOString() }
     );
 
     req.app.locals.broadcast({
@@ -430,6 +430,142 @@ router.post("/:id/split-ruling", async (req, res) => {
     req.app.locals.broadcast({
       type: "dispute.ruled",
       ruling: "split",
+    });
+
+    res.json({ status: "ok", result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /cap/v1/escrows/:id/claim-dispute-timeout - Auto-resolve dispute on timeout
+router.post("/:id/claim-dispute-timeout", async (req, res) => {
+  try {
+    const { claimer } = req.body;
+    if (!claimer) {
+      return res.status(400).json({ error: "claimer required" });
+    }
+
+    const result = await req.app.locals.exerciseChoice(
+      claimer,
+      "Cap.Escrow:DisputeRecord",
+      req.params.id,
+      "ClaimDisputeTimeout",
+      { claimTime: new Date().toISOString(), claimer }
+    );
+
+    req.app.locals.broadcast({
+      type: "dispute.timeout",
+      claimer,
+    });
+
+    res.json({ status: "ok", result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /cap/v1/escrows/:id/claim-arbiter-timeout - Auto-resolve arbitrated dispute on timeout
+router.post("/:id/claim-arbiter-timeout", async (req, res) => {
+  try {
+    const { claimer } = req.body;
+    if (!claimer) {
+      return res.status(400).json({ error: "claimer required" });
+    }
+
+    const result = await req.app.locals.exerciseChoice(
+      claimer,
+      "Cap.Arbiter:ArbitratedDispute",
+      req.params.id,
+      "ClaimArbiterTimeout",
+      { claimTime: new Date().toISOString(), claimer }
+    );
+
+    req.app.locals.broadcast({
+      type: "dispute.arbiter-timeout",
+      claimer,
+    });
+
+    res.json({ status: "ok", result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /cap/v1/escrows/:id/appeal - Appeal an arbiter's ruling
+router.post("/:id/appeal", async (req, res) => {
+  try {
+    const { appellant, appealReason, appealsCommittee } = req.body;
+    if (!appellant || !appealReason || !appealsCommittee) {
+      return res.status(400).json({ error: "appellant, appealReason, and appealsCommittee required" });
+    }
+
+    const result = await req.app.locals.exerciseChoice(
+      appellant,
+      "Cap.Arbiter:ArbitratedDispute",
+      req.params.id,
+      "AppealRuling",
+      { appellant, appealReason, appealsCommittee }
+    );
+
+    req.app.locals.broadcast({
+      type: "dispute.appealed",
+      appellant,
+      appealsCommittee,
+    });
+
+    res.json({ status: "ok", result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /cap/v1/escrows/:id/appeal-rule-for-consumer - Appeals committee rules for consumer
+router.post("/:id/appeal-rule-for-consumer", async (req, res) => {
+  try {
+    const { appealsCommittee } = req.body;
+    if (!appealsCommittee) {
+      return res.status(400).json({ error: "appealsCommittee required" });
+    }
+
+    const result = await req.app.locals.exerciseChoice(
+      appealsCommittee,
+      "Cap.Arbiter:AppealedDispute",
+      req.params.id,
+      "AppealRuleForConsumer",
+      {}
+    );
+
+    req.app.locals.broadcast({
+      type: "appeal.ruled",
+      winner: "consumer",
+    });
+
+    res.json({ status: "ok", result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /cap/v1/escrows/:id/appeal-rule-for-provider - Appeals committee rules for provider
+router.post("/:id/appeal-rule-for-provider", async (req, res) => {
+  try {
+    const { appealsCommittee } = req.body;
+    if (!appealsCommittee) {
+      return res.status(400).json({ error: "appealsCommittee required" });
+    }
+
+    const result = await req.app.locals.exerciseChoice(
+      appealsCommittee,
+      "Cap.Arbiter:AppealedDispute",
+      req.params.id,
+      "AppealRuleForProvider",
+      {}
+    );
+
+    req.app.locals.broadcast({
+      type: "appeal.ruled",
+      winner: "provider",
     });
 
     res.json({ status: "ok", result });

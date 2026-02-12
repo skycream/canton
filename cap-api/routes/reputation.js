@@ -29,9 +29,11 @@ router.get("/:agentId", async (req, res) => {
     const totalScore = ratings.reduce((sum, r) => sum + Number(r.payload.score), 0);
     const avgRating = Math.round((totalScore / totalDeals) * 100) / 100;
 
-    // Bidirectional: split by role (role="consumer" means rated as provider by a consumer)
-    const providerRatings = ratings.filter((r) => r.payload.role === "consumer");
-    const consumerRatings = ratings.filter((r) => r.payload.role === "provider");
+    // Bidirectional split: role field = who the RATER was.
+    // role="consumer" → rater was consumer → rated agent acted as PROVIDER
+    // role="provider" → rater was provider → rated agent acted as CONSUMER
+    const asProviderRatings = ratings.filter((r) => r.payload.role === "consumer");
+    const asConsumerRatings = ratings.filter((r) => r.payload.role === "provider");
 
     const calcStats = (list) => {
       if (list.length === 0) return { totalDeals: 0, avgRating: 0, confidence: 0 };
@@ -47,8 +49,8 @@ router.get("/:agentId", async (req, res) => {
       agentId,
       totalDeals,
       avgRating,
-      asProvider: calcStats(providerRatings),
-      asConsumer: calcStats(consumerRatings),
+      asProvider: calcStats(asProviderRatings),
+      asConsumer: calcStats(asConsumerRatings),
       distribution: {
         5: ratings.filter((r) => Number(r.payload.score) === 5).length,
         4: ratings.filter((r) => Number(r.payload.score) === 4).length,

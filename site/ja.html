@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Canton Agent Protocol — AIエージェントのためのプライベート経済レイヤー</title>
+<title>CAP — AIエージェントのための安全な決済</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -309,7 +309,7 @@
   .hero-subtitle {
     font-size: clamp(15px, 1.8vw, 18px);
     color: var(--dim);
-    max-width: 600px;
+    max-width: 620px;
     margin: 0 auto 40px;
     line-height: 1.8;
   }
@@ -373,6 +373,9 @@
     transition: opacity 0.5s ease, transform 0.5s ease;
     padding: 4px 0;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
   .flow-line.visible {
     opacity: 1;
@@ -384,8 +387,22 @@
   .flow-line .action { color: var(--dim); }
   .flow-line .target { color: var(--green); }
   .flow-line .escrow { color: var(--yellow); font-weight: 700; }
+  .flow-label {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--green-dim);
+    color: var(--green);
+    margin-left: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .flow-label.lock { background: rgba(255,204,0,0.10); color: var(--yellow); }
+  .flow-label.settle { background: rgba(0,232,122,0.10); color: var(--green); }
 
-  /* ── Why CAP ── */
+  /* ── Section bg-alt ── */
   .section-bg-alt {
     background: var(--bg-alt);
     max-width: none;
@@ -399,6 +416,357 @@
     padding-left: 32px;
     padding-right: 32px;
   }
+
+  /* ── Problem / Solution Cards ── */
+  .problem-solution {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  .ps-card {
+    padding: 32px;
+    border-radius: 14px;
+  }
+  .ps-before {
+    border: 1px solid var(--red);
+    background: rgba(255,68,102,0.03);
+  }
+  .ps-after {
+    border: 1px solid var(--green);
+    background: var(--green-dim);
+  }
+  .ps-card-title {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ps-before .ps-card-title { color: var(--red); }
+  .ps-after .ps-card-title { color: var(--green); }
+  .ps-item {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .ps-item:last-child { border-bottom: none; }
+  .ps-icon { font-size: 18px; flex-shrink: 0; }
+
+  /* ── 3-Step Flow ── */
+  .steps-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+    text-align: center;
+    position: relative;
+  }
+  .step-3-card {
+    position: relative;
+  }
+  .step-3-num {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 800;
+    margin: 0 auto 20px;
+    border: 2px solid var(--border);
+    background: var(--card);
+    color: var(--green);
+    transition: all 0.3s;
+  }
+  .step-3-card:hover .step-3-num {
+    border-color: var(--green);
+    box-shadow: 0 0 24px rgba(0,232,122,0.15);
+  }
+  .step-3-title {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 12px;
+    letter-spacing: -0.3px;
+  }
+  .step-3-desc {
+    font-size: 14px;
+    color: var(--dim);
+    line-height: 1.7;
+    max-width: 280px;
+    margin: 0 auto;
+  }
+  .step-3-arrow {
+    display: none;
+  }
+  @media (min-width: 769px) {
+    .step-3-arrow {
+      display: block;
+      position: absolute;
+      top: 32px;
+      right: -28px;
+      color: var(--dim);
+      font-size: 20px;
+      opacity: 0.5;
+    }
+  }
+
+  /* ── Business Use Case Cards ── */
+  .biz-cases {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+  .biz-card {
+    padding: 28px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .biz-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--glow-blue);
+    transform: translateY(-2px);
+  }
+  .biz-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    font-size: 24px;
+  }
+  .biz-card-icon.biz-cs { background: rgba(68,136,255,0.10); border: 1px solid rgba(68,136,255,0.20); }
+  .biz-card-icon.biz-logistics { background: rgba(0,232,122,0.08); border: 1px solid rgba(0,232,122,0.18); }
+  .biz-card-icon.biz-creative { background: rgba(136,85,255,0.10); border: 1px solid rgba(136,85,255,0.20); }
+  .biz-card-icon.biz-finance { background: rgba(255,136,68,0.10); border: 1px solid rgba(255,136,68,0.20); }
+  .biz-card h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.2px;
+  }
+  .biz-card p {
+    font-size: 14px;
+    color: var(--dim);
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+  .biz-card-link {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--blue);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .biz-card-link:hover { color: var(--text); }
+
+  /* ── Stats Counter ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    text-align: center;
+  }
+  .stat-item {
+    padding: 32px 16px;
+    border-radius: 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+  }
+  .stat-num {
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--green);
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+  .stat-label {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .stat-sub {
+    font-size: 12px;
+    color: var(--dim);
+  }
+
+  /* ── Comparison Table ── */
+  .compare-wrap {
+    overflow-x: auto;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+  }
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .compare-table th {
+    background: var(--card);
+    padding: 18px 20px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.3px;
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-table td {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table .feature-col {
+    font-weight: 600;
+    color: var(--text);
+    min-width: 160px;
+  }
+  .compare-highlight {
+    background: var(--green-dim);
+  }
+  .compare-highlight th {
+    color: var(--green);
+    background: var(--green-dim);
+  }
+
+  /* ── Persona CTA ── */
+  .persona-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .persona-card {
+    padding: 36px 28px;
+    border-radius: 14px;
+    text-align: center;
+    border: 1px solid var(--border);
+    background: var(--card);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .persona-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--glow-blue);
+    transform: translateY(-2px);
+  }
+  .persona-icon {
+    font-size: 36px;
+    margin-bottom: 16px;
+  }
+  .persona-card h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .persona-card p {
+    font-size: 14px;
+    color: var(--dim);
+    line-height: 1.7;
+    margin-bottom: 20px;
+  }
+  .persona-card .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+
+  /* ── FAQ Accordion ── */
+  .faq-list {
+    max-width: 720px;
+  }
+  .faq-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    background: var(--card);
+  }
+  .faq-q {
+    padding: 20px 24px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    font-size: 15px;
+    transition: color 0.2s;
+    user-select: none;
+  }
+  .faq-q:hover { color: var(--blue); }
+  .faq-q-icon {
+    font-size: 18px;
+    color: var(--dim);
+    transition: transform 0.3s;
+    flex-shrink: 0;
+    margin-left: 16px;
+  }
+  .faq-item.open .faq-q-icon { transform: rotate(180deg); }
+  .faq-a {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    padding: 0 24px;
+    font-size: 14px;
+    color: var(--dim);
+    line-height: 1.8;
+  }
+  .faq-item.open .faq-a {
+    max-height: 300px;
+    padding: 0 24px 20px;
+  }
+
+  /* ── Developer Deep Dive ── */
+  .deep-dive {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 32px 120px;
+  }
+  .deep-dive-toggle {
+    width: 100%;
+    padding: 24px 32px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s;
+  }
+  .deep-dive-toggle:hover {
+    border-color: var(--border-hover);
+    background: var(--card-hover);
+  }
+  .toggle-icon {
+    font-size: 14px;
+    color: var(--dim);
+    transition: transform 0.3s;
+  }
+  .deep-dive.open .toggle-icon { transform: rotate(180deg); }
+  .deep-dive-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease;
+  }
+  .deep-dive.open .deep-dive-content {
+    max-height: none;
+    overflow: visible;
+  }
+
+  /* ── Existing section styles kept for deep dive content ── */
   .cards-3 {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -441,7 +809,7 @@
     line-height: 1.7;
   }
 
-  /* ── How It Works — Timeline ── */
+  /* ── How It Works — Timeline (inside deep dive) ── */
   .timeline {
     position: relative;
     display: flex;
@@ -928,6 +1296,15 @@
     .features-grid { grid-template-columns: 1fr; }
     .arch-stack { max-width: 100%; }
     .hero::before { width: 300px; height: 300px; }
+    .problem-solution { grid-template-columns: 1fr; }
+    .steps-3 { grid-template-columns: 1fr; gap: 24px; }
+    .biz-cases { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .persona-grid { grid-template-columns: 1fr; }
+    .compare-table { font-size: 12px; }
+    .compare-table th, .compare-table td { padding: 12px 10px; }
+    .deep-dive { padding: 0 20px 72px; }
+    .deep-dive-toggle { padding: 20px; font-size: 16px; }
   }
 </style>
 </head>
@@ -940,13 +1317,12 @@
     <span class="nav-logo-text">Canton Agent Protocol</span>
   </a>
   <div class="nav-links">
-    <a href="#why" class="hide-mobile">なぜCAP</a>
     <a href="#how" class="hide-mobile">仕組み</a>
-    <a href="#usecases" class="hide-mobile">ユースケース</a>
-    <a href="#architecture" class="hide-mobile">アーキテクチャ</a>
-    <a href="#features" class="hide-mobile">主要機能</a>
-    <a href="#code" class="hide-mobile">コード</a>
-    <a href="#quickstart" class="nav-cta">始める</a>
+    <a href="#usecases-biz" class="hide-mobile">活用事例</a>
+    <a href="#compare" class="hide-mobile">比較</a>
+    <a href="#faq" class="hide-mobile">FAQ</a>
+    <a href="#developer" class="hide-mobile">開発者</a>
+    <a href="#quickstart" class="nav-cta">はじめる</a>
     <div class="lang-select">
       <a href="/">EN</a>
       <a href="/ko.html">KO</a>
@@ -960,53 +1336,356 @@
   </div>
 </nav>
 
-<!-- ── Hero Section ── -->
+<!-- 1. HERO -->
 <section class="hero">
   <div class="fade-in">
-    <h1 class="hero-title">AIエージェントのための<br>プライベート経済レイヤー</h1>
+    <h1 class="hero-title">AIエージェント同士が<br>安全に決済できたら？</h1>
     <p class="hero-subtitle">
-      AIエージェントサービス取引のためのエスクロー基盤プロトコル。Canton Networkのサブトランザクションプライバシーにより、競合他社は取引履歴を一切閲覧できません。
+      CAPはAIエージェントのための決済プロトコルです。<br>
+      <strong>ボットのためのPayPal</strong>だと考えてください &mdash; エスクロー、紛争解決、完全な取引プライバシーが組み込まれています。
     </p>
     <div class="hero-buttons">
-      <a href="#quickstart" class="btn btn-primary">始める &rarr;</a>
-      <a href="https://github.com" class="btn" target="_blank" rel="noopener">GitHubで見る &rarr;</a>
+      <a href="#how" class="btn btn-primary">仕組みを見る &darr;</a>
+      <a href="#quickstart" class="btn">はじめる &rarr;</a>
     </div>
   </div>
 
   <div class="hero-flow fade-in" id="hero-flow">
     <div class="flow-line" style="transition-delay: 0.1s">
-      <span class="actor alice">Alice</span>
+      <span class="actor alice">買い手Bot</span>
       <span class="action"> &mdash;&mdash;Request&mdash;&mdash;&blacktriangleright; </span>
-      <span class="actor bob">Bob</span>
+      <span class="actor bob">売り手Bot</span>
+      <span class="flow-label">交渉</span>
     </div>
     <div class="flow-line" style="transition-delay: 0.3s">
-      <span class="actor alice">Alice</span>
+      <span class="actor alice">買い手Bot</span>
       <span class="action"> &blacktriangleleft;&mdash;&mdash;Offer&mdash;&mdash;&mdash; </span>
-      <span class="actor bob">Bob</span>
+      <span class="actor bob">売り手Bot</span>
+      <span class="flow-label">合意</span>
     </div>
     <div class="flow-line" style="transition-delay: 0.5s">
-      <span class="actor alice">Alice</span>
+      <span class="actor alice">買い手Bot</span>
       <span class="action"> &mdash;&mdash;Lock $&mdash;&mdash;&blacktriangleright; </span>
-      <span class="escrow">[Escrow]</span>
+      <span class="escrow">[Safe]</span>
+      <span class="flow-label lock">エスクロー</span>
     </div>
     <div class="flow-line" style="transition-delay: 0.7s">
-      <span class="actor bob">Bob</span>
+      <span class="actor bob">売り手Bot</span>
       <span class="action"> &mdash;&mdash;Deliver&mdash;&mdash;&blacktriangleright; </span>
-      <span class="actor alice">Alice</span>
+      <span class="actor alice">買い手Bot</span>
+      <span class="flow-label">納品</span>
     </div>
     <div class="flow-line" style="transition-delay: 0.9s">
-      <span class="actor alice">Alice</span>
+      <span class="actor alice">買い手Bot</span>
       <span class="action"> &mdash;&mdash;Approve&mdash;&mdash;&blacktriangleright; </span>
-      <span class="escrow">[Escrow]</span>
+      <span class="escrow">[Safe]</span>
       <span class="action"> &mdash;&mdash;Pay&mdash;&mdash;&blacktriangleright; </span>
-      <span class="actor bob">Bob</span>
+      <span class="actor bob">売り手Bot</span>
+      <span class="flow-label settle">決済</span>
     </div>
   </div>
 </section>
 
 <div class="section-divider"></div>
 
-<!-- ── Why CAP? ── -->
+<!-- 2. PROBLEM → SOLUTION -->
+<section id="problem" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">課題</div>
+    <h2 class="section-title">AIエージェントはまだ安全に決済できません</h2>
+    <p class="section-subtitle">
+      現在、あるAIが別のAIを雇う際、安全にお金を扱う方法がありません。CAPがこれを変えます。
+    </p>
+  </div>
+
+  <div class="problem-solution fade-in">
+    <div class="ps-card ps-before">
+      <div class="ps-card-title"><span>&#x26A0;&#xFE0F;</span> CAPなし</div>
+      <div class="ps-item"><span class="ps-icon">&#x274C;</span> 前払いで詐欺のリスク</div>
+      <div class="ps-item"><span class="ps-icon">&#x274C;</span> サービス提供者の実績を確認する方法なし</div>
+      <div class="ps-item"><span class="ps-icon">&#x274C;</span> 問題発生時の救済手段なし</div>
+      <div class="ps-item"><span class="ps-icon">&#x274C;</span> 取引履歴が競合他社に公開</div>
+      <div class="ps-item"><span class="ps-icon">&#x274C;</span> SLA違反に対する強制力なし</div>
+    </div>
+    <div class="ps-card ps-after">
+      <div class="ps-card-title"><span>&#x2705;</span> CAPあり</div>
+      <div class="ps-item"><span class="ps-icon">&#x1F512;</span> エスクローが納品確認まで資金を保護</div>
+      <div class="ps-item"><span class="ps-icon">&#x2B50;</span> 双方向評価システムで信頼性を確認</div>
+      <div class="ps-item"><span class="ps-icon">&#x2696;&#xFE0F;</span> 自動調停 + 返金</div>
+      <div class="ps-item"><span class="ps-icon">&#x1F6E1;&#xFE0F;</span> 完全な取引プライバシー</div>
+      <div class="ps-item"><span class="ps-icon">&#x26A1;</span> SLA違反時の自動ペナルティ + 自動返金</div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- 3. HOW IT WORKS -->
+<section id="how">
+  <div class="fade-in">
+    <div class="section-label">仕組み</div>
+    <h2 class="section-title">3つのシンプルなステップ</h2>
+    <p class="section-subtitle">
+      合意から決済まで &mdash; 完全自動、完全保護。
+    </p>
+  </div>
+
+  <div class="steps-3 fade-in">
+    <div class="step-3-card">
+      <div class="step-3-num">1</div>
+      <div class="step-3-title">合意</div>
+      <div class="step-3-desc">
+        AIエージェントがサービスと価格に合意します。資金は安全なエスクローにロックされ、作業完了まで双方とも資金に触れることはできません。
+      </div>
+      <span class="step-3-arrow">&rarr;</span>
+    </div>
+    <div class="step-3-card">
+      <div class="step-3-num">2</div>
+      <div class="step-3-title">納品</div>
+      <div class="step-3-desc">
+        サービス提供者が成果物を提出します。不満ですか？組み込みの紛争システムが調停と返金で買い手を保護します。
+      </div>
+      <span class="step-3-arrow">&rarr;</span>
+    </div>
+    <div class="step-3-card">
+      <div class="step-3-num">3</div>
+      <div class="step-3-title">決済</div>
+      <div class="step-3-desc">
+        承認されれば自動的に支払いが実行されます。納期遅延？自動ペナルティ。無応答？自動返金。すべてがコードで強制されます。
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- 4. BUSINESS USE CASES -->
+<section id="usecases-biz" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">活用事例</div>
+    <h2 class="section-title">AIエージェント経済のために構築</h2>
+    <p class="section-subtitle">
+      カスタマーサービスから自律物流まで &mdash; AIエージェントが取引する必要があるあらゆる場所で。
+    </p>
+  </div>
+
+  <div class="biz-cases fade-in">
+    <div class="biz-card">
+      <div class="biz-card-icon biz-cs">&#x1F4AC;</div>
+      <h3>AIカスタマーサービス</h3>
+      <p>チャットボットが専門エージェントを雇います &mdash; 法律調査、翻訳、データ分析 &mdash; タスクごとに課金。エスクローが支払い前の品質を保証します。</p>
+      <a href="#developer" class="biz-card-link" data-open-deep-dive>詳しく見る &rarr;</a>
+    </div>
+    <div class="biz-card">
+      <div class="biz-card-icon biz-logistics">&#x1F69A;</div>
+      <h3>自律物流</h3>
+      <p>配達ドローンやロボットが充電ステーション、倉庫、ルートプランナーと自動的に取引します。リアルタイム、人手不要。</p>
+      <a href="#developer" class="biz-card-link" data-open-deep-dive>詳しく見る &rarr;</a>
+    </div>
+    <div class="biz-card">
+      <div class="biz-card-icon biz-creative">&#x1F3A8;</div>
+      <h3>クリエイティブAIパイプライン</h3>
+      <p>画像生成、編集、背景除去 &mdash; エージェントが各ステップを自動的に下請けします。完了した作業にのみ課金。</p>
+      <a href="#developer" class="biz-card-link" data-open-deep-dive>詳しく見る &rarr;</a>
+    </div>
+    <div class="biz-card">
+      <div class="biz-card-icon biz-finance">&#x1F4C8;</div>
+      <h3>金融データ</h3>
+      <p>トレーディングボットがデータフィード、分析エージェント、実行サービスにリアルタイムで課金します。SLAペナルティがレイテンシー要件を自動的に強制します。</p>
+      <a href="#developer" class="biz-card-link" data-open-deep-dive>詳しく見る &rarr;</a>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- 5. STATS -->
+<section id="stats">
+  <div class="fade-in">
+    <div class="section-label">主要指標</div>
+    <h2 class="section-title">プロトコルの概要</h2>
+    <p class="section-subtitle">
+      CAPプロトコルを定義する主要指標。
+    </p>
+  </div>
+
+  <div class="stats-row fade-in">
+    <div class="stat-item">
+      <div class="stat-num">6</div>
+      <div class="stat-label">エスクローシナリオ</div>
+      <div class="stat-sub">すべての決済パスをカバー</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">&lt; 2s</div>
+      <div class="stat-label">決済レイテンシー</div>
+      <div class="stat-sub">ほぼ即座のファイナリティ</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">100%</div>
+      <div class="stat-label">オンチェーン強制</div>
+      <div class="stat-sub">信用システム不要</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">0</div>
+      <div class="stat-label">データ漏洩</div>
+      <div class="stat-sub">サブトランザクションプライバシー</div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- 6. COMPARISON TABLE -->
+<section id="compare" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">比較</div>
+    <h2 class="section-title">CAPの優位性</h2>
+    <p class="section-subtitle">
+      AIエージェント向けの既存決済方式とCAPの比較。
+    </p>
+  </div>
+
+  <div class="compare-wrap fade-in">
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>機能</th>
+          <th>従来のAPI課金</th>
+          <th>暗号通貨決済</th>
+          <th class="compare-highlight">CAPプロトコル</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="feature-col">エスクロー保護</td>
+          <td>&#x274C; なし</td>
+          <td>&#x26A0;&#xFE0F; 部分的</td>
+          <td class="compare-highlight">&#x2705; 組み込み</td>
+        </tr>
+        <tr>
+          <td class="feature-col">紛争解決</td>
+          <td>手動サポートチケット</td>
+          <td>&#x274C; なし</td>
+          <td class="compare-highlight">&#x2705; 自動3段階</td>
+        </tr>
+        <tr>
+          <td class="feature-col">プライバシー</td>
+          <td>&#x274C; ログ公開</td>
+          <td>&#x2705; 匿名</td>
+          <td class="compare-highlight">&#x2705; サブトランザクションプライベート</td>
+        </tr>
+        <tr>
+          <td class="feature-col">SLA強制</td>
+          <td>&#x274C; 信用システム</td>
+          <td>&#x274C; なし</td>
+          <td class="compare-highlight">&#x2705; 自動ペナルティ</td>
+        </tr>
+        <tr>
+          <td class="feature-col">決済速度</td>
+          <td>数日</td>
+          <td>数分</td>
+          <td class="compare-highlight">数秒</td>
+        </tr>
+        <tr>
+          <td class="feature-col">スマートコントラクト</td>
+          <td>&#x274C; なし</td>
+          <td>&#x26A0;&#xFE0F; パブリックチェーン</td>
+          <td class="compare-highlight">&#x2705; エンタープライズDaml</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- 7. PERSONA CTA -->
+<section id="persona">
+  <div class="fade-in">
+    <div class="section-label">はじめる</div>
+    <h2 class="section-title">CAPはあなたにどう役立つ？</h2>
+    <p class="section-subtitle">
+      構築、意思決定、投資 &mdash; あなたに合った道があります。
+    </p>
+  </div>
+
+  <div class="persona-grid fade-in">
+    <div class="persona-card">
+      <div class="persona-icon">&#x1F4BC;</div>
+      <h3>ビジネスリーダー</h3>
+      <p>AIエージェントエコシステムに安全な決済インフラが必要ですか？実際の活用事例をご覧ください。</p>
+      <a href="#usecases-biz" class="btn">活用事例を見る</a>
+    </div>
+    <div class="persona-card">
+      <div class="persona-icon">&#x1F4BB;</div>
+      <h3>開発者</h3>
+      <p>Python SDK、REST API、Damlスマートコントラクト &mdash; 数分で統合。</p>
+      <a href="#developer" class="btn btn-primary" data-open-deep-dive>開発者ドキュメント &rarr;</a>
+    </div>
+    <div class="persona-card">
+      <div class="persona-icon">&#x1F4CA;</div>
+      <h3>投資家/パートナー</h3>
+      <p>Canton Network基盤のエンタープライズプロトコル。アーキテクチャをご覧ください。</p>
+      <a href="#developer" class="btn" data-open-deep-dive>アーキテクチャを見る &rarr;</a>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- 8. FAQ -->
+<section id="faq" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">FAQ</div>
+    <h2 class="section-title">よくある質問</h2>
+    <p class="section-subtitle">
+      CAPに関するよくある質問への簡潔な回答。
+    </p>
+  </div>
+
+  <div class="faq-list fade-in">
+    <div class="faq-item">
+      <div class="faq-q">CAPはブロックチェーンですか？<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">CAP自体はブロックチェーンではありません。Canton Network上で動作するプロトコルです &mdash; エンタープライズグレードの分散台帳です。Cantonはブロックチェーンと同じ保証（不変性、コンセンサス）を提供しながら、サブトランザクションプライバシーとエンタープライズ性能を備えています。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">エスクローに預けられた資金はどのように保護されますか？<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">資金はDamlスマートコントラクト（LockedCAPCoin）にロックされ、厳格なルールを強制します：双方が合意するか、紛争解決プロセスを通じてのみ資金が移動できます。いかなる単独当事者もエスクロー資金を一方的に引き出すことはできません。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">既存のAIシステムとどのように統合しますか？<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">CAPはPython SDKとREST APIを提供します。わずか数行のコードであらゆるAIエージェントに決済機能を追加できます。SDKがエスクロー、納品確認、決済を自動的に処理します。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">紛争が発生した場合はどうなりますか？<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">CAPには3段階の紛争プロセスがあります：まずサービス提供者が返金を受け入れ、次に双方が交渉し、最後に中立的な仲裁者が分割裁定（例：提供者60%、返金40%）を下します。すべての結果はスマートコントラクトによって強制されます。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Canton Networkとは何ですか？<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">Canton NetworkはDigital Assetが構築したエンタープライズブロックチェーンインフラです。主な差別化要因はサブトランザクションプライバシーです &mdash; 参加者は自分が関与するトランザクション部分のみを見ることができ、すべてが公開されるパブリックブロックチェーンとは異なります。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">手数料はどうなっていますか？<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">CAPは設定可能なプロトコル手数料（例：トランザクションあたり2%）をサポートし、決済時に自動的に分離されてトレジャリーアカウントに送られます。手数料率はグローバルに設定され、オンチェーンで強制されます &mdash; 手動収集は不要です。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">どのプログラミング言語がサポートされていますか？<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">現在、CAPはエージェント統合用のPython SDKとあらゆる言語からアクセス可能なREST APIを提供しています。スマートコントラクトはDamlで記述されます。REST APIにより、JavaScript、Go、Rust、Javaなど、HTTPをサポートするあらゆる言語から統合できます。</div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- 9. DEVELOPER DEEP DIVE -->
+<div class="deep-dive" id="developer">
+  <button class="deep-dive-toggle">
+    &#x1F527; 開発者ディープダイブ &mdash; 技術詳細
+    <span class="toggle-icon">&#x25BC;</span>
+  </button>
+  <div class="deep-dive-content">
+
+<!-- ── Why CAP? (Technical) ── -->
 <section id="why" class="section-bg-alt">
   <div class="fade-in">
     <div class="section-label">なぜCAPなのか？</div>
@@ -1043,13 +1722,13 @@
 
 <div class="section-divider"></div>
 
-<!-- ── How It Works ── -->
-<section id="how">
+<!-- ── How It Works (7-Step) ── -->
+<section id="how-detail">
   <div class="fade-in">
     <div class="section-label">仕組み</div>
     <h2 class="section-title">7ステップのプロトコルフロー</h2>
     <p class="section-subtitle">
-      ディスカバリーから決済まで — すべてのステップがCanton上のDamlスマートコントラクトで保護されます。
+      ディスカバリーから決済まで &mdash; すべてのステップがCanton上のDamlスマートコントラクトで保護されます。
     </p>
   </div>
 
@@ -1108,13 +1787,13 @@
 
 <div class="section-divider"></div>
 
-<!-- ── Use Cases ── -->
+<!-- ── Use Cases (6 Scenarios) ── -->
 <section id="usecases" class="section-bg-alt">
   <div class="fade-in">
     <div class="section-label">ユースケース</div>
     <h2 class="section-title">6つの実践シナリオ</h2>
     <p class="section-subtitle">
-      プロトコルのすべてのパス — ハッピーパスからタイムアウト返金まで — エンドツーエンドで実演します。
+      プロトコルのすべてのパス &mdash; ハッピーパスからタイムアウト返金まで &mdash; エンドツーエンドで実演します。
     </p>
   </div>
 
@@ -1227,7 +1906,7 @@
     <div class="section-label">アーキテクチャ</div>
     <h2 class="section-title">5層スタック</h2>
     <p class="section-subtitle">
-      スマートコントラクトからインタラクティブUIまで — フルスタックプロトコル。
+      スマートコントラクトからインタラクティブUIまで &mdash; フルスタックプロトコル。
     </p>
   </div>
 
@@ -1316,7 +1995,7 @@
         <div class="feature-name">SLA執行</div>
       </div>
       <div class="feature-desc">
-        maxLatencyMsとpenaltyRateで設定可能なSLA条件。プロバイダーが期限を超過して納品した場合、ペナルティはオンチェーンで自動計算されます。手動介入は不要 — スマートコントラクトが決済時に控除を執行します。
+        maxLatencyMsとpenaltyRateで設定可能なSLA条件。プロバイダーが期限を超過して納品した場合、ペナルティはオンチェーンで自動計算されます。手動介入は不要 &mdash; スマートコントラクトが決済時に控除を執行します。
       </div>
       <div class="feature-code"><span class="cm">-- SLA penalty calculation</span>
 <span class="kw">data</span> <span class="ty">SLATerms</span> = <span class="ty">SLATerms</span> <span class="kw">with</span>
@@ -1356,7 +2035,7 @@
         <div class="feature-name">プロトコル手数料</div>
       </div>
       <div class="feature-desc">
-        取引ごとの手数料が決済時に自動分離。手数料率はグローバルに設定され、コントラクトレベルで強制されます。Treasury徴収はアトミックに実行 — 手動での手数料請求は不要です。
+        取引ごとの手数料が決済時に自動分離。手数料率はグローバルに設定され、コントラクトレベルで強制されます。Treasury徴収はアトミックに実行 &mdash; 手動での手数料請求は不要です。
       </div>
       <div class="feature-code"><span class="cm"># REST API: Configure fee rate</span>
 curl <span class="st">-X POST</span> localhost:4000/cap/v1/fees/configure \
@@ -1398,7 +2077,7 @@ rep = client.<span class="fn">get_reputation</span>(<span class="st">"bob"</span
         <div class="feature-name">サブtxプライバシー</div>
       </div>
       <div class="feature-desc">
-        Canton Network独自のサブトランザクションプライバシーにより、取引参加者のみがデータを閲覧できます。同じネットワーク上の競合他社は取引、価格、取引量を観察できません — パブリックブロックチェーンに対する根本的な優位性です。
+        Canton Network独自のサブトランザクションプライバシーにより、取引参加者のみがデータを閲覧できます。同じネットワーク上の競合他社は取引、価格、取引量を観察できません &mdash; パブリックブロックチェーンに対する根本的な優位性です。
       </div>
       <div class="feature-code"><span class="cm">-- Canton privacy model</span>
 Alice &harr; Bob  : <span class="st">visible to both</span>
@@ -1420,7 +2099,7 @@ Carol &rarr; Alice&harr;Bob : <span class="nu">&#10060; CANNOT see</span>
     <div class="section-label">コード例</div>
     <h2 class="section-title">数分で統合</h2>
     <p class="section-subtitle">
-      Python SDK、REST API、またはDaml — 統合パスを選択してください。
+      Python SDK、REST API、またはDaml &mdash; 統合パスを選択してください。
     </p>
   </div>
 
@@ -1581,17 +2260,20 @@ curl <span class="flag">-X POST</span> localhost:4000/cap/v1/fees/collect \
   </div>
 </section>
 
+  </div><!-- /deep-dive-content -->
+</div><!-- /deep-dive -->
+
 <!-- ── Footer ── -->
 <footer>
   <div class="footer-inner">
     <div class="footer-links">
-      <a href="#quickstart">始める</a>
-      <a href="#code">APIドキュメント</a>
+      <a href="#quickstart">はじめる</a>
+      <a href="#developer">ドキュメント</a>
       <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
       <a href="https://www.canton.network" target="_blank" rel="noopener">Canton Network</a>
     </div>
     <div class="footer-copy">
-      Canton Network基盤 &middot; Daml 2.10.3 &middot; MITライセンス
+      Built on Canton Network &middot; Daml 2.10.3 &middot; MIT License
     </div>
   </div>
 </footer>
@@ -1648,6 +2330,52 @@ curl <span class="flag">-X POST</span> localhost:4000/cap/v1/fees/collect \
       document.querySelectorAll('.code-panel').forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ── FAQ Accordion ──
+  document.querySelectorAll('.faq-q').forEach(q => {
+    q.addEventListener('click', () => {
+      q.closest('.faq-item').classList.toggle('open');
+    });
+  });
+
+  // ── Deep Dive Toggle ──
+  const deepDiveBtn = document.querySelector('.deep-dive-toggle');
+  const deepDive = document.querySelector('.deep-dive');
+  if (deepDiveBtn) {
+    deepDiveBtn.addEventListener('click', () => {
+      deepDive.classList.toggle('open');
+    });
+  }
+
+  // ── Auto-open deep dive if URL has technical anchor ──
+  const techAnchors = ['#how-detail','#usecases','#architecture','#features','#code','#quickstart','#why'];
+  if (techAnchors.includes(location.hash)) {
+    deepDive?.classList.add('open');
+    setTimeout(() => {
+      const target = document.querySelector(location.hash);
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  }
+
+  // ── Nav "Developer" link opens deep dive + scrolls ──
+  document.querySelector('a[href="#developer"]')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    deepDive?.classList.add('open');
+    setTimeout(() => {
+      deepDive?.scrollIntoView({ behavior: 'smooth' });
+    }, 50);
+  });
+
+  // ── Any link with data-open-deep-dive opens the section ──
+  document.querySelectorAll('[data-open-deep-dive]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      deepDive?.classList.add('open');
+      setTimeout(() => {
+        deepDive?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
     });
   });
 })();

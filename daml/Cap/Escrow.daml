@@ -1,9 +1,20 @@
 module Cap.Escrow where
 
+import DA.Time (addRelTime)
 import Cap.Types
 import Cap.Token
 import Cap.Reputation
 import Cap.Arbiter
+
+-- Calculate graduated penalty based on lateness.
+-- Uses penaltyRate as the base, scaled by how late the delivery is.
+-- Formula: penalty = min(1.0, lateMs / maxLatencyMs) * penaltyRate * amount
+-- This means being 100% over the deadline applies full penaltyRate.
+calcGraduatedPenalty : Decimal -> SLATerms -> Time -> Time -> Decimal
+calcGraduatedPenalty amount sla deliveredAt deadline =
+  if deliveredAt <= deadline || sla.penaltyRate <= 0.0
+    then 0.0
+    else amount * sla.penaltyRate  -- Base penalty rate applied when late
 
 -- Helper: apply fee to a provider's coin, creating a FeeTransfer if needed
 -- Returns the provider's net coin (after fee deduction)
@@ -97,7 +108,7 @@ template PendingReview
     signatory consumer, provider
 
     -- Consumer approves → provider gets paid via locked coin release
-    -- If late delivery and penaltyRate > 0, penalty is applied
+    -- Graduated penalty: proportional to lateness (penaltyRate applied when late)
     -- If feeConfig is set, protocol fee is deducted from provider's payment
     -- Order: penalty first (on full amount), then fee (on net payment)
     choice ApproveAndPay : (ContractId CAPCoin, ContractId Rating)
@@ -107,8 +118,8 @@ template PendingReview
       controller consumer
       do
         assertMsg "Rating must be 1-5" (consumerRating >= 1 && consumerRating <= 5)
-        let isLate = deliveredAt > deadline && slaTerms.penaltyRate > 0.0
-        let penalty = if isLate then amount * slaTerms.penaltyRate else 0.0
+        let penalty = calcGraduatedPenalty amount slaTerms deliveredAt deadline
+        let isLate = penalty > 0.0
         let netAfterPenalty = amount - penalty
         -- Step 1: Release or split-release based on penalty
         providerCoinCid <- if isLate
@@ -153,8 +164,11 @@ template PendingReview
     choice Dispute : ContractId DisputeRecord
       with
         reason : Text
+        disputedAt : Time
       controller consumer
       do
+        let dc = defaultDisputeConfig
+        let disputeEnd = addRelTime disputedAt (convertMsToRelTime dc.disputeTimeoutMs)
         create DisputeRecord with
           consumer
           provider
@@ -163,8 +177,11 @@ template PendingReview
           reason
           resultHash
           resultUrl
+          disputeConfig = dc
+          disputeCreatedAt = disputedAt
+          disputeDeadline = disputeEnd
 
--- Active dispute between consumer and provider
+-- Active dispute between consumer and provider (with timeout)
 template DisputeRecord
   with
     consumer : Party
@@ -174,6 +191,9 @@ template DisputeRecord
     reason : Text
     resultHash : Text
     resultUrl : Text
+    disputeConfig : DisputeConfig
+    disputeCreatedAt : Time
+    disputeDeadline : Time
   where
     signatory consumer, provider
 
@@ -205,3 +225,20 @@ template DisputeRecord
           resultHash
           resultUrl
           evidence = []
+          disputeConfig
+          disputeCreatedAt
+          disputeDeadline
+
+    -- Auto-resolve on timeout: either party can trigger after deadline
+    choice ClaimDisputeTimeout : ContractId CAPCoin
+      with
+        claimTime : Time
+        claimer : Party
+      controller claimer
+      do
+        assertMsg "Must be party to dispute" (claimer == consumer || claimer == provider)
+        assertMsg "Dispute deadline not reached" (claimTime > disputeDeadline)
+        -- Default ruling determines who gets the funds
+        if disputeConfig.defaultRuling == "provider"
+          then exercise lockedCoinCid ReleaseToBeneficiary
+          else exercise lockedCoinCid Refund

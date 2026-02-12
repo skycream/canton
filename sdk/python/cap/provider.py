@@ -1,4 +1,5 @@
 """CAP Provider SDK - for agents that provide services to other agents."""
+import hashlib
 import json
 import time
 import threading
@@ -160,7 +161,7 @@ class CAPProvider:
                     print(f"  [{self.agent_id}] Executing '{capability}'...")
                     try:
                         output = handler(params)
-                        result_hash = f"sha256:{hash(json.dumps(output, default=str)) & 0xFFFFFFFF:08x}"
+                        result_hash = "sha256:" + hashlib.sha256(json.dumps(output, sort_keys=True, default=str).encode()).hexdigest()
                         result_url = f"cap://results/{self.agent_id}/{result_hash}"
 
                         self.deliver(escrow_id, result_hash, result_url)

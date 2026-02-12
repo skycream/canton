@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const crypto = require("crypto");
 const http = require("http");
 const { WebSocketServer } = require("ws");
 
@@ -9,6 +10,8 @@ const escrowRoutes = require("./routes/escrows");
 const reputationRoutes = require("./routes/reputation");
 const walletRoutes = require("./routes/wallet");
 const feeRoutes = require("./routes/fees");
+const webhookRoutes = require("./routes/webhooks");
+const { WebhookManager } = require("./middleware/webhooks");
 
 const app = express();
 app.use(cors());
@@ -68,17 +71,26 @@ function toUserId(partyOrUser) {
   return parts[0].toLowerCase();
 }
 
-// JWT helper (dev only)
+// JWT helper — HS256 signed
+const JWT_SECRET = process.env.JWT_SECRET || "cap-dev-secret-change-in-production";
+
 function createToken(userId) {
   const header = { alg: "HS256", typ: "JWT" };
-  const payload = { sub: userId, scope: "daml_ledger_api" };
+  const payload = {
+    sub: userId,
+    scope: "daml_ledger_api",
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + 3600,
+  };
   const encode = (obj) =>
     Buffer.from(JSON.stringify(obj))
-      .toString("base64")
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "");
-  return `${encode(header)}.${encode(payload)}.`;
+      .toString("base64url");
+  const unsigned = `${encode(header)}.${encode(payload)}`;
+  const signature = crypto
+    .createHmac("sha256", JWT_SECRET)
+    .update(unsigned)
+    .digest("base64url");
+  return `${unsigned}.${signature}`;
 }
 
 // Ledger API helper
@@ -203,6 +215,10 @@ app.locals.LEDGER_URL = LEDGER_URL;
 app.locals.getPackageId = discoverPackageId;
 app.locals.getRegistryParty = resolveRegistryParty;
 
+// Webhook manager
+const webhookManager = new WebhookManager();
+app.locals.webhookManager = webhookManager;
+
 // Routes
 app.use("/cap/v1/agents", agentRoutes);
 app.use("/cap/v1/services", serviceRoutes);
@@ -210,6 +226,7 @@ app.use("/cap/v1/escrows", escrowRoutes);
 app.use("/cap/v1/reputation", reputationRoutes);
 app.use("/cap/v1/wallet", walletRoutes);
 app.use("/cap/v1/fees", feeRoutes);
+app.use("/cap/v1/webhooks", webhookRoutes);
 
 // Party resolution
 app.get("/cap/v1/parties", async (req, res) => {
@@ -253,12 +270,21 @@ app.get("/", (req, res) => {
 app.get("/demo", (req, res) => {
   res.sendFile(path.join(__dirname, "demo.html"));
 });
+app.get("/ko.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "ko.html"));
+});
+app.get("/zh.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "zh.html"));
+});
+app.get("/ja.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "ja.html"));
+});
 
 // Protocol info
 app.get("/cap/v1", (req, res) => {
   res.json({
     protocol: "Canton Agent Protocol (CAP)",
-    version: "0.1.0",
+    version: "0.2.0",
     endpoints: {
       agents: "/cap/v1/agents",
       discover: "/cap/v1/services/discover?capability=X",
@@ -267,6 +293,7 @@ app.get("/cap/v1", (req, res) => {
       reputation: "/cap/v1/reputation/:agentId",
       wallet: "/cap/v1/wallet",
       fees: "/cap/v1/fees",
+      webhooks: "/cap/v1/webhooks",
       health: "/cap/v1/health",
     },
   });
@@ -298,6 +325,8 @@ function broadcast(event) {
       ws.send(msg);
     }
   }
+  // Fire webhooks asynchronously
+  webhookManager.notify(event).catch(() => {});
 }
 
 app.locals.broadcast = broadcast;

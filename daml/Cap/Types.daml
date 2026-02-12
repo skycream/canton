@@ -26,3 +26,30 @@ data FeeConfig = FeeConfig
     feeRate : Decimal     -- 0.0 to 1.0 (e.g., 0.02 = 2%)
     treasury : Party
   deriving (Show, Eq)
+
+-- Graduated penalty tiers: stepped penalties based on lateness
+data PenaltyTier = PenaltyTier
+  with
+    thresholdMs : Int         -- Lateness threshold in ms (e.g., 10000 = 10s late)
+    rate : Decimal            -- Penalty rate if this tier is reached (0.0 to 1.0)
+  deriving (Show, Eq)
+
+-- Dispute resolution configuration
+data DisputeConfig = DisputeConfig
+  with
+    disputeTimeoutMs : Int    -- Auto-resolve deadline in ms after dispute creation
+    defaultRuling : Text      -- "consumer" | "provider" | "split" — auto-ruling on timeout
+  deriving (Show, Eq)
+
+defaultDisputeConfig : DisputeConfig
+defaultDisputeConfig = DisputeConfig
+  with
+    disputeTimeoutMs = 86400000   -- 24 hours
+    defaultRuling = "consumer"    -- Consumer wins by default on timeout
+
+-- Collateral configuration for high-value deals
+data CollateralConfig = CollateralConfig
+  with
+    requiredRate : Decimal    -- Fraction of deal amount required as collateral (0.0 to 1.0)
+    slashOnDispute : Bool     -- Whether collateral is slashed on dispute loss
+  deriving (Show, Eq)

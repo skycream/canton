@@ -1,0 +1,50 @@
+module Cap.Collateral where
+
+import Cap.Token
+import Cap.Types
+
+-- Collateral deposit: provider locks funds as security bond for high-value deals
+template CollateralDeposit
+  with
+    provider : Party
+    registry : Party
+    amount : Decimal
+    lockedCoinCid : ContractId LockedCAPCoin
+    config : CollateralConfig
+    depositedAt : Time
+  where
+    signatory provider
+    observer registry
+
+    key provider : Party
+    maintainer key
+
+    -- Provider withdraws collateral (only when no active escrows)
+    choice WithdrawCollateral : ContractId CAPCoin
+      controller provider
+      do exercise lockedCoinCid Refund
+
+    -- Slash collateral on dispute loss (called by arbiter/system)
+    choice SlashCollateral : (ContractId CAPCoin, ContractId CAPCoin)
+      with
+        slashAmount : Decimal
+        beneficiary : Party
+      controller provider, beneficiary
+      do
+        assertMsg "Slash amount must be positive" (slashAmount > 0.0)
+        assertMsg "Slash amount must not exceed collateral" (slashAmount <= amount)
+        exercise lockedCoinCid SplitRelease
+          with beneficiaryAmount = slashAmount
+
+    -- Top up collateral with additional funds
+    choice TopUpCollateral : ContractId CollateralDeposit
+      with
+        additionalCoinCid : ContractId LockedCAPCoin
+        additionalAmount : Decimal
+        toppedUpAt : Time
+      controller provider
+      do
+        create this with
+          amount = amount + additionalAmount
+          lockedCoinCid = additionalCoinCid
+          depositedAt = toppedUpAt

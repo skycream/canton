@@ -243,7 +243,7 @@ testDispute = script do
       deliveredAt = t1
 
   dispute <- submit alice do
-    exerciseCmd review Dispute with reason = "Translation quality is unacceptable"
+    exerciseCmd review Dispute with reason = "Translation quality is unacceptable", disputedAt = t1
 
   refund <- submit bob do exerciseCmd dispute ResolveForConsumer
 
@@ -520,7 +520,7 @@ testDisputeResolveForProvider = script do
       deliveredAt = t1
 
   dispute <- submit alice do
-    exerciseCmd review Dispute with reason = "Not satisfied with quality"
+    exerciseCmd review Dispute with reason = "Not satisfied with quality", disputedAt = t1
 
   -- Consumer concedes → provider gets paid
   paymentCid <- submit alice do
@@ -632,7 +632,7 @@ testTokenConservation_DisputeRefund = script do
   assertMsg "After escrow = 60" (supply1 == 60.0)
 
   review <- submit bob do exerciseCmd escrow Deliver with resultHash = "bad", resultUrl = "", deliveredAt = t1
-  dispute <- submit alice do exerciseCmd review Dispute with reason = "bad quality"
+  dispute <- submit alice do exerciseCmd review Dispute with reason = "bad quality", disputedAt = t1
 
   supply2 <- totalSupply parties
   assertMsg "During dispute = 60" (supply2 == 60.0)
@@ -661,7 +661,7 @@ testTokenConservation_DisputeRelease = script do
   offer <- submit bob do exerciseCmd request MakeOffer with price = 5.0, estimatedTimeMs = 5000
   escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
   review <- submit bob do exerciseCmd escrow Deliver with resultHash = "ok", resultUrl = "", deliveredAt = t1
-  dispute <- submit alice do exerciseCmd review Dispute with reason = "disputed"
+  dispute <- submit alice do exerciseCmd review Dispute with reason = "disputed", disputedAt = t1
   _payment <- submit alice do exerciseCmd dispute ResolveForProvider
 
   supply1 <- totalSupply parties
@@ -1108,7 +1108,7 @@ setupEscalatedDispute = script do
   offer <- submit bob do exerciseCmd request MakeOffer with price = 10.0, estimatedTimeMs = 5000
   escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
   review <- submit bob do exerciseCmd escrow Deliver with resultHash = "hash", resultUrl = "url", deliveredAt = t1
-  dispute <- submit alice do exerciseCmd review Dispute with reason = "Bad quality"
+  dispute <- submit alice do exerciseCmd review Dispute with reason = "Bad quality", disputedAt = t1
   arbDispute <- submit alice do exerciseCmd dispute EscalateToArbiter with arbiter
   return (alice, bob, arbiter, arbDispute)
 
@@ -1173,7 +1173,7 @@ testThirdPartyCannotEscalate = script do
   offer <- submit bob do exerciseCmd request MakeOffer with price = 10.0, estimatedTimeMs = 5000
   escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
   review <- submit bob do exerciseCmd escrow Deliver with resultHash = "hash", resultUrl = "url", deliveredAt = t1
-  dispute <- submit alice do exerciseCmd review Dispute with reason = "Bad"
+  dispute <- submit alice do exerciseCmd review Dispute with reason = "Bad", disputedAt = t1
 
   -- Charlie (third party) cannot escalate
   submitMustFail charlie do exerciseCmd dispute EscalateToArbiter with arbiter
