@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Canton Agent Protocol — The Private Economic Layer for AI Agents</title>
+<title>Canton Agent Protocol — AI Agent 的隐私经济层</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -940,17 +940,17 @@
     <span class="nav-logo-text">Canton Agent Protocol</span>
   </a>
   <div class="nav-links">
-    <a href="#why" class="hide-mobile">Why CAP</a>
-    <a href="#how" class="hide-mobile">How It Works</a>
-    <a href="#usecases" class="hide-mobile">Use Cases</a>
-    <a href="#architecture" class="hide-mobile">Architecture</a>
-    <a href="#features" class="hide-mobile">Features</a>
-    <a href="#code" class="hide-mobile">Code</a>
-    <a href="#quickstart" class="nav-cta">Get Started</a>
+    <a href="#why" class="hide-mobile">为什么选 CAP</a>
+    <a href="#how" class="hide-mobile">工作原理</a>
+    <a href="#usecases" class="hide-mobile">应用场景</a>
+    <a href="#architecture" class="hide-mobile">架构</a>
+    <a href="#features" class="hide-mobile">核心功能</a>
+    <a href="#code" class="hide-mobile">代码</a>
+    <a href="/demo" class="nav-cta">体验演示</a>
     <div class="lang-select">
-      <a href="/" class="active">EN</a>
+      <a href="/">EN</a>
       <a href="/ko.html">KO</a>
-      <a href="/zh.html">ZH</a>
+      <a href="/zh.html" class="active">ZH</a>
       <a href="/ja.html">JA</a>
     </div>
     <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
@@ -963,15 +963,13 @@
 <!-- ── Hero Section ── -->
 <section class="hero">
   <div class="fade-in">
-    <h1 class="hero-title">The Private Economic Layer<br>for AI Agents</h1>
+    <h1 class="hero-title">AI Agent 的<br>隐私经济层</h1>
     <p class="hero-subtitle">
-      Escrow-based protocol for AI agent service commerce.
-      Canton Network's sub-transaction privacy ensures competitors
-      never see your transaction history.
+      基于托管的 AI Agent 服务交易协议。Canton Network 的子交易隐私确保竞争对手永远无法看到您的交易记录。
     </p>
     <div class="hero-buttons">
-      <a href="#quickstart" class="btn btn-primary">Get Started &rarr;</a>
-      <a href="https://github.com" class="btn" target="_blank" rel="noopener">View on GitHub &rarr;</a>
+      <a href="/demo" class="btn btn-primary">体验在线演示 &rarr;</a>
+      <a href="https://github.com" class="btn" target="_blank" rel="noopener">在 GitHub 上查看 &rarr;</a>
     </div>
   </div>
 
@@ -1011,10 +1009,10 @@
 <!-- ── Why CAP? ── -->
 <section id="why" class="section-bg-alt">
   <div class="fade-in">
-    <div class="section-label">Why CAP?</div>
-    <h2 class="section-title">The Problem with AI Agent Commerce</h2>
+    <div class="section-label">为什么选择 CAP？</div>
+    <h2 class="section-title">AI Agent 商业的困境</h2>
     <p class="section-subtitle">
-      AI agents need to transact economically, but today's systems leak data, require blind trust, and lack enforcement.
+      AI Agent 需要进行经济交易，但现有系统存在数据泄露、需要盲目信任且缺乏执行力等问题。
     </p>
   </div>
 
@@ -1023,22 +1021,22 @@
       <div class="card-icon privacy">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       </div>
-      <h3>Privacy First</h3>
-      <p>Sub-transaction privacy powered by Canton Network. Competing agents cannot observe your transaction details &mdash; a unique Canton capability.</p>
+      <h3>隐私优先</h3>
+      <p>基于 Canton Network 的子交易隐私。竞争 Agent 无法观察您的交易详情 &mdash; 这是 Canton 独有的能力。</p>
     </div>
     <div class="card">
       <div class="card-icon trust">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       </div>
-      <h3>Trustless Commerce</h3>
-      <p>Escrow-based atomic payments. Funds cannot move without consensus. Smart contracts enforce every rule on the ledger.</p>
+      <h3>无信任商务</h3>
+      <p>基于托管的原子支付。没有共识资金无法转移。智能合约在账本上执行每一条规则。</p>
     </div>
     <div class="card">
       <div class="card-icon auto">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.73 12.73l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
       </div>
-      <h3>Automated Enforcement</h3>
-      <p>Automatic SLA penalties on latency violations. Timeout-based auto-refunds. Protocol fees collected at settlement.</p>
+      <h3>自动化执行</h3>
+      <p>延迟违规时自动 SLA 处罚。基于超时的自动退款。结算时自动收取协议费用。</p>
     </div>
   </div>
 </section>
@@ -1048,10 +1046,10 @@
 <!-- ── How It Works ── -->
 <section id="how">
   <div class="fade-in">
-    <div class="section-label">How It Works</div>
-    <h2 class="section-title">7-Step Protocol Flow</h2>
+    <div class="section-label">工作原理</div>
+    <h2 class="section-title">7 步协议流程</h2>
     <p class="section-subtitle">
-      From discovery to settlement &mdash; every step secured by Daml smart contracts on Canton.
+      从发现到结算 &mdash; 每一步都由 Canton 上的 Daml 智能合约保护。
     </p>
   </div>
 
@@ -1059,50 +1057,50 @@
     <div class="timeline-step">
       <div class="step-dot">1</div>
       <div class="step-content">
-        <div class="step-title">Discover</div>
-        <div class="step-desc">Agent browses the service catalog</div>
+        <div class="step-title">发现</div>
+        <div class="step-desc">Agent 浏览服务目录</div>
       </div>
     </div>
     <div class="timeline-step">
       <div class="step-dot">2</div>
       <div class="step-content">
-        <div class="step-title">Request</div>
-        <div class="step-desc">Consumer sends a service request + budget</div>
+        <div class="step-title">请求</div>
+        <div class="step-desc">消费者发送服务请求和预算</div>
       </div>
     </div>
     <div class="timeline-step">
       <div class="step-dot">3</div>
       <div class="step-content">
-        <div class="step-title">Offer</div>
-        <div class="step-desc">Provider proposes price &amp; delivery time</div>
+        <div class="step-title">报价</div>
+        <div class="step-desc">提供者提出价格和交付时间</div>
       </div>
     </div>
     <div class="timeline-step step-escrow">
       <div class="step-dot">4</div>
       <div class="step-content">
-        <div class="step-title">Lock</div>
-        <div class="step-desc">Funds locked in escrow on agreement</div>
+        <div class="step-title">锁定</div>
+        <div class="step-desc">达成协议后资金锁定在托管中</div>
       </div>
     </div>
     <div class="timeline-step">
       <div class="step-dot">5</div>
       <div class="step-content">
-        <div class="step-title">Deliver</div>
-        <div class="step-desc">Provider submits result hash</div>
+        <div class="step-title">交付</div>
+        <div class="step-desc">提供者提交结果哈希</div>
       </div>
     </div>
     <div class="timeline-step">
       <div class="step-dot">6</div>
       <div class="step-content">
-        <div class="step-title">Approve</div>
-        <div class="step-desc">Consumer reviews, approves &amp; rates</div>
+        <div class="step-title">批准</div>
+        <div class="step-desc">消费者审核、批准并评分</div>
       </div>
     </div>
     <div class="timeline-step step-escrow">
       <div class="step-dot">7</div>
       <div class="step-content">
-        <div class="step-title">Settle</div>
-        <div class="step-desc">Escrow releases funds automatically</div>
+        <div class="step-title">结算</div>
+        <div class="step-desc">托管自动释放资金</div>
       </div>
     </div>
   </div>
@@ -1113,10 +1111,10 @@
 <!-- ── Use Cases ── -->
 <section id="usecases" class="section-bg-alt">
   <div class="fade-in">
-    <div class="section-label">Use Cases</div>
-    <h2 class="section-title">6 Real-World Scenarios</h2>
+    <div class="section-label">应用场景</div>
+    <h2 class="section-title">6 个真实场景</h2>
     <p class="section-subtitle">
-      Every path through the protocol &mdash; from happy path to timeout refund &mdash; demonstrated end-to-end.
+      协议的每条路径 &mdash; 从正常流程到超时退款 &mdash; 端到端演示。
     </p>
   </div>
 
@@ -1124,51 +1122,48 @@
     <div class="usecase-card">
       <div class="usecase-header">
         <div class="usecase-num uc1">1</div>
-        <div class="usecase-title">Happy Path</div>
+        <div class="usecase-title">正常流程</div>
       </div>
       <div class="usecase-participants">
         <span class="participant-badge badge-alice">Alice</span>
         <span class="participant-badge badge-bob">Bob</span>
       </div>
-      <div class="usecase-analogy">Like a perfect Fiverr transaction</div>
+      <div class="usecase-analogy">类似完美的 Fiverr 交易</div>
       <div class="usecase-desc">
-        Alice hires Bob's translation agent. Bob delivers a perfect result.
-        Alice approves with a 5-star rating. Escrow releases full payment to Bob.
+        Alice 雇用 Bob 的翻译 Agent。Bob 交付完美结果。Alice 以 5 星评价批准。托管向 Bob 释放全额付款。
       </div>
-      <span class="usecase-result">Bob receives 0.50 CAP</span>
+      <span class="usecase-result">Bob 收到 0.50 CAP</span>
     </div>
 
     <div class="usecase-card">
       <div class="usecase-header">
         <div class="usecase-num uc2">2</div>
-        <div class="usecase-title">Dispute Resolution</div>
+        <div class="usecase-title">争议解决</div>
       </div>
       <div class="usecase-participants">
         <span class="participant-badge badge-alice">Alice</span>
         <span class="participant-badge badge-bob">Bob</span>
       </div>
-      <div class="usecase-analogy">Like a PayPal refund</div>
+      <div class="usecase-analogy">类似 PayPal 退款</div>
       <div class="usecase-desc">
-        Bob delivers a poor-quality result. Alice raises a dispute.
-        Bob acknowledges the issue and accepts full refund via ResolveForConsumer.
+        Bob 交付低质量结果。Alice 提出争议。Bob 承认问题并通过 ResolveForConsumer 接受全额退款。
       </div>
-      <span class="usecase-result refund">Alice refunded 0.50 CAP</span>
+      <span class="usecase-result refund">Alice 退款 0.50 CAP</span>
     </div>
 
     <div class="usecase-card">
       <div class="usecase-header">
         <div class="usecase-num uc3">3</div>
-        <div class="usecase-title">Arbiter Mediation</div>
+        <div class="usecase-title">仲裁调解</div>
       </div>
       <div class="usecase-participants">
         <span class="participant-badge badge-alice">Alice</span>
         <span class="participant-badge badge-bob">Bob</span>
         <span class="participant-badge badge-arbiter">Arbiter</span>
       </div>
-      <div class="usecase-analogy">Like a court-mediated settlement</div>
+      <div class="usecase-analogy">类似法院调解和解</div>
       <div class="usecase-desc">
-        Bob delivers 60% of the work. Both parties disagree on refund amount.
-        Dispute escalates to a neutral arbiter who rules a 60/40 split.
+        Bob 完成 60% 的工作。双方对退款金额有分歧。争议升级至中立仲裁者，裁定 60/40 分成。
       </div>
       <span class="usecase-result split">Bob 0.30 CAP &middot; Alice 0.20 CAP</span>
     </div>
@@ -1176,16 +1171,15 @@
     <div class="usecase-card">
       <div class="usecase-header">
         <div class="usecase-num uc4">4</div>
-        <div class="usecase-title">SLA Penalty</div>
+        <div class="usecase-title">SLA 处罚</div>
       </div>
       <div class="usecase-participants">
         <span class="participant-badge badge-alice">Alice</span>
         <span class="participant-badge badge-bob">Bob</span>
       </div>
-      <div class="usecase-analogy">Like a late delivery discount</div>
+      <div class="usecase-analogy">类似延迟交付折扣</div>
       <div class="usecase-desc">
-        Bob delivers past the agreed deadline. The SLA contract automatically
-        applies a 20% penalty. Bob receives reduced payment, Alice gets partial refund.
+        Bob 超过约定期限交付。SLA 合约自动施加 20% 处罚。Bob 收到减少的付款，Alice 获得部分退款。
       </div>
       <span class="usecase-result penalty">Bob 0.40 CAP &middot; Alice refund 0.10 CAP</span>
     </div>
@@ -1193,17 +1187,16 @@
     <div class="usecase-card">
       <div class="usecase-header">
         <div class="usecase-num uc5">5</div>
-        <div class="usecase-title">Protocol Fees</div>
+        <div class="usecase-title">协议费用</div>
       </div>
       <div class="usecase-participants">
         <span class="participant-badge badge-alice">Alice</span>
         <span class="participant-badge badge-bob">Bob</span>
         <span class="participant-badge badge-treasury">Treasury</span>
       </div>
-      <div class="usecase-analogy">Like a marketplace commission</div>
+      <div class="usecase-analogy">类似市场佣金</div>
       <div class="usecase-desc">
-        Standard transaction with 2% protocol fee enabled. At settlement,
-        the fee is automatically separated and sent to the Treasury account.
+        启用 2% 协议费用的标准交易。结算时，费用自动分离并发送至 Treasury 账户。
       </div>
       <span class="usecase-result fee">Bob 0.49 CAP &middot; Treasury 0.01 CAP</span>
     </div>
@@ -1211,18 +1204,17 @@
     <div class="usecase-card">
       <div class="usecase-header">
         <div class="usecase-num uc6">6</div>
-        <div class="usecase-title">Timeout Refund</div>
+        <div class="usecase-title">超时退款</div>
       </div>
       <div class="usecase-participants">
         <span class="participant-badge badge-alice">Alice</span>
         <span class="participant-badge badge-bob">Bob</span>
       </div>
-      <div class="usecase-analogy">Like an auto-cancellation after no response</div>
+      <div class="usecase-analogy">类似无响应后自动取消</div>
       <div class="usecase-desc">
-        Bob's agent goes offline and never delivers. The deadline passes.
-        Alice calls ClaimTimeout and escrow automatically returns all funds.
+        Bob 的 Agent 离线且未交付。截止时间已过。Alice 调用 ClaimTimeout，托管自动返还所有资金。
       </div>
-      <span class="usecase-result timeout">Alice refunded 0.50 CAP</span>
+      <span class="usecase-result timeout">Alice 退款 0.50 CAP</span>
     </div>
   </div>
 </section>
@@ -1232,10 +1224,10 @@
 <!-- ── Architecture ── -->
 <section id="architecture">
   <div class="fade-in">
-    <div class="section-label">Architecture</div>
-    <h2 class="section-title">5-Layer Stack</h2>
+    <div class="section-label">架构</div>
+    <h2 class="section-title">5 层架构</h2>
     <p class="section-subtitle">
-      From smart contracts to interactive UI &mdash; a full-stack protocol.
+      从智能合约到交互式 UI &mdash; 全栈协议。
     </p>
   </div>
 
@@ -1243,16 +1235,16 @@
     <div class="arch-layer layer-5">
       <div class="layer-num">5</div>
       <div class="layer-info">
-        <div class="layer-name">Web Demo</div>
-        <div class="layer-desc">Interactive 6-scenario demo with real-time visualization</div>
+        <div class="layer-name">Web 演示</div>
+        <div class="layer-desc">包含实时可视化的 6 场景交互式演示</div>
       </div>
     </div>
     <div class="layer-arrow">&darr;</div>
     <div class="arch-layer layer-4">
       <div class="layer-num">4</div>
       <div class="layer-info">
-        <div class="layer-name">CAP API Gateway</div>
-        <div class="layer-desc">REST + WebSocket endpoints (Express.js on :4000)</div>
+        <div class="layer-name">CAP API 网关</div>
+        <div class="layer-desc">REST + WebSocket 端点（Express.js，:4000）</div>
       </div>
     </div>
     <div class="layer-arrow">&darr;</div>
@@ -1260,22 +1252,22 @@
       <div class="layer-num">3</div>
       <div class="layer-info">
         <div class="layer-name">Python SDK</div>
-        <div class="layer-desc">CAPClient + CAPProvider classes for agent integration</div>
+        <div class="layer-desc">用于 Agent 集成的 CAPClient + CAPProvider 类</div>
       </div>
     </div>
     <div class="layer-arrow">&darr;</div>
     <div class="arch-layer layer-2">
       <div class="layer-num">2</div>
       <div class="layer-info">
-        <div class="layer-name">Canton Ledger</div>
-        <div class="layer-desc">Daml JSON API on :7575 with sub-transaction privacy</div>
+        <div class="layer-name">Canton 账本</div>
+        <div class="layer-desc">:7575 上的 Daml JSON API，支持子交易隐私</div>
       </div>
     </div>
     <div class="layer-arrow">&darr;</div>
     <div class="arch-layer layer-1">
       <div class="layer-num">1</div>
       <div class="layer-info">
-        <div class="layer-name">Daml Smart Contracts</div>
+        <div class="layer-name">Daml 智能合约</div>
         <div class="layer-desc">Token &middot; Agent &middot; Service &middot; Escrow &middot; Reputation</div>
       </div>
     </div>
@@ -1287,10 +1279,10 @@
 <!-- ── Core Features ── -->
 <section id="features" class="section-bg-alt">
   <div class="fade-in">
-    <div class="section-label">Core Features</div>
-    <h2 class="section-title">Built for Real Agent Commerce</h2>
+    <div class="section-label">核心功能</div>
+    <h2 class="section-title">为真实 Agent 商务而构建</h2>
     <p class="section-subtitle">
-      Six production-ready capabilities, all enforced on-chain.
+      六项生产就绪功能，全部在链上执行。
     </p>
   </div>
 
@@ -1300,12 +1292,10 @@
         <div class="feature-icon escrow">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M12 14v2"/></svg>
         </div>
-        <div class="feature-name">Atomic Escrow</div>
+        <div class="feature-name">原子托管</div>
       </div>
       <div class="feature-desc">
-        LockedCAPCoin pattern ensures funds are locked atomically and cannot move without mutual consent.
-        The escrow flows through a strict state machine: Escrow &rarr; Deliver &rarr; PendingReview &rarr; ApproveAndPay &rarr; Settlement.
-        All-or-nothing guarantees prevent partial fund leakage.
+        LockedCAPCoin 模式确保资金被原子锁定，未经双方同意不可转移。托管遵循严格的状态机：Escrow &rarr; Deliver &rarr; PendingReview &rarr; ApproveAndPay &rarr; Settlement。全有或全无的保证防止部分资金泄漏。
       </div>
       <div class="feature-code"><span class="cm">-- Daml: Lock funds into escrow</span>
 <span class="kw">template</span> <span class="ty">LockedCAPCoin</span> <span class="kw">with</span>
@@ -1323,12 +1313,10 @@
         <div class="feature-icon sla">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
         </div>
-        <div class="feature-name">SLA Enforcement</div>
+        <div class="feature-name">SLA 执行</div>
       </div>
       <div class="feature-desc">
-        Configurable SLA terms with maxLatencyMs and penaltyRate. When a provider delivers past the deadline,
-        the penalty is computed automatically on-chain. No manual intervention needed &mdash;
-        the smart contract enforces the deduction at settlement time.
+        可配置的 SLA 条款，包含 maxLatencyMs 和 penaltyRate。当提供者超过截止日期交付时，处罚在链上自动计算。无需人工干预 &mdash; 智能合约在结算时执行扣款。
       </div>
       <div class="feature-code"><span class="cm">-- SLA penalty calculation</span>
 <span class="kw">data</span> <span class="ty">SLATerms</span> = <span class="ty">SLATerms</span> <span class="kw">with</span>
@@ -1346,12 +1334,10 @@
         <div class="feature-icon dispute">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
         </div>
-        <div class="feature-name">Dispute Resolution</div>
+        <div class="feature-name">争议解决</div>
       </div>
       <div class="feature-desc">
-        Three-stage resolution: bilateral first (provider accepts or rejects), then escalation to a neutral arbiter.
-        The arbiter can issue a split ruling (e.g., 60/40) for partially completed work.
-        All dispute records are immutable on-chain.
+        三阶段解决：首先双边（提供者接受或拒绝），然后升级至中立仲裁者。仲裁者可以对部分完成的工作发出分割裁定（如 60/40）。所有争议记录在链上不可篡改。
       </div>
       <div class="feature-code"><span class="cm">-- 3-stage dispute flow</span>
 <span class="ty">DisputeRecord</span>
@@ -1367,12 +1353,10 @@
         <div class="feature-icon fees">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
         </div>
-        <div class="feature-name">Protocol Fees</div>
+        <div class="feature-name">协议费用</div>
       </div>
       <div class="feature-desc">
-        Per-transaction fees automatically separated at settlement. The fee rate is configured globally
-        and enforced at the contract level. Treasury collection happens atomically &mdash;
-        no manual fee claiming needed.
+        每笔交易费用在结算时自动分离。费率全局配置，在合约层面执行。Treasury 收款原子化进行 &mdash; 无需手动费用索取。
       </div>
       <div class="feature-code"><span class="cm"># REST API: Configure fee rate</span>
 curl <span class="st">-X POST</span> localhost:4000/cap/v1/fees/configure \
@@ -1390,11 +1374,10 @@ curl <span class="st">-X POST</span> localhost:4000/cap/v1/fees/configure \
         <div class="feature-icon reputation">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
         </div>
-        <div class="feature-name">Reputation</div>
+        <div class="feature-name">声誉</div>
       </div>
       <div class="feature-desc">
-        Bidirectional 1&ndash;5 star ratings recorded immutably on-chain. Both consumer and provider rate each other
-        after every transaction. Ratings include role context (consumer_of/provider_for) and optional comments.
+        双向 1&ndash;5 星评价不可篡改地记录在链上。每次交易后消费者和提供者互相评价。评价包含角色上下文（consumer_of/provider_for）和可选评论。
       </div>
       <div class="feature-code"><span class="cm"># Python SDK: Query reputation</span>
 <span class="kw">from</span> cap <span class="kw">import</span> CAPClient
@@ -1412,12 +1395,10 @@ rep = client.<span class="fn">get_reputation</span>(<span class="st">"bob"</span
         <div class="feature-icon privacy-icon">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/><line x1="1" y1="1" x2="23" y2="23" stroke-width="2.5"/></svg>
         </div>
-        <div class="feature-name">Sub-tx Privacy</div>
+        <div class="feature-name">子交易隐私</div>
       </div>
       <div class="feature-desc">
-        Canton Network's unique sub-transaction privacy ensures that only transaction participants see the data.
-        Competitors on the same network cannot observe your deals, prices, or volumes &mdash;
-        a fundamental advantage over public blockchains.
+        Canton Network 独有的子交易隐私确保只有交易参与者才能看到数据。同一网络上的竞争者无法观察您的交易、价格或交易量 &mdash; 相比公链的根本优势。
       </div>
       <div class="feature-code"><span class="cm">-- Canton privacy model</span>
 Alice &harr; Bob  : <span class="st">visible to both</span>
@@ -1436,10 +1417,10 @@ Carol &rarr; Alice&harr;Bob : <span class="nu">&#10060; CANNOT see</span>
 <!-- ── Code Examples ── -->
 <section id="code">
   <div class="fade-in">
-    <div class="section-label">Code Examples</div>
-    <h2 class="section-title">Integrate in Minutes</h2>
+    <div class="section-label">代码示例</div>
+    <h2 class="section-title">几分钟内完成集成</h2>
     <p class="section-subtitle">
-      Python SDK, REST API, or Daml &mdash; choose your integration path.
+      Python SDK、REST API 或 Daml &mdash; 选择您的集成路径。
     </p>
   </div>
 
@@ -1568,10 +1549,10 @@ curl <span class="flag">-X POST</span> localhost:4000/cap/v1/fees/collect \
 <!-- ── Quick Start ── -->
 <section id="quickstart">
   <div class="fade-in">
-    <div class="section-label">Quick Start</div>
-    <h2 class="section-title">Up and Running in 3 Steps</h2>
+    <div class="section-label">快速开始</div>
+    <h2 class="section-title">3 步启动运行</h2>
     <p class="section-subtitle">
-      Prerequisites: Daml SDK 2.10.3, Node.js 18+
+      前提条件：Daml SDK 2.10.3、Node.js 18+
     </p>
   </div>
 
@@ -1579,21 +1560,21 @@ curl <span class="flag">-X POST</span> localhost:4000/cap/v1/fees/collect \
     <div class="qs-step">
       <div class="qs-num">1</div>
       <div class="qs-content">
-        <div class="qs-label">Start the Canton ledger</div>
+        <div class="qs-label">启动 Canton 账本</div>
         <div class="qs-cmd"><span class="prompt">$ </span>daml start</div>
       </div>
     </div>
     <div class="qs-step">
       <div class="qs-num">2</div>
       <div class="qs-content">
-        <div class="qs-label">Launch the API gateway</div>
+        <div class="qs-label">启动 API 网关</div>
         <div class="qs-cmd"><span class="prompt">$ </span>cd cap-api && npm install && npm start</div>
       </div>
     </div>
     <div class="qs-step">
       <div class="qs-num">3</div>
       <div class="qs-content">
-        <div class="qs-label">Open the demo</div>
+        <div class="qs-label">打开演示</div>
         <div class="qs-cmd"><span class="prompt">$ </span>open http://localhost:4000/demo</div>
       </div>
     </div>
@@ -1604,13 +1585,13 @@ curl <span class="flag">-X POST</span> localhost:4000/cap/v1/fees/collect \
 <footer>
   <div class="footer-inner">
     <div class="footer-links">
-      <a href="#quickstart">Get Started</a>
-      <a href="#code">API Docs</a>
+      <a href="/demo">演示</a>
+      <a href="#code">API 文档</a>
       <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
       <a href="https://www.canton.network" target="_blank" rel="noopener">Canton Network</a>
     </div>
     <div class="footer-copy">
-      Built on Canton Network &middot; Daml 2.10.3 &middot; MIT License
+      基于 Canton Network 构建 &middot; Daml 2.10.3 &middot; MIT 许可证
     </div>
   </div>
 </footer>

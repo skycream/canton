@@ -201,6 +201,34 @@
   [data-theme="dark"] .theme-toggle .icon-sun { display: block; }
   [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
 
+  /* ── Language Selector ── */
+  .lang-select {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .lang-select a {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--dim) !important;
+    text-decoration: none;
+    transition: all 0.2s;
+    letter-spacing: 0;
+    border: 1px solid transparent;
+  }
+  .lang-select a:hover { color: var(--text) !important; background: var(--card); }
+  .lang-select a.active {
+    color: var(--text) !important;
+    background: var(--card);
+    border-color: var(--border);
+  }
+  @media (max-width: 768px) {
+    .lang-select { gap: 0; }
+    .lang-select a { padding: 3px 5px; font-size: 10px; }
+  }
+
   /* ── Sections ── */
   section {
     max-width: 1120px;
@@ -919,6 +947,12 @@
     <a href="#features" class="hide-mobile">Features</a>
     <a href="#code" class="hide-mobile">Code</a>
     <a href="/demo" class="nav-cta">Try Demo</a>
+    <div class="lang-select">
+      <a href="/" class="active">EN</a>
+      <a href="/ko.html">KO</a>
+      <a href="/zh.html">ZH</a>
+      <a href="/ja.html">JA</a>
+    </div>
     <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
       <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.73 12.73l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
       <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
