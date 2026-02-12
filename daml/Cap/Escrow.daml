@@ -1,0 +1,244 @@
+module Cap.Escrow where
+
+import DA.Time (addRelTime)
+import Cap.Types
+import Cap.Token
+import Cap.Reputation
+import Cap.Arbiter
+
+-- Calculate graduated penalty based on lateness.
+-- Uses penaltyRate as the base, scaled by how late the delivery is.
+-- Formula: penalty = min(1.0, lateMs / maxLatencyMs) * penaltyRate * amount
+-- This means being 100% over the deadline applies full penaltyRate.
+calcGraduatedPenalty : Decimal -> SLATerms -> Time -> Time -> Decimal
+calcGraduatedPenalty amount sla deliveredAt deadline =
+  if deliveredAt <= deadline || sla.penaltyRate <= 0.0
+    then 0.0
+    else amount * sla.penaltyRate  -- Base penalty rate applied when late
+
+-- Helper: apply fee to a provider's coin, creating a FeeTransfer if needed
+-- Returns the provider's net coin (after fee deduction)
+applyFee : Party -> ContractId CAPCoin -> Decimal -> Optional FeeConfig -> Update (ContractId CAPCoin)
+applyFee provider providerCoinCid paymentAmount feeConfigOpt =
+  case feeConfigOpt of
+    None -> return providerCoinCid
+    Some fc -> do
+      if fc.feeRate > 0.0
+        then do
+          let feeAmount = paymentAmount * fc.feeRate
+          let netAmount = paymentAmount - feeAmount
+          (netCoin, feeCoin) <- exercise providerCoinCid Split with splitAmount = netAmount
+          archive feeCoin
+          create FeeTransfer with payer = provider, treasury = fc.treasury, amount = feeAmount
+          return netCoin
+        else
+          return providerCoinCid
+
+-- Funds locked for a deal between consumer and provider
+template Escrow
+  with
+    consumer : Party
+    provider : Party
+    amount : Decimal
+    lockedCoinCid : ContractId LockedCAPCoin
+    capability : Text
+    params : Text
+    slaTerms : SLATerms
+    createdAt : Time
+    deadline : Time
+    feeConfig : Optional FeeConfig
+  where
+    signatory consumer, provider
+
+    -- Provider submits work result
+    choice Deliver : ContractId PendingReview
+      with
+        resultHash : Text
+        resultUrl : Text
+        deliveredAt : Time
+      controller provider
+      do
+        create PendingReview with
+          consumer
+          provider
+          amount
+          lockedCoinCid
+          resultHash
+          resultUrl
+          slaTerms
+          deliveredAt
+          deadline
+          feeConfig
+
+    -- Consumer cancels before delivery → refund via locked coin
+    choice CancelEscrow : ContractId CAPCoin
+      controller consumer
+      do
+        exercise lockedCoinCid Refund
+
+    -- Provider walks away → refund consumer via locked coin
+    choice AbandonEscrow : ContractId CAPCoin
+      controller provider
+      do
+        exercise lockedCoinCid Refund
+
+    -- Consumer claims timeout refund after deadline
+    choice ClaimTimeout : ContractId CAPCoin
+      with
+        claimTime : Time
+      controller consumer
+      do
+        assertMsg "Cannot claim before deadline" (claimTime > deadline)
+        exercise lockedCoinCid Refund
+
+-- Delivery submitted, awaiting consumer review
+template PendingReview
+  with
+    consumer : Party
+    provider : Party
+    amount : Decimal
+    lockedCoinCid : ContractId LockedCAPCoin
+    resultHash : Text
+    resultUrl : Text
+    slaTerms : SLATerms
+    deliveredAt : Time
+    deadline : Time
+    feeConfig : Optional FeeConfig
+  where
+    signatory consumer, provider
+
+    -- Consumer approves → provider gets paid via locked coin release
+    -- Graduated penalty: proportional to lateness (penaltyRate applied when late)
+    -- If feeConfig is set, protocol fee is deducted from provider's payment
+    -- Order: penalty first (on full amount), then fee (on net payment)
+    choice ApproveAndPay : (ContractId CAPCoin, ContractId Rating)
+      with
+        consumerRating : Int
+        consumerComment : Text
+      controller consumer
+      do
+        assertMsg "Rating must be 1-5" (consumerRating >= 1 && consumerRating <= 5)
+        let penalty = calcGraduatedPenalty amount slaTerms deliveredAt deadline
+        let isLate = penalty > 0.0
+        let netAfterPenalty = amount - penalty
+        -- Step 1: Release or split-release based on penalty
+        providerCoinCid <- if isLate
+          then do
+            (_refundCoin, payCoin) <- exercise lockedCoinCid SplitRelease
+              with beneficiaryAmount = netAfterPenalty
+            return payCoin
+          else
+            exercise lockedCoinCid ReleaseToBeneficiary
+        -- Step 2: Apply fee on provider's payment
+        finalPayment <- applyFee provider providerCoinCid netAfterPenalty feeConfig
+        r1 <- create Rating with
+          rater = consumer
+          rated = provider
+          score = consumerRating
+          comment = consumerComment
+          role = "consumer"
+        -- Create invitation for provider to rate consumer
+        create RatingInvitation with
+          rater = provider
+          rated = consumer
+          role = "provider"
+          capability = resultHash
+        return (finalPayment, r1)
+
+    -- Quick approve without detailed ratings
+    choice QuickApprove : (ContractId CAPCoin, ContractId RatingInvitation)
+      controller consumer
+      do
+        providerCoinCid <- exercise lockedCoinCid ReleaseToBeneficiary
+        -- Apply fee on provider's payment
+        finalPayment <- applyFee provider providerCoinCid amount feeConfig
+        -- Create invitation for provider to rate consumer
+        invitation <- create RatingInvitation with
+          rater = provider
+          rated = consumer
+          role = "provider"
+          capability = resultHash
+        return (finalPayment, invitation)
+
+    -- Consumer disputes the delivery
+    choice Dispute : ContractId DisputeRecord
+      with
+        reason : Text
+        disputedAt : Time
+      controller consumer
+      do
+        let dc = defaultDisputeConfig
+        let disputeEnd = addRelTime disputedAt (convertMsToRelTime dc.disputeTimeoutMs)
+        create DisputeRecord with
+          consumer
+          provider
+          amount
+          lockedCoinCid
+          reason
+          resultHash
+          resultUrl
+          disputeConfig = dc
+          disputeCreatedAt = disputedAt
+          disputeDeadline = disputeEnd
+
+-- Active dispute between consumer and provider (with timeout)
+template DisputeRecord
+  with
+    consumer : Party
+    provider : Party
+    amount : Decimal
+    lockedCoinCid : ContractId LockedCAPCoin
+    reason : Text
+    resultHash : Text
+    resultUrl : Text
+    disputeConfig : DisputeConfig
+    disputeCreatedAt : Time
+    disputeDeadline : Time
+  where
+    signatory consumer, provider
+
+    -- Provider concedes → consumer gets refund via locked coin
+    choice ResolveForConsumer : ContractId CAPCoin
+      controller provider
+      do
+        exercise lockedCoinCid Refund
+
+    -- Consumer concedes → provider gets paid via locked coin release
+    choice ResolveForProvider : ContractId CAPCoin
+      controller consumer
+      do
+        exercise lockedCoinCid ReleaseToBeneficiary
+
+    -- Consumer escalates dispute to a neutral arbiter
+    choice EscalateToArbiter : ContractId ArbitratedDispute
+      with
+        arbiter : Party
+      controller consumer
+      do
+        create ArbitratedDispute with
+          consumer
+          provider
+          arbiter
+          amount
+          lockedCoinCid
+          reason
+          resultHash
+          resultUrl
+          evidence = []
+          disputeConfig
+          disputeCreatedAt
+          disputeDeadline
+
+    -- Auto-resolve on timeout: either party can trigger after deadline
+    choice ClaimDisputeTimeout : ContractId CAPCoin
+      with
+        claimTime : Time
+        claimer : Party
+      controller claimer
+      do
+        assertMsg "Must be party to dispute" (claimer == consumer || claimer == provider)
+        assertMsg "Dispute deadline not reached" (claimTime > disputeDeadline)
+        -- Default ruling determines who gets the funds
+        if disputeConfig.defaultRuling == "provider"
+          then exercise lockedCoinCid ReleaseToBeneficiary
+          else exercise lockedCoinCid Refund

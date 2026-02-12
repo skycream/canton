@@ -1,0 +1,2420 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAP — AI 에이전트를 위한 안전한 결제</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08080d;
+    --bg-alt: #0c0c14;
+    --card: #111119;
+    --card-hover: #16161f;
+    --border: #1a1a2a;
+    --border-hover: #2a2a3e;
+    --text: #e4e4ec;
+    --text-secondary: #a0a0b8;
+    --dim: #5a5a70;
+    --green: #00e87a;
+    --green-dim: rgba(0,232,122,0.12);
+    --blue: #4488ff;
+    --blue-dim: rgba(68,136,255,0.10);
+    --purple: #8855ff;
+    --purple-dim: rgba(136,85,255,0.10);
+    --orange: #ff8844;
+    --red: #ff4466;
+    --yellow: #ffcc00;
+    --cyan: #00ccff;
+    --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --glow-blue: 0 0 40px rgba(68,136,255,0.06);
+    --glow-green: 0 0 40px rgba(0,232,122,0.06);
+    --glow-purple: 0 0 40px rgba(136,85,255,0.06);
+    --nav-scrolled-bg: rgba(8, 8, 13, 0.88);
+    --hero-glow-1: rgba(68,136,255,0.06);
+    --hero-glow-2: rgba(136,85,255,0.03);
+    --btn-primary-from: #00d06a;
+    --btn-primary-to: #00aa55;
+    --btn-primary-hover-from: #00e87a;
+    --btn-primary-hover-to: #00cc6a;
+    --btn-primary-text: #000;
+    --btn-primary-shadow: rgba(0,208,106,0.2);
+    --btn-primary-hover-shadow: rgba(0,232,122,0.3);
+    --code-bg: var(--bg);
+  }
+
+  /* ── Light Theme ── */
+  [data-theme="light"] {
+    --bg: #f7f7fb;
+    --bg-alt: #eeeef4;
+    --card: #ffffff;
+    --card-hover: #f5f5fa;
+    --border: #d8d8e4;
+    --border-hover: #c0c0d0;
+    --text: #1a1a2e;
+    --text-secondary: #4a4a64;
+    --dim: #6a6a82;
+    --green: #00a85c;
+    --green-dim: rgba(0,168,92,0.10);
+    --blue: #2b6bdd;
+    --blue-dim: rgba(43,107,221,0.08);
+    --purple: #6633cc;
+    --purple-dim: rgba(102,51,204,0.08);
+    --orange: #d96a20;
+    --red: #d93050;
+    --yellow: #b89400;
+    --cyan: #0094bb;
+    --glow-blue: 0 4px 24px rgba(43,107,221,0.08);
+    --glow-green: 0 4px 24px rgba(0,168,92,0.08);
+    --glow-purple: 0 4px 24px rgba(102,51,204,0.08);
+    --nav-scrolled-bg: rgba(247, 247, 251, 0.92);
+    --hero-glow-1: rgba(43,107,221,0.06);
+    --hero-glow-2: rgba(102,51,204,0.04);
+    --btn-primary-from: #00b860;
+    --btn-primary-to: #009a50;
+    --btn-primary-hover-from: #00cc6a;
+    --btn-primary-hover-to: #00aa55;
+    --btn-primary-text: #fff;
+    --btn-primary-shadow: rgba(0,168,92,0.18);
+    --btn-primary-hover-shadow: rgba(0,184,96,0.25);
+    --code-bg: #f0f0f6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.7;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ── Nav Bar ── */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 0 40px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid transparent;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  nav.scrolled {
+    background: var(--nav-scrolled-bg);
+    backdrop-filter: blur(20px) saturate(1.2);
+    -webkit-backdrop-filter: blur(20px) saturate(1.2);
+    border-bottom-color: var(--border);
+  }
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: var(--text);
+  }
+  .nav-logo-mark {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    color: var(--green);
+  }
+  .nav-logo-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--dim);
+    display: none;
+    letter-spacing: 0.3px;
+  }
+  @media (min-width: 768px) {
+    .nav-logo-text { display: inline; }
+  }
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+  .nav-links a {
+    color: var(--dim);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: color 0.2s;
+    letter-spacing: 0.2px;
+  }
+  .nav-links a:hover { color: var(--text); }
+  .nav-cta {
+    padding: 8px 20px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--btn-primary-from), var(--btn-primary-to));
+    color: var(--btn-primary-text) !important;
+    font-weight: 700;
+    font-size: 13px !important;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 12px var(--btn-primary-shadow);
+  }
+  .nav-cta:hover {
+    background: linear-gradient(135deg, var(--btn-primary-hover-from), var(--btn-primary-hover-to));
+    box-shadow: 0 4px 20px var(--btn-primary-hover-shadow);
+    transform: translateY(-1px);
+  }
+
+  /* ── Theme Toggle ── */
+  .theme-toggle {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--dim);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+  }
+  .theme-toggle:hover {
+    border-color: var(--border-hover);
+    color: var(--text);
+    background: var(--card-hover);
+  }
+  .theme-toggle .icon-sun,
+  .theme-toggle .icon-moon { display: none; }
+  [data-theme="light"] .theme-toggle .icon-moon { display: block; }
+  [data-theme="light"] .theme-toggle .icon-sun { display: none; }
+  :root .theme-toggle .icon-sun { display: block; }
+  :root .theme-toggle .icon-moon { display: none; }
+  [data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+  [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+
+  /* ── Language Selector ── */
+  .lang-select {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .lang-select a {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--dim) !important;
+    text-decoration: none;
+    transition: all 0.2s;
+    letter-spacing: 0;
+    border: 1px solid transparent;
+  }
+  .lang-select a:hover { color: var(--text) !important; background: var(--card); }
+  .lang-select a.active {
+    color: var(--text) !important;
+    background: var(--card);
+    border-color: var(--border);
+  }
+  @media (max-width: 768px) {
+    .lang-select { gap: 0; }
+    .lang-select a { padding: 3px 5px; font-size: 10px; }
+  }
+
+  /* ── Sections ── */
+  section {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 120px 32px;
+    position: relative;
+  }
+  .section-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 16px;
+  }
+  .section-title {
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 16px;
+    line-height: 1.25;
+    letter-spacing: -0.5px;
+  }
+  .section-subtitle {
+    font-size: 16px;
+    color: var(--dim);
+    max-width: 560px;
+    margin-bottom: 56px;
+    line-height: 1.7;
+  }
+  .section-divider {
+    height: 1px;
+    max-width: 1120px;
+    margin: 0 auto;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+  }
+
+  /* ── Fade-in animation ── */
+  .fade-in {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── Hero ── */
+  .hero {
+    padding-top: 160px;
+    padding-bottom: 100px;
+    text-align: center;
+    position: relative;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, var(--hero-glow-1) 0%, var(--hero-glow-2) 40%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-title {
+    font-size: clamp(32px, 5vw, 54px);
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 24px;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, var(--text) 0%, var(--blue) 50%, var(--purple) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-subtitle {
+    font-size: clamp(15px, 1.8vw, 18px);
+    color: var(--dim);
+    max-width: 620px;
+    margin: 0 auto 40px;
+    line-height: 1.8;
+  }
+  .hero-buttons {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 72px;
+  }
+  .btn {
+    padding: 14px 32px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn:hover {
+    border-color: var(--border-hover);
+    background: var(--card-hover);
+    box-shadow: var(--glow-blue);
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--btn-primary-from), var(--btn-primary-to));
+    border-color: transparent;
+    color: var(--btn-primary-text);
+    font-weight: 700;
+    box-shadow: 0 2px 16px var(--btn-primary-shadow);
+  }
+  .btn-primary:hover {
+    background: linear-gradient(135deg, var(--btn-primary-hover-from), var(--btn-primary-hover-to));
+    box-shadow: 0 4px 24px var(--btn-primary-hover-shadow);
+    transform: translateY(-1px);
+  }
+
+  /* Hero flow animation */
+  .hero-flow {
+    max-width: 520px;
+    margin: 0 auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 32px;
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 13px;
+    box-shadow: 0 4px 40px rgba(0,0,0,0.12);
+  }
+  .flow-line {
+    opacity: 0;
+    transform: translateX(-12px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    padding: 4px 0;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .flow-line.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  .flow-line .actor { font-weight: 700; }
+  .flow-line .actor.alice { color: var(--blue); }
+  .flow-line .actor.bob { color: var(--purple); }
+  .flow-line .action { color: var(--dim); }
+  .flow-line .target { color: var(--green); }
+  .flow-line .escrow { color: var(--yellow); font-weight: 700; }
+  .flow-label {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--green-dim);
+    color: var(--green);
+    margin-left: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .flow-label.lock { background: rgba(255,204,0,0.10); color: var(--yellow); }
+  .flow-label.settle { background: rgba(0,232,122,0.10); color: var(--green); }
+
+  /* ── Section bg-alt ── */
+  .section-bg-alt {
+    background: var(--bg-alt);
+    max-width: none;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .section-bg-alt > * {
+    max-width: 1120px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+
+  /* ── Problem / Solution Cards ── */
+  .problem-solution {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  .ps-card {
+    padding: 32px;
+    border-radius: 14px;
+  }
+  .ps-before {
+    border: 1px solid var(--red);
+    background: rgba(255,68,102,0.03);
+  }
+  .ps-after {
+    border: 1px solid var(--green);
+    background: var(--green-dim);
+  }
+  .ps-card-title {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ps-before .ps-card-title { color: var(--red); }
+  .ps-after .ps-card-title { color: var(--green); }
+  .ps-item {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .ps-item:last-child { border-bottom: none; }
+  .ps-icon { font-size: 18px; flex-shrink: 0; }
+
+  /* ── 3-Step Flow ── */
+  .steps-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+    text-align: center;
+    position: relative;
+  }
+  .step-3-card {
+    position: relative;
+  }
+  .step-3-num {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 800;
+    margin: 0 auto 20px;
+    border: 2px solid var(--border);
+    background: var(--card);
+    color: var(--green);
+    transition: all 0.3s;
+  }
+  .step-3-card:hover .step-3-num {
+    border-color: var(--green);
+    box-shadow: 0 0 24px rgba(0,232,122,0.15);
+  }
+  .step-3-title {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 12px;
+    letter-spacing: -0.3px;
+  }
+  .step-3-desc {
+    font-size: 14px;
+    color: var(--dim);
+    line-height: 1.7;
+    max-width: 280px;
+    margin: 0 auto;
+  }
+  .step-3-arrow {
+    display: none;
+  }
+  @media (min-width: 769px) {
+    .step-3-arrow {
+      display: block;
+      position: absolute;
+      top: 32px;
+      right: -28px;
+      color: var(--dim);
+      font-size: 20px;
+      opacity: 0.5;
+    }
+  }
+
+  /* ── Business Use Case Cards ── */
+  .biz-cases {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+  .biz-card {
+    padding: 28px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .biz-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--glow-blue);
+    transform: translateY(-2px);
+  }
+  .biz-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    font-size: 24px;
+  }
+  .biz-card-icon.biz-cs { background: rgba(68,136,255,0.10); border: 1px solid rgba(68,136,255,0.20); }
+  .biz-card-icon.biz-logistics { background: rgba(0,232,122,0.08); border: 1px solid rgba(0,232,122,0.18); }
+  .biz-card-icon.biz-creative { background: rgba(136,85,255,0.10); border: 1px solid rgba(136,85,255,0.20); }
+  .biz-card-icon.biz-finance { background: rgba(255,136,68,0.10); border: 1px solid rgba(255,136,68,0.20); }
+  .biz-card h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.2px;
+  }
+  .biz-card p {
+    font-size: 14px;
+    color: var(--dim);
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+  .biz-card-link {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--blue);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .biz-card-link:hover { color: var(--text); }
+
+  /* ── Stats Counter ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    text-align: center;
+  }
+  .stat-item {
+    padding: 32px 16px;
+    border-radius: 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+  }
+  .stat-num {
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--green);
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+  .stat-label {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .stat-sub {
+    font-size: 12px;
+    color: var(--dim);
+  }
+
+  /* ── Comparison Table ── */
+  .compare-wrap {
+    overflow-x: auto;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+  }
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .compare-table th {
+    background: var(--card);
+    padding: 18px 20px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.3px;
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-table td {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table .feature-col {
+    font-weight: 600;
+    color: var(--text);
+    min-width: 160px;
+  }
+  .compare-highlight {
+    background: var(--green-dim);
+  }
+  .compare-highlight th {
+    color: var(--green);
+    background: var(--green-dim);
+  }
+
+  /* ── Persona CTA ── */
+  .persona-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .persona-card {
+    padding: 36px 28px;
+    border-radius: 14px;
+    text-align: center;
+    border: 1px solid var(--border);
+    background: var(--card);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .persona-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--glow-blue);
+    transform: translateY(-2px);
+  }
+  .persona-icon {
+    font-size: 36px;
+    margin-bottom: 16px;
+  }
+  .persona-card h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .persona-card p {
+    font-size: 14px;
+    color: var(--dim);
+    line-height: 1.7;
+    margin-bottom: 20px;
+  }
+  .persona-card .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+
+  /* ── FAQ Accordion ── */
+  .faq-list {
+    max-width: 720px;
+  }
+  .faq-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    background: var(--card);
+  }
+  .faq-q {
+    padding: 20px 24px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    font-size: 15px;
+    transition: color 0.2s;
+    user-select: none;
+  }
+  .faq-q:hover { color: var(--blue); }
+  .faq-q-icon {
+    font-size: 18px;
+    color: var(--dim);
+    transition: transform 0.3s;
+    flex-shrink: 0;
+    margin-left: 16px;
+  }
+  .faq-item.open .faq-q-icon { transform: rotate(180deg); }
+  .faq-a {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    padding: 0 24px;
+    font-size: 14px;
+    color: var(--dim);
+    line-height: 1.8;
+  }
+  .faq-item.open .faq-a {
+    max-height: 300px;
+    padding: 0 24px 20px;
+  }
+
+  /* ── Developer Deep Dive ── */
+  .deep-dive {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 32px 120px;
+  }
+  .deep-dive-toggle {
+    width: 100%;
+    padding: 24px 32px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s;
+  }
+  .deep-dive-toggle:hover {
+    border-color: var(--border-hover);
+    background: var(--card-hover);
+  }
+  .toggle-icon {
+    font-size: 14px;
+    color: var(--dim);
+    transition: transform 0.3s;
+  }
+  .deep-dive.open .toggle-icon { transform: rotate(180deg); }
+  .deep-dive-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease;
+  }
+  .deep-dive.open .deep-dive-content {
+    max-height: none;
+    overflow: visible;
+  }
+
+  /* ── Existing section styles kept for deep dive content ── */
+  .cards-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 28px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--glow-blue);
+    transform: translateY(-2px);
+  }
+  .card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    font-size: 20px;
+  }
+  .card-icon.privacy { background: rgba(68,136,255,0.10); border: 1px solid rgba(68,136,255,0.20); color: var(--blue); }
+  .card-icon.trust { background: rgba(0,232,122,0.08); border: 1px solid rgba(0,232,122,0.18); color: var(--green); }
+  .card-icon.auto { background: rgba(136,85,255,0.10); border: 1px solid rgba(136,85,255,0.20); color: var(--purple); }
+  .card h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    letter-spacing: -0.2px;
+  }
+  .card p {
+    font-size: 14px;
+    color: var(--dim);
+    line-height: 1.7;
+  }
+
+  /* ── How It Works — Timeline (inside deep dive) ── */
+  .timeline {
+    position: relative;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 20px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    top: 22px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--border), var(--border-hover), var(--border));
+  }
+  .timeline-step {
+    flex: 1;
+    min-width: 140px;
+    text-align: center;
+    position: relative;
+    padding: 0 8px;
+  }
+  .step-dot {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--card);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 14px;
+    font-family: var(--mono);
+    font-weight: 800;
+    font-size: 14px;
+    color: var(--dim);
+    position: relative;
+    z-index: 1;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .timeline-step:hover .step-dot {
+    border-color: var(--blue);
+    color: var(--blue);
+    box-shadow: 0 0 20px rgba(68,136,255,0.15);
+  }
+  .step-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .step-desc {
+    font-size: 12px;
+    color: var(--dim);
+    line-height: 1.5;
+  }
+  .step-escrow .step-dot {
+    border-color: var(--yellow);
+    color: var(--yellow);
+  }
+
+  /* Mobile timeline */
+  @media (max-width: 768px) {
+    .timeline {
+      flex-direction: column;
+      gap: 24px;
+    }
+    .timeline::before {
+      top: 0;
+      bottom: 0;
+      left: 22px;
+      right: auto;
+      width: 2px;
+      height: auto;
+    }
+    .timeline-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      text-align: left;
+      min-width: unset;
+      padding: 0;
+    }
+    .step-dot {
+      flex-shrink: 0;
+      margin: 0;
+    }
+    .step-content { flex: 1; padding-top: 6px; }
+  }
+
+  /* ── Use Cases ── */
+  .usecases-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+  .usecase-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .usecase-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--glow-purple);
+    transform: translateY(-2px);
+  }
+  .usecase-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .usecase-num {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-weight: 800;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .usecase-num.uc1 { background: rgba(0,232,122,0.10); color: var(--green); }
+  .usecase-num.uc2 { background: rgba(255,68,102,0.10); color: var(--red); }
+  .usecase-num.uc3 { background: rgba(136,85,255,0.10); color: var(--purple); }
+  .usecase-num.uc4 { background: rgba(255,136,68,0.10); color: var(--orange); }
+  .usecase-num.uc5 { background: rgba(0,204,255,0.10); color: var(--cyan); }
+  .usecase-num.uc6 { background: rgba(255,204,0,0.10); color: var(--yellow); }
+  .usecase-title {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+  }
+  .usecase-participants {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .participant-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 5px;
+    letter-spacing: 0.5px;
+  }
+  .badge-alice { background: rgba(68,136,255,0.12); color: var(--blue); }
+  .badge-bob { background: rgba(136,85,255,0.12); color: var(--purple); }
+  .badge-arbiter { background: rgba(255,136,68,0.12); color: var(--orange); }
+  .badge-treasury { background: rgba(0,204,255,0.12); color: var(--cyan); }
+  .usecase-analogy {
+    font-size: 13px;
+    color: var(--dim);
+    font-style: italic;
+    margin-bottom: 12px;
+  }
+  .usecase-desc {
+    font-size: 13px;
+    color: var(--dim);
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+  .usecase-result {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 7px;
+    background: rgba(0,232,122,0.06);
+    border: 1px solid rgba(0,232,122,0.12);
+    color: var(--green);
+    display: inline-block;
+  }
+  .usecase-result.refund {
+    background: rgba(68,136,255,0.06);
+    border-color: rgba(68,136,255,0.12);
+    color: var(--blue);
+  }
+  .usecase-result.split {
+    background: rgba(136,85,255,0.06);
+    border-color: rgba(136,85,255,0.12);
+    color: var(--purple);
+  }
+  .usecase-result.penalty {
+    background: rgba(255,136,68,0.06);
+    border-color: rgba(255,136,68,0.12);
+    color: var(--orange);
+  }
+  .usecase-result.fee {
+    background: rgba(0,204,255,0.06);
+    border-color: rgba(0,204,255,0.12);
+    color: var(--cyan);
+  }
+  .usecase-result.timeout {
+    background: rgba(255,204,0,0.06);
+    border-color: rgba(255,204,0,0.12);
+    color: var(--yellow);
+  }
+  @media (max-width: 768px) {
+    .usecases-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ── Architecture Stack ── */
+  .arch-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .arch-layer {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 28px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: default;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+  }
+  .arch-layer:hover {
+    border-color: var(--border-hover);
+    transform: translateX(6px);
+    box-shadow: var(--glow-blue);
+  }
+  .layer-num {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-weight: 800;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .layer-5 .layer-num { background: rgba(255,136,68,0.12); color: var(--orange); }
+  .layer-4 .layer-num { background: rgba(0,204,255,0.12); color: var(--cyan); }
+  .layer-3 .layer-num { background: rgba(0,232,122,0.08); color: var(--green); }
+  .layer-2 .layer-num { background: rgba(68,136,255,0.10); color: var(--blue); }
+  .layer-1 .layer-num { background: rgba(136,85,255,0.10); color: var(--purple); }
+  .layer-info { flex: 1; }
+  .layer-name {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 2px;
+    letter-spacing: -0.2px;
+  }
+  .layer-desc {
+    font-size: 13px;
+    color: var(--dim);
+  }
+  .layer-arrow {
+    text-align: center;
+    color: var(--dim);
+    font-size: 12px;
+    padding: 0 0 0 24px;
+    opacity: 0.4;
+  }
+
+  /* ── Features Grid ── */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+  }
+  .feature-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .feature-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--glow-blue);
+    transform: translateY(-2px);
+  }
+  .feature-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .feature-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .feature-icon.escrow { background: rgba(0,232,122,0.08); border: 1px solid rgba(0,232,122,0.15); }
+  .feature-icon.sla { background: rgba(255,136,68,0.08); border: 1px solid rgba(255,136,68,0.15); }
+  .feature-icon.dispute { background: rgba(255,68,102,0.08); border: 1px solid rgba(255,68,102,0.15); }
+  .feature-icon.fees { background: rgba(0,204,255,0.08); border: 1px solid rgba(0,204,255,0.15); }
+  .feature-icon.reputation { background: rgba(255,204,0,0.08); border: 1px solid rgba(255,204,0,0.15); }
+  .feature-icon.privacy-icon { background: rgba(68,136,255,0.08); border: 1px solid rgba(68,136,255,0.15); }
+  .feature-name {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+  }
+  .feature-desc {
+    font-size: 13px;
+    color: var(--dim);
+    line-height: 1.7;
+    margin-bottom: 12px;
+  }
+  .feature-code {
+    font-family: var(--mono);
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 11px;
+    margin: 14px 0;
+    overflow-x: auto;
+    line-height: 1.7;
+  }
+  .feature-code .kw { color: var(--purple); }
+  .feature-code .ty { color: var(--cyan); }
+  .feature-code .fn { color: var(--blue); }
+  .feature-code .st { color: var(--green); }
+  .feature-code .cm { color: var(--dim); }
+  .feature-code .nu { color: var(--orange); }
+  .feature-module {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    color: var(--dim);
+    display: inline-block;
+  }
+
+  /* ── Code Examples ── */
+  .code-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+  .code-tab {
+    padding: 12px 24px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    background: none;
+    border: none;
+    color: var(--dim);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    margin-bottom: -1px;
+  }
+  .code-tab:hover { color: var(--text); }
+  .code-tab.active {
+    color: var(--green);
+    border-bottom-color: var(--green);
+  }
+  .code-panel {
+    display: none;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    padding: 28px;
+    overflow-x: auto;
+  }
+  .code-panel.active { display: block; }
+  .code-panel pre {
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--text);
+  }
+  .code-panel .comment { color: var(--dim); }
+  .code-panel .keyword { color: var(--purple); }
+  .code-panel .string { color: var(--green); }
+  .code-panel .func { color: var(--blue); }
+  .code-panel .type { color: var(--cyan); }
+  .code-panel .number { color: var(--orange); }
+  .code-panel .flag { color: var(--yellow); }
+
+  /* ── Quick Start ── */
+  .quickstart-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 640px;
+  }
+  .qs-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .qs-num {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--card);
+    border: 2px solid var(--green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--green);
+    flex-shrink: 0;
+  }
+  .qs-content { flex: 1; padding-top: 6px; }
+  .qs-label {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .qs-cmd {
+    font-family: var(--mono);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 13px;
+    color: var(--green);
+    overflow-x: auto;
+  }
+  .qs-cmd .prompt { color: var(--dim); user-select: none; }
+
+  /* ── Footer ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 48px 32px;
+    text-align: center;
+    background: var(--bg-alt);
+  }
+  .footer-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+  .footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-bottom: 20px;
+  }
+  .footer-links a {
+    color: var(--dim);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--text); }
+  .footer-copy {
+    font-size: 12px;
+    color: var(--dim);
+    opacity: 0.7;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    section { padding: 72px 20px; }
+    .section-bg-alt { padding: 72px 0; }
+    .section-bg-alt > * { padding-left: 20px; padding-right: 20px; }
+    .hero { padding-top: 110px; }
+    .section-title { font-size: 24px; }
+    nav { padding: 0 20px; height: 56px; }
+    .nav-links a.hide-mobile { display: none; }
+    .hero-flow { font-size: 11px; padding: 20px 16px; }
+    .features-grid { grid-template-columns: 1fr; }
+    .arch-stack { max-width: 100%; }
+    .hero::before { width: 300px; height: 300px; }
+    .problem-solution { grid-template-columns: 1fr; }
+    .steps-3 { grid-template-columns: 1fr; gap: 24px; }
+    .biz-cases { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .persona-grid { grid-template-columns: 1fr; }
+    .compare-table { font-size: 12px; }
+    .compare-table th, .compare-table td { padding: 12px 10px; }
+    .deep-dive { padding: 0 20px 72px; }
+    .deep-dive-toggle { padding: 20px; font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Nav Bar ── -->
+<nav id="navbar">
+  <a href="/" class="nav-logo">
+    <span class="nav-logo-mark">CAP</span>
+    <span class="nav-logo-text">Canton Agent Protocol</span>
+  </a>
+  <div class="nav-links">
+    <a href="#how" class="hide-mobile">작동 방식</a>
+    <a href="#usecases-biz" class="hide-mobile">활용 사례</a>
+    <a href="#compare" class="hide-mobile">비교</a>
+    <a href="#faq" class="hide-mobile">FAQ</a>
+    <a href="#developer" class="hide-mobile">개발자</a>
+    <a href="#quickstart" class="nav-cta">시작하기</a>
+    <div class="lang-select">
+      <a href="/">EN</a>
+      <a href="/ko.html" class="active">KO</a>
+      <a href="/zh.html">ZH</a>
+      <a href="/ja.html">JA</a>
+    </div>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+      <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.73 12.73l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- 1. HERO — Question-based headline                 -->
+<!-- ══════════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="fade-in">
+    <h1 class="hero-title">AI 에이전트가 서로 안전하게<br>결제할 수 있다면?</h1>
+    <p class="hero-subtitle">
+      CAP은 AI 에이전트를 위한 결제 프로토콜입니다.<br>
+      봇을 위한 <strong>PayPal</strong>이라고 생각하세요 &mdash; 에스크로,
+      분쟁 해결, 완전한 거래 프라이버시가 내장되어 있습니다.
+    </p>
+    <div class="hero-buttons">
+      <a href="#how" class="btn btn-primary">작동 방식 보기 &darr;</a>
+      <a href="#quickstart" class="btn">시작하기 &rarr;</a>
+    </div>
+  </div>
+
+  <div class="hero-flow fade-in" id="hero-flow">
+    <div class="flow-line" style="transition-delay: 0.1s">
+      <span class="actor alice">구매 봇</span>
+      <span class="action"> &mdash;&mdash;Request&mdash;&mdash;&blacktriangleright; </span>
+      <span class="actor bob">판매 봇</span>
+      <span class="flow-label">협상</span>
+    </div>
+    <div class="flow-line" style="transition-delay: 0.3s">
+      <span class="actor alice">구매 봇</span>
+      <span class="action"> &blacktriangleleft;&mdash;&mdash;Offer&mdash;&mdash;&mdash; </span>
+      <span class="actor bob">판매 봇</span>
+      <span class="flow-label">합의</span>
+    </div>
+    <div class="flow-line" style="transition-delay: 0.5s">
+      <span class="actor alice">구매 봇</span>
+      <span class="action"> &mdash;&mdash;Lock $&mdash;&mdash;&blacktriangleright; </span>
+      <span class="escrow">[Safe]</span>
+      <span class="flow-label lock">에스크로</span>
+    </div>
+    <div class="flow-line" style="transition-delay: 0.7s">
+      <span class="actor bob">판매 봇</span>
+      <span class="action"> &mdash;&mdash;Deliver&mdash;&mdash;&blacktriangleright; </span>
+      <span class="actor alice">구매 봇</span>
+      <span class="flow-label">이행</span>
+    </div>
+    <div class="flow-line" style="transition-delay: 0.9s">
+      <span class="actor alice">구매 봇</span>
+      <span class="action"> &mdash;&mdash;Approve&mdash;&mdash;&blacktriangleright; </span>
+      <span class="escrow">[Safe]</span>
+      <span class="action"> &mdash;&mdash;Pay&mdash;&mdash;&blacktriangleright; </span>
+      <span class="actor bob">판매 봇</span>
+      <span class="flow-label settle">정산</span>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- 2. PROBLEM → SOLUTION                             -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="problem" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">문제점</div>
+    <h2 class="section-title">AI 에이전트는 아직 안전하게 결제할 수 없습니다</h2>
+    <p class="section-subtitle">
+      오늘날 AI가 다른 AI를 고용할 때, 돈을 안전하게 처리할 방법이 없습니다. CAP이 이를 바꿉니다.
+    </p>
+  </div>
+
+  <div class="problem-solution fade-in">
+    <div class="ps-card ps-before">
+      <div class="ps-card-title"><span>&#x26A0;&#xFE0F;</span> CAP 없이</div>
+      <div class="ps-item"><span class="ps-icon">&#x274C;</span> 선불 결제 시 사기 위험</div>
+      <div class="ps-item"><span class="ps-icon">&#x274C;</span> 서비스 제공자의 이력을 검증할 방법 없음</div>
+      <div class="ps-item"><span class="ps-icon">&#x274C;</span> 문제 발생 시 구제 방법 없음</div>
+      <div class="ps-item"><span class="ps-icon">&#x274C;</span> 거래 내역이 경쟁사에 노출</div>
+      <div class="ps-item"><span class="ps-icon">&#x274C;</span> SLA 위반에 대한 강제력 없음</div>
+    </div>
+    <div class="ps-card ps-after">
+      <div class="ps-card-title"><span>&#x2705;</span> CAP과 함께</div>
+      <div class="ps-item"><span class="ps-icon">&#x1F512;</span> 에스크로가 납품 확인 시까지 자금을 보호</div>
+      <div class="ps-item"><span class="ps-icon">&#x2B50;</span> 양방향 평판 시스템으로 신뢰도 확인</div>
+      <div class="ps-item"><span class="ps-icon">&#x2696;&#xFE0F;</span> 자동 중재 + 환불</div>
+      <div class="ps-item"><span class="ps-icon">&#x1F6E1;&#xFE0F;</span> 완전한 거래 프라이버시</div>
+      <div class="ps-item"><span class="ps-icon">&#x26A1;</span> SLA 위반 시 자동 페널티 + 자동 환불</div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- 3. HOW IT WORKS — Simplified 3-Step               -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="how">
+  <div class="fade-in">
+    <div class="section-label">작동 방식</div>
+    <h2 class="section-title">세 가지 간단한 단계</h2>
+    <p class="section-subtitle">
+      합의부터 결제까지 &mdash; 완전 자동, 완전 보호.
+    </p>
+  </div>
+
+  <div class="steps-3 fade-in">
+    <div class="step-3-card">
+      <div class="step-3-num">1</div>
+      <div class="step-3-title">합의</div>
+      <div class="step-3-desc">
+        AI 에이전트가 서비스와 가격에 합의합니다. 자금은 안전한 에스크로에 잠기며, 작업이 완료될 때까지 어느 쪽도 자금에 접근할 수 없습니다.
+      </div>
+      <span class="step-3-arrow">&rarr;</span>
+    </div>
+    <div class="step-3-card">
+      <div class="step-3-num">2</div>
+      <div class="step-3-title">이행</div>
+      <div class="step-3-desc">
+        서비스 제공자가 결과를 전달합니다. 만족하지 못하셨나요? 내장된 분쟁 시스템이 중재와 환불로 구매자를 보호합니다.
+      </div>
+      <span class="step-3-arrow">&rarr;</span>
+    </div>
+    <div class="step-3-card">
+      <div class="step-3-num">3</div>
+      <div class="step-3-title">정산</div>
+      <div class="step-3-desc">
+        승인되면 자동으로 결제가 이루어집니다. 지연 납품? 자동 페널티. 무응답? 자동 환불. 모든 것이 코드로 강제됩니다.
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- 4. BUSINESS USE CASES                             -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="usecases-biz" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">활용 사례</div>
+    <h2 class="section-title">AI 에이전트 경제를 위해 만들어졌습니다</h2>
+    <p class="section-subtitle">
+      고객 서비스부터 자율 물류까지 &mdash; AI 에이전트가 거래해야 하는 모든 곳.
+    </p>
+  </div>
+
+  <div class="biz-cases fade-in">
+    <div class="biz-card">
+      <div class="biz-card-icon biz-cs">&#x1F4AC;</div>
+      <h3>AI 고객 서비스</h3>
+      <p>챗봇이 전문 에이전트를 고용합니다 &mdash; 법률 조회, 번역, 데이터 분석 &mdash; 건별 과금. 에스크로가 결제 전 품질을 보장합니다.</p>
+      <a href="#developer" class="biz-card-link" data-open-deep-dive>자세히 보기 &rarr;</a>
+    </div>
+    <div class="biz-card">
+      <div class="biz-card-icon biz-logistics">&#x1F69A;</div>
+      <h3>자율 물류</h3>
+      <p>배달 드론과 로봇이 충전소, 창고, 경로 플래너와 자동으로 거래합니다. 실시간, 사람 개입 없음.</p>
+      <a href="#developer" class="biz-card-link" data-open-deep-dive>자세히 보기 &rarr;</a>
+    </div>
+    <div class="biz-card">
+      <div class="biz-card-icon biz-creative">&#x1F3A8;</div>
+      <h3>크리에이티브 AI 파이프라인</h3>
+      <p>이미지 생성, 편집, 배경 제거 &mdash; 에이전트들이 각 단계를 자동으로 하청합니다. 완료된 작업에만 과금.</p>
+      <a href="#developer" class="biz-card-link" data-open-deep-dive>자세히 보기 &rarr;</a>
+    </div>
+    <div class="biz-card">
+      <div class="biz-card-icon biz-finance">&#x1F4C8;</div>
+      <h3>금융 데이터</h3>
+      <p>트레이딩 봇이 데이터 피드, 분석 에이전트, 실행 서비스에 실시간으로 과금합니다. SLA 페널티가 자동으로 지연 요건을 강제합니다.</p>
+      <a href="#developer" class="biz-card-link" data-open-deep-dive>자세히 보기 &rarr;</a>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- 5. STATS / SOCIAL PROOF                           -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="stats">
+  <div class="fade-in">
+    <div class="section-label">주요 수치</div>
+    <h2 class="section-title">프로토콜 한눈에 보기</h2>
+    <p class="section-subtitle">
+      CAP 프로토콜을 정의하는 핵심 지표.
+    </p>
+  </div>
+
+  <div class="stats-row fade-in">
+    <div class="stat-item">
+      <div class="stat-num">6</div>
+      <div class="stat-label">에스크로 시나리오</div>
+      <div class="stat-sub">모든 결제 경로 지원</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">&lt; 2s</div>
+      <div class="stat-label">정산 지연 시간</div>
+      <div class="stat-sub">거의 즉각적인 완결성</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">100%</div>
+      <div class="stat-label">온체인 강제</div>
+      <div class="stat-sub">신용 시스템 불필요</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">0</div>
+      <div class="stat-label">데이터 유출</div>
+      <div class="stat-sub">서브-트랜잭션 프라이버시</div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- 6. COMPARISON TABLE                               -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="compare" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">비교</div>
+    <h2 class="section-title">CAP의 차별점</h2>
+    <p class="section-subtitle">
+      AI 에이전트를 위한 기존 결제 방식과 CAP을 비교해 보세요.
+    </p>
+  </div>
+
+  <div class="compare-wrap fade-in">
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>기능</th>
+          <th>기존 API 과금</th>
+          <th>암호화폐 결제</th>
+          <th class="compare-highlight">CAP 프로토콜</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="feature-col">에스크로 보호</td>
+          <td>&#x274C; 없음</td>
+          <td>&#x26A0;&#xFE0F; 부분적</td>
+          <td class="compare-highlight">&#x2705; 내장</td>
+        </tr>
+        <tr>
+          <td class="feature-col">분쟁 해결</td>
+          <td>수동 지원 티켓</td>
+          <td>&#x274C; 없음</td>
+          <td class="compare-highlight">&#x2705; 자동 3단계</td>
+        </tr>
+        <tr>
+          <td class="feature-col">프라이버시</td>
+          <td>&#x274C; 로그 노출</td>
+          <td>&#x2705; 익명</td>
+          <td class="compare-highlight">&#x2705; 서브-트랜잭션 프라이빗</td>
+        </tr>
+        <tr>
+          <td class="feature-col">SLA 강제</td>
+          <td>&#x274C; 신용 시스템</td>
+          <td>&#x274C; 없음</td>
+          <td class="compare-highlight">&#x2705; 자동 페널티</td>
+        </tr>
+        <tr>
+          <td class="feature-col">정산 속도</td>
+          <td>수일</td>
+          <td>수분</td>
+          <td class="compare-highlight">수초</td>
+        </tr>
+        <tr>
+          <td class="feature-col">스마트 컨트랙트</td>
+          <td>&#x274C; 없음</td>
+          <td>&#x26A0;&#xFE0F; 퍼블릭 체인</td>
+          <td class="compare-highlight">&#x2705; 엔터프라이즈 Daml</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- 7. PERSONA CTA                                    -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="persona">
+  <div class="fade-in">
+    <div class="section-label">시작하기</div>
+    <h2 class="section-title">CAP이 어떻게 도움이 될까요?</h2>
+    <p class="section-subtitle">
+      구축, 의사결정, 투자 &mdash; 당신에게 맞는 경로가 있습니다.
+    </p>
+  </div>
+
+  <div class="persona-grid fade-in">
+    <div class="persona-card">
+      <div class="persona-icon">&#x1F4BC;</div>
+      <h3>비즈니스 리더</h3>
+      <p>AI 에이전트 생태계에 안전한 결제 인프라가 필요하신가요? 실제 적용 사례를 확인하세요.</p>
+      <a href="#usecases-biz" class="btn">활용 사례 보기</a>
+    </div>
+    <div class="persona-card">
+      <div class="persona-icon">&#x1F4BB;</div>
+      <h3>개발자</h3>
+      <p>Python SDK, REST API, Daml 스마트 컨트랙트 &mdash; 몇 분 만에 통합하세요.</p>
+      <a href="#developer" class="btn btn-primary" data-open-deep-dive>개발자 문서 &rarr;</a>
+    </div>
+    <div class="persona-card">
+      <div class="persona-icon">&#x1F4CA;</div>
+      <h3>투자자 / 파트너</h3>
+      <p>Canton Network 기반 엔터프라이즈 프로토콜. 아키텍처를 살펴보세요.</p>
+      <a href="#developer" class="btn" data-open-deep-dive>아키텍처 보기 &rarr;</a>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- 8. FAQ                                            -->
+<!-- ══════════════════════════════════════════════════ -->
+<section id="faq" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">FAQ</div>
+    <h2 class="section-title">자주 묻는 질문</h2>
+    <p class="section-subtitle">
+      CAP에 대한 일반적인 질문에 대한 빠른 답변.
+    </p>
+  </div>
+
+  <div class="faq-list fade-in">
+    <div class="faq-item">
+      <div class="faq-q">CAP은 블록체인인가요?<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">CAP 자체는 블록체인이 아닙니다. Canton Network 위에서 실행되는 프로토콜입니다 &mdash; 엔터프라이즈급 분산 원장입니다. Canton은 블록체인과 동일한 보장(불변성, 합의)을 제공하면서도 서브-트랜잭션 프라이버시와 엔터프라이즈 성능을 갖추고 있습니다.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">에스크로에 잠긴 자금은 어떻게 보호되나요?<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">자금은 엄격한 규칙을 강제하는 Daml 스마트 컨트랙트(LockedCAPCoin)에 잠깁니다: 양쪽이 합의하거나 분쟁 해결 프로세스를 통해서만 자금이 이동할 수 있습니다. 어떤 단일 당사자도 에스크로 자금을 일방적으로 인출할 수 없습니다.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">기존 AI 시스템과 어떻게 통합하나요?<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">CAP은 Python SDK와 REST API를 제공합니다. 몇 줄의 코드만으로 AI 에이전트에 결제 기능을 추가할 수 있습니다. SDK가 에스크로, 납품 확인, 정산을 자동으로 처리합니다.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">분쟁이 발생하면 어떻게 해결되나요?<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">CAP에는 3단계 분쟁 프로세스가 있습니다: 먼저 서비스 제공자가 환불을 수락할 수 있고, 그렇지 않으면 양측이 협상할 수 있으며, 마지막으로 중립적인 중재자가 분할 판정(예: 제공자 60%, 환불 40%)을 내릴 수 있습니다. 모든 결과는 스마트 컨트랙트에 의해 강제됩니다.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Canton Network는 무엇인가요?<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">Canton Network는 Digital Asset이 구축한 엔터프라이즈 블록체인 인프라입니다. 핵심 차별점은 서브-트랜잭션 프라이버시입니다 &mdash; 참여자는 자신이 관여한 트랜잭션 부분만 볼 수 있으며, 모든 것이 공개되는 퍼블릭 블록체인과 다릅니다.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">수수료는 어떻게 되나요?<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">CAP은 구성 가능한 프로토콜 수수료(예: 거래당 2%)를 지원하며, 정산 시 자동으로 분리되어 재무 계정으로 전송됩니다. 수수료율은 전역으로 설정되며 온체인에서 강제됩니다 &mdash; 수동 수금이 필요 없습니다.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">어떤 프로그래밍 언어를 지원하나요?<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">현재 CAP은 에이전트 통합을 위한 Python SDK와 모든 언어에서 접근 가능한 REST API를 제공합니다. 스마트 컨트랙트는 Daml로 작성됩니다. REST API를 통해 JavaScript, Go, Rust, Java 등 HTTP를 지원하는 모든 언어에서 통합할 수 있습니다.</div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- 9. DEVELOPER DEEP DIVE (collapsible wrapper)      -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="deep-dive" id="developer">
+  <button class="deep-dive-toggle">
+    &#x1F527; 개발자 딥 다이브 &mdash; 기술 상세
+    <span class="toggle-icon">&#x25BC;</span>
+  </button>
+  <div class="deep-dive-content">
+
+<!-- ── Why CAP? (Technical) ── -->
+<section id="why" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">왜 CAP인가?</div>
+    <h2 class="section-title">AI 에이전트 상거래의 문제점</h2>
+    <p class="section-subtitle">
+      AI 에이전트에게 경제적 거래가 필요하지만, 현재 시스템은 데이터를 유출하고, 맹목적 신뢰를 요구하며, 강제력이 부족합니다.
+    </p>
+  </div>
+
+  <div class="cards-3 fade-in">
+    <div class="card">
+      <div class="card-icon privacy">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h3>프라이버시 우선</h3>
+      <p>Canton Network 기반의 서브-트랜잭션 프라이버시. 경쟁 에이전트가 거래 세부 정보를 관찰할 수 없습니다 &mdash; Canton만의 고유한 기능입니다.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon trust">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <h3>무신뢰 상거래</h3>
+      <p>에스크로 기반 원자적 결제. 합의 없이는 자금이 이동할 수 없습니다. 스마트 컨트랙트가 원장의 모든 규칙을 강제합니다.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon auto">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.73 12.73l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </div>
+      <h3>자동 강제 실행</h3>
+      <p>지연 위반에 대한 자동 SLA 페널티. 타임아웃 기반 자동 환불. 정산 시 프로토콜 수수료 자동 수금.</p>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── How It Works (7-Step) ── -->
+<section id="how-detail">
+  <div class="fade-in">
+    <div class="section-label">프로토콜 흐름</div>
+    <h2 class="section-title">7단계 프로토콜 흐름</h2>
+    <p class="section-subtitle">
+      탐색부터 정산까지 &mdash; 모든 단계가 Canton의 Daml 스마트 컨트랙트로 보호됩니다.
+    </p>
+  </div>
+
+  <div class="timeline fade-in">
+    <div class="timeline-step">
+      <div class="step-dot">1</div>
+      <div class="step-content">
+        <div class="step-title">탐색</div>
+        <div class="step-desc">에이전트가 서비스 카탈로그를 검색합니다</div>
+      </div>
+    </div>
+    <div class="timeline-step">
+      <div class="step-dot">2</div>
+      <div class="step-content">
+        <div class="step-title">요청</div>
+        <div class="step-desc">소비자가 서비스 요청 + 예산을 전송합니다</div>
+      </div>
+    </div>
+    <div class="timeline-step">
+      <div class="step-dot">3</div>
+      <div class="step-content">
+        <div class="step-title">제안</div>
+        <div class="step-desc">제공자가 가격과 납품 시간을 제안합니다</div>
+      </div>
+    </div>
+    <div class="timeline-step step-escrow">
+      <div class="step-dot">4</div>
+      <div class="step-content">
+        <div class="step-title">잠금</div>
+        <div class="step-desc">합의 시 에스크로에 자금이 잠깁니다</div>
+      </div>
+    </div>
+    <div class="timeline-step">
+      <div class="step-dot">5</div>
+      <div class="step-content">
+        <div class="step-title">납품</div>
+        <div class="step-desc">제공자가 결과 해시를 제출합니다</div>
+      </div>
+    </div>
+    <div class="timeline-step">
+      <div class="step-dot">6</div>
+      <div class="step-content">
+        <div class="step-title">승인</div>
+        <div class="step-desc">소비자가 검토, 승인 및 평가합니다</div>
+      </div>
+    </div>
+    <div class="timeline-step step-escrow">
+      <div class="step-dot">7</div>
+      <div class="step-content">
+        <div class="step-title">정산</div>
+        <div class="step-desc">에스크로가 자동으로 자금을 해제합니다</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── Use Cases (6 Scenarios) ── -->
+<section id="usecases" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">시나리오</div>
+    <h2 class="section-title">6가지 실제 시나리오</h2>
+    <p class="section-subtitle">
+      프로토콜의 모든 경로 &mdash; 정상 처리부터 타임아웃 환불까지 &mdash; 엔드투엔드 시연.
+    </p>
+  </div>
+
+  <div class="usecases-grid fade-in">
+    <div class="usecase-card">
+      <div class="usecase-header">
+        <div class="usecase-num uc1">1</div>
+        <div class="usecase-title">Happy Path</div>
+      </div>
+      <div class="usecase-participants">
+        <span class="participant-badge badge-alice">Alice</span>
+        <span class="participant-badge badge-bob">Bob</span>
+      </div>
+      <div class="usecase-analogy">Like a perfect Fiverr transaction</div>
+      <div class="usecase-desc">
+        Alice hires Bob's translation agent. Bob delivers a perfect result.
+        Alice approves with a 5-star rating. Escrow releases full payment to Bob.
+      </div>
+      <span class="usecase-result">Bob receives 0.50 CAP</span>
+    </div>
+
+    <div class="usecase-card">
+      <div class="usecase-header">
+        <div class="usecase-num uc2">2</div>
+        <div class="usecase-title">Dispute Resolution</div>
+      </div>
+      <div class="usecase-participants">
+        <span class="participant-badge badge-alice">Alice</span>
+        <span class="participant-badge badge-bob">Bob</span>
+      </div>
+      <div class="usecase-analogy">Like a PayPal refund</div>
+      <div class="usecase-desc">
+        Bob delivers a poor-quality result. Alice raises a dispute.
+        Bob acknowledges the issue and accepts full refund via ResolveForConsumer.
+      </div>
+      <span class="usecase-result refund">Alice refunded 0.50 CAP</span>
+    </div>
+
+    <div class="usecase-card">
+      <div class="usecase-header">
+        <div class="usecase-num uc3">3</div>
+        <div class="usecase-title">Arbiter Mediation</div>
+      </div>
+      <div class="usecase-participants">
+        <span class="participant-badge badge-alice">Alice</span>
+        <span class="participant-badge badge-bob">Bob</span>
+        <span class="participant-badge badge-arbiter">Arbiter</span>
+      </div>
+      <div class="usecase-analogy">Like a court-mediated settlement</div>
+      <div class="usecase-desc">
+        Bob delivers 60% of the work. Both parties disagree on refund amount.
+        Dispute escalates to a neutral arbiter who rules a 60/40 split.
+      </div>
+      <span class="usecase-result split">Bob 0.30 CAP &middot; Alice 0.20 CAP</span>
+    </div>
+
+    <div class="usecase-card">
+      <div class="usecase-header">
+        <div class="usecase-num uc4">4</div>
+        <div class="usecase-title">SLA Penalty</div>
+      </div>
+      <div class="usecase-participants">
+        <span class="participant-badge badge-alice">Alice</span>
+        <span class="participant-badge badge-bob">Bob</span>
+      </div>
+      <div class="usecase-analogy">Like a late delivery discount</div>
+      <div class="usecase-desc">
+        Bob delivers past the agreed deadline. The SLA contract automatically
+        applies a 20% penalty. Bob receives reduced payment, Alice gets partial refund.
+      </div>
+      <span class="usecase-result penalty">Bob 0.40 CAP &middot; Alice refund 0.10 CAP</span>
+    </div>
+
+    <div class="usecase-card">
+      <div class="usecase-header">
+        <div class="usecase-num uc5">5</div>
+        <div class="usecase-title">Protocol Fees</div>
+      </div>
+      <div class="usecase-participants">
+        <span class="participant-badge badge-alice">Alice</span>
+        <span class="participant-badge badge-bob">Bob</span>
+        <span class="participant-badge badge-treasury">Treasury</span>
+      </div>
+      <div class="usecase-analogy">Like a marketplace commission</div>
+      <div class="usecase-desc">
+        Standard transaction with 2% protocol fee enabled. At settlement,
+        the fee is automatically separated and sent to the Treasury account.
+      </div>
+      <span class="usecase-result fee">Bob 0.49 CAP &middot; Treasury 0.01 CAP</span>
+    </div>
+
+    <div class="usecase-card">
+      <div class="usecase-header">
+        <div class="usecase-num uc6">6</div>
+        <div class="usecase-title">Timeout Refund</div>
+      </div>
+      <div class="usecase-participants">
+        <span class="participant-badge badge-alice">Alice</span>
+        <span class="participant-badge badge-bob">Bob</span>
+      </div>
+      <div class="usecase-analogy">Like an auto-cancellation after no response</div>
+      <div class="usecase-desc">
+        Bob's agent goes offline and never delivers. The deadline passes.
+        Alice calls ClaimTimeout and escrow automatically returns all funds.
+      </div>
+      <span class="usecase-result timeout">Alice refunded 0.50 CAP</span>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── Architecture ── -->
+<section id="architecture">
+  <div class="fade-in">
+    <div class="section-label">아키텍처</div>
+    <h2 class="section-title">5-레이어 스택</h2>
+    <p class="section-subtitle">
+      스마트 컨트랙트부터 인터랙티브 UI까지 &mdash; 풀스택 프로토콜.
+    </p>
+  </div>
+
+  <div class="arch-stack fade-in">
+    <div class="arch-layer layer-5">
+      <div class="layer-num">5</div>
+      <div class="layer-info">
+        <div class="layer-name">Web Demo</div>
+        <div class="layer-desc">Interactive 6-scenario demo with real-time visualization</div>
+      </div>
+    </div>
+    <div class="layer-arrow">&darr;</div>
+    <div class="arch-layer layer-4">
+      <div class="layer-num">4</div>
+      <div class="layer-info">
+        <div class="layer-name">CAP API Gateway</div>
+        <div class="layer-desc">REST + WebSocket endpoints (Express.js on :4000)</div>
+      </div>
+    </div>
+    <div class="layer-arrow">&darr;</div>
+    <div class="arch-layer layer-3">
+      <div class="layer-num">3</div>
+      <div class="layer-info">
+        <div class="layer-name">Python SDK</div>
+        <div class="layer-desc">CAPClient + CAPProvider classes for agent integration</div>
+      </div>
+    </div>
+    <div class="layer-arrow">&darr;</div>
+    <div class="arch-layer layer-2">
+      <div class="layer-num">2</div>
+      <div class="layer-info">
+        <div class="layer-name">Canton Ledger</div>
+        <div class="layer-desc">Daml JSON API on :7575 with sub-transaction privacy</div>
+      </div>
+    </div>
+    <div class="layer-arrow">&darr;</div>
+    <div class="arch-layer layer-1">
+      <div class="layer-num">1</div>
+      <div class="layer-info">
+        <div class="layer-name">Daml Smart Contracts</div>
+        <div class="layer-desc">Token &middot; Agent &middot; Service &middot; Escrow &middot; Reputation</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── Core Features ── -->
+<section id="features" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">핵심 기능</div>
+    <h2 class="section-title">실제 에이전트 상거래를 위한 설계</h2>
+    <p class="section-subtitle">
+      프로덕션 준비 완료된 6가지 기능, 모두 온체인에서 강제.
+    </p>
+  </div>
+
+  <div class="features-grid fade-in">
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-icon escrow">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M12 14v2"/></svg>
+        </div>
+        <div class="feature-name">Atomic Escrow</div>
+      </div>
+      <div class="feature-desc">
+        LockedCAPCoin pattern ensures funds are locked atomically and cannot move without mutual consent.
+        The escrow flows through a strict state machine: Escrow &rarr; Deliver &rarr; PendingReview &rarr; ApproveAndPay &rarr; Settlement.
+        All-or-nothing guarantees prevent partial fund leakage.
+      </div>
+      <div class="feature-code"><span class="cm">-- Daml: Lock funds into escrow</span>
+<span class="kw">template</span> <span class="ty">LockedCAPCoin</span> <span class="kw">with</span>
+    lock : <span class="ty">Lock</span>; coin : <span class="ty">CAPCoin</span>
+  <span class="kw">where</span>
+    <span class="fn">signatory</span> coin.owner
+    <span class="kw">choice</span> <span class="ty">Release</span> : <span class="ty">ContractId CAPCoin</span>
+      <span class="fn">controller</span> lock.locker
+      <span class="kw">do</span> <span class="fn">create</span> coin</div>
+      <span class="feature-module">Cap.Escrow</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-icon sla">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        </div>
+        <div class="feature-name">SLA Enforcement</div>
+      </div>
+      <div class="feature-desc">
+        Configurable SLA terms with maxLatencyMs and penaltyRate. When a provider delivers past the deadline,
+        the penalty is computed automatically on-chain. No manual intervention needed &mdash;
+        the smart contract enforces the deduction at settlement time.
+      </div>
+      <div class="feature-code"><span class="cm">-- SLA penalty calculation</span>
+<span class="kw">data</span> <span class="ty">SLATerms</span> = <span class="ty">SLATerms</span> <span class="kw">with</span>
+    maxLatencyMs : <span class="ty">Int</span>
+    penaltyRate  : <span class="ty">Decimal</span>  <span class="cm">-- e.g. 0.20</span>
+
+<span class="cm">-- If late: penalty = amount * penaltyRate</span>
+<span class="cm">-- Bob receives: 0.50 - 0.10 = 0.40 CAP</span>
+<span class="cm">-- Alice refund:               0.10 CAP</span></div>
+      <span class="feature-module">Cap.Types</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-icon dispute">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        </div>
+        <div class="feature-name">Dispute Resolution</div>
+      </div>
+      <div class="feature-desc">
+        Three-stage resolution: bilateral first (provider accepts or rejects), then escalation to a neutral arbiter.
+        The arbiter can issue a split ruling (e.g., 60/40) for partially completed work.
+        All dispute records are immutable on-chain.
+      </div>
+      <div class="feature-code"><span class="cm">-- 3-stage dispute flow</span>
+<span class="ty">DisputeRecord</span>
+  &rarr; <span class="fn">ResolveForConsumer</span>  <span class="cm">-- full refund</span>
+  &rarr; <span class="fn">ResolveForProvider</span>  <span class="cm">-- full payment</span>
+  &rarr; <span class="fn">EscalateToArbiter</span>   <span class="cm">-- neutral party</span>
+    &rarr; <span class="fn">SplitRuling</span>       <span class="cm">-- e.g. 60/40</span></div>
+      <span class="feature-module">Cap.Arbiter</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-icon fees">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div class="feature-name">Protocol Fees</div>
+      </div>
+      <div class="feature-desc">
+        Per-transaction fees automatically separated at settlement. The fee rate is configured globally
+        and enforced at the contract level. Treasury collection happens atomically &mdash;
+        no manual fee claiming needed.
+      </div>
+      <div class="feature-code"><span class="cm"># REST API: Configure fee rate</span>
+curl <span class="st">-X POST</span> localhost:4000/cap/v1/fees/configure \
+  -d <span class="st">'{"feeRate": 0.02}'</span>
+
+<span class="cm"># At settlement:</span>
+<span class="cm"># feeAmount = 0.50 * 0.02 = 0.01</span>
+<span class="cm"># Provider gets: 0.49 CAP</span>
+<span class="cm"># Treasury gets: 0.01 CAP</span></div>
+      <span class="feature-module">Cap.Token</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-icon reputation">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <div class="feature-name">Reputation</div>
+      </div>
+      <div class="feature-desc">
+        Bidirectional 1&ndash;5 star ratings recorded immutably on-chain. Both consumer and provider rate each other
+        after every transaction. Ratings include role context (consumer_of/provider_for) and optional comments.
+      </div>
+      <div class="feature-code"><span class="cm"># Python SDK: Query reputation</span>
+<span class="kw">from</span> cap <span class="kw">import</span> CAPClient
+
+client = CAPClient(<span class="st">"alice"</span>)
+rep = client.<span class="fn">get_reputation</span>(<span class="st">"bob"</span>)
+<span class="fn">print</span>(rep)
+<span class="cm"># {"party": "bob", "avg": 4.8,</span>
+<span class="cm">#  "count": 12, "role": "provider"}</span></div>
+      <span class="feature-module">Cap.Reputation</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-icon privacy-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/><line x1="1" y1="1" x2="23" y2="23" stroke-width="2.5"/></svg>
+        </div>
+        <div class="feature-name">Sub-tx Privacy</div>
+      </div>
+      <div class="feature-desc">
+        Canton Network's unique sub-transaction privacy ensures that only transaction participants see the data.
+        Competitors on the same network cannot observe your deals, prices, or volumes &mdash;
+        a fundamental advantage over public blockchains.
+      </div>
+      <div class="feature-code"><span class="cm">-- Canton privacy model</span>
+Alice &harr; Bob  : <span class="st">visible to both</span>
+Alice &harr; Carol: <span class="st">visible to both</span>
+
+Bob   &rarr; Alice&harr;Carol: <span class="nu">&#10060; CANNOT see</span>
+Carol &rarr; Alice&harr;Bob : <span class="nu">&#10060; CANNOT see</span>
+<span class="cm">-- Each pair is cryptographically isolated</span></div>
+      <span class="feature-module">Canton Network</span>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── Code Examples ── -->
+<section id="code">
+  <div class="fade-in">
+    <div class="section-label">코드 예제</div>
+    <h2 class="section-title">몇 분 만에 통합</h2>
+    <p class="section-subtitle">
+      Python SDK, REST API, 또는 Daml &mdash; 통합 경로를 선택하세요.
+    </p>
+  </div>
+
+  <div class="fade-in">
+    <div class="code-tabs">
+      <button class="code-tab active" data-tab="python">Python SDK</button>
+      <button class="code-tab" data-tab="rest">REST API</button>
+      <button class="code-tab" data-tab="daml">Daml</button>
+    </div>
+
+    <div class="code-panel active" id="tab-python">
+<pre><span class="keyword">from</span> cap <span class="keyword">import</span> CAPClient
+
+client = CAPClient(<span class="string">"alice"</span>)
+
+<span class="comment"># 1. Discover available agents</span>
+agents = client.<span class="func">discover</span>(capability=<span class="string">"translation"</span>)
+<span class="func">print</span>(agents)  <span class="comment"># [{"name": "bob", "capability": "translation", "price": 0.50}]</span>
+
+<span class="comment"># 2. Hire an agent (escrow locks funds automatically)</span>
+result = client.<span class="func">hire</span>(
+    provider=<span class="string">"bob"</span>,
+    capability=<span class="string">"translation"</span>,
+    params={<span class="string">"text"</span>: <span class="string">"Hello"</span>, <span class="string">"target"</span>: <span class="string">"ko"</span>},
+    max_price=<span class="number">1.0</span>,
+    auto_approve=<span class="keyword">True</span>
+)
+<span class="func">print</span>(result.output)  <span class="comment"># "&#xc548;&#xb155;&#xd558;&#xc138;&#xc694;"</span>
+
+<span class="comment"># 3. Raise a dispute (if quality is unsatisfactory)</span>
+dispute = client.<span class="func">dispute</span>(
+    request_id=result.request_id,
+    reason=<span class="string">"Translation quality below acceptable threshold"</span>
+)
+
+<span class="comment"># 4. Check reputation before hiring</span>
+rep = client.<span class="func">get_reputation</span>(<span class="string">"bob"</span>)
+<span class="func">print</span>(f<span class="string">"Bob's rating: {rep['avg']}/5 ({rep['count']} reviews)"</span>)</pre>
+    </div>
+
+    <div class="code-panel" id="tab-rest">
+<pre><span class="comment"># 1. Create service request</span>
+curl <span class="flag">-X POST</span> localhost:4000/cap/v1/services/requests \
+  <span class="flag">-H</span> <span class="string">"Content-Type: application/json"</span> \
+  <span class="flag">-d</span> <span class="string">'{
+    "consumer": "alice",
+    "provider": "bob",
+    "capability": "translation"
+  }'</span>
+
+<span class="comment"># 2. Accept offer (funds -> escrow)</span>
+curl <span class="flag">-X POST</span> localhost:4000/cap/v1/services/offers/<span class="type">$OFFER_ID</span>/accept \
+  <span class="flag">-H</span> <span class="string">"Content-Type: application/json"</span> \
+  <span class="flag">-d</span> <span class="string">'{"consumer": "alice", "paymentCid": "..."}'</span>
+
+<span class="comment"># 3. Raise a dispute</span>
+curl <span class="flag">-X POST</span> localhost:4000/cap/v1/disputes \
+  <span class="flag">-H</span> <span class="string">"Content-Type: application/json"</span> \
+  <span class="flag">-d</span> <span class="string">'{
+    "requestId": "'<span class="type">$REQUEST_ID</span>'",
+    "reason": "Poor quality output"
+  }'</span>
+<span class="comment"># Response: {"disputeId": "d-001", "status": "open"}</span>
+
+<span class="comment"># 4. Submit a rating</span>
+curl <span class="flag">-X POST</span> localhost:4000/cap/v1/ratings \
+  <span class="flag">-H</span> <span class="string">"Content-Type: application/json"</span> \
+  <span class="flag">-d</span> <span class="string">'{
+    "rater": "alice", "rated": "bob",
+    "score": 5, "comment": "Excellent translation"
+  }'</span>
+
+<span class="comment"># 5. Collect protocol fees</span>
+curl <span class="flag">-X POST</span> localhost:4000/cap/v1/fees/collect \
+  <span class="flag">-H</span> <span class="string">"Content-Type: application/json"</span> \
+  <span class="flag">-d</span> <span class="string">'{"treasury": "treasury"}'</span>
+<span class="comment"># Response: {"collected": 0.01, "treasury_balance": 1.25}</span></pre>
+    </div>
+
+    <div class="code-panel" id="tab-daml">
+<pre><span class="comment">-- Escrow template with full lifecycle</span>
+<span class="keyword">template</span> <span class="type">Escrow</span> <span class="keyword">with</span>
+    consumer : <span class="type">Party</span>
+    provider : <span class="type">Party</span>
+    lockedCid : <span class="type">ContractId LockedCAPCoin</span>
+  <span class="keyword">where</span>
+    <span class="func">signatory</span> consumer, provider
+
+    <span class="comment">-- Provider delivers the result</span>
+    <span class="keyword">choice</span> <span class="type">Deliver</span> : <span class="type">ContractId PendingReview</span>
+      <span class="keyword">with</span>
+        resultHash : <span class="type">Text</span>
+        resultUrl  : <span class="type">Text</span>
+        deliveredAt : <span class="type">Time</span>
+      <span class="func">controller</span> provider
+      <span class="keyword">do</span>
+        <span class="func">create</span> <span class="type">PendingReview</span> <span class="keyword">with</span> ..
+
+<span class="comment">-- Consumer approves and triggers settlement</span>
+<span class="keyword">template</span> <span class="type">PendingReview</span> <span class="keyword">with</span>
+    consumer : <span class="type">Party</span>; provider : <span class="type">Party</span>
+    lockedCid : <span class="type">ContractId LockedCAPCoin</span>
+  <span class="keyword">where</span>
+    <span class="func">signatory</span> consumer, provider
+
+    <span class="keyword">choice</span> <span class="type">ApproveAndPay</span> : <span class="type">ContractId CAPCoin</span>
+      <span class="keyword">with</span> rating : <span class="type">Int</span>; comment : <span class="type">Text</span>
+      <span class="func">controller</span> consumer
+      <span class="keyword">do</span>
+        <span class="comment">-- Release locked funds to provider</span>
+        <span class="func">exercise</span> lockedCid <span class="type">Release</span>
+
+<span class="comment">-- Arbiter split ruling for disputes</span>
+<span class="keyword">choice</span> <span class="type">SplitRuling</span> : (<span class="type">ContractId CAPCoin</span>, <span class="type">ContractId CAPCoin</span>)
+  <span class="keyword">with</span> providerShare : <span class="type">Decimal</span> <span class="comment">-- e.g. 0.60</span>
+  <span class="func">controller</span> arbiter
+  <span class="keyword">do</span>
+    <span class="comment">-- Split escrowed funds per arbiter ruling</span>
+    <span class="func">splitLockedCoin</span> lockedCid providerShare</pre>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── Quick Start ── -->
+<section id="quickstart">
+  <div class="fade-in">
+    <div class="section-label">빠른 시작</div>
+    <h2 class="section-title">3단계로 시작하기</h2>
+    <p class="section-subtitle">
+      필수 조건: Daml SDK 2.10.3, Node.js 18+
+    </p>
+  </div>
+
+  <div class="quickstart-steps fade-in">
+    <div class="qs-step">
+      <div class="qs-num">1</div>
+      <div class="qs-content">
+        <div class="qs-label">Canton 원장 시작</div>
+        <div class="qs-cmd"><span class="prompt">$ </span>daml start</div>
+      </div>
+    </div>
+    <div class="qs-step">
+      <div class="qs-num">2</div>
+      <div class="qs-content">
+        <div class="qs-label">API 게이트웨이 실행</div>
+        <div class="qs-cmd"><span class="prompt">$ </span>cd cap-api && npm install && npm start</div>
+      </div>
+    </div>
+    <div class="qs-step">
+      <div class="qs-num">3</div>
+      <div class="qs-content">
+        <div class="qs-label">데모 열기</div>
+        <div class="qs-cmd"><span class="prompt">$ </span>open http://localhost:4000/demo</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+  </div><!-- /deep-dive-content -->
+</div><!-- /deep-dive -->
+
+<!-- ── Footer ── -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-links">
+      <a href="#quickstart">시작하기</a>
+      <a href="#developer">문서</a>
+      <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://www.canton.network" target="_blank" rel="noopener">Canton Network</a>
+    </div>
+    <div class="footer-copy">
+      Built on Canton Network &middot; Daml 2.10.3 &middot; MIT License
+    </div>
+  </div>
+</footer>
+
+<script>
+(function() {
+  // ── Navbar scroll effect ──
+  const nav = document.getElementById('navbar');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 20);
+  }, { passive: true });
+
+  // ── Intersection Observer for fade-in ──
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+
+        // Trigger flow lines inside hero-flow
+        if (entry.target.id === 'hero-flow') {
+          const lines = entry.target.querySelectorAll('.flow-line');
+          lines.forEach((line, i) => {
+            setTimeout(() => line.classList.add('visible'), i * 200);
+          });
+        }
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
+
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+  // ── Theme toggle ──
+  const themeToggle = document.getElementById('theme-toggle');
+  const html = document.documentElement;
+  const stored = localStorage.getItem('cap-theme');
+  if (stored) {
+    html.setAttribute('data-theme', stored);
+  } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+    html.setAttribute('data-theme', 'light');
+  } else {
+    html.setAttribute('data-theme', 'dark');
+  }
+  themeToggle.addEventListener('click', () => {
+    const current = html.getAttribute('data-theme');
+    const next = current === 'light' ? 'dark' : 'light';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('cap-theme', next);
+  });
+
+  // ── Code tabs ──
+  document.querySelectorAll('.code-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.code-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ── FAQ Accordion ──
+  document.querySelectorAll('.faq-q').forEach(q => {
+    q.addEventListener('click', () => {
+      q.closest('.faq-item').classList.toggle('open');
+    });
+  });
+
+  // ── Deep Dive Toggle ──
+  const deepDiveBtn = document.querySelector('.deep-dive-toggle');
+  const deepDive = document.querySelector('.deep-dive');
+  if (deepDiveBtn) {
+    deepDiveBtn.addEventListener('click', () => {
+      deepDive.classList.toggle('open');
+    });
+  }
+
+  // ── Auto-open deep dive if URL has technical anchor ──
+  const techAnchors = ['#how-detail','#usecases','#architecture','#features','#code','#quickstart','#why'];
+  if (techAnchors.includes(location.hash)) {
+    deepDive?.classList.add('open');
+    setTimeout(() => {
+      const target = document.querySelector(location.hash);
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  }
+
+  // ── Nav "Developer" link opens deep dive + scrolls ──
+  document.querySelector('a[href="#developer"]')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    deepDive?.classList.add('open');
+    setTimeout(() => {
+      deepDive?.scrollIntoView({ behavior: 'smooth' });
+    }, 50);
+  });
+
+  // ── Any link with data-open-deep-dive opens the section ──
+  document.querySelectorAll('[data-open-deep-dive]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      deepDive?.classList.add('open');
+      setTimeout(() => {
+        deepDive?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+    });
+  });
+})();
+</script>
+</body>
+</html>

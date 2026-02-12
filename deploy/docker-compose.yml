@@ -1,24 +1,12 @@
-version: "3.8"
+# =============================================================================
+# Canton Global Synchronizer (DevNet) - Monitoring & UI Overlay
+# =============================================================================
+# The Splice Validator Node (Participant + PostgreSQL + nginx) is managed by
+# the Splice bundle's own compose file in splice-node/.
+# This compose file adds Prometheus, Grafana, and the Asset Transfer UI.
+# =============================================================================
 
 services:
-  postgres:
-    image: postgres:15
-    container_name: canton_db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${CANTON_DB_USER:-canton}
-      POSTGRES_PASSWORD: ${CANTON_DB_PASSWORD:-supersecret}
-    ports:
-      - "${CANTON_DB_PORT:-5432}:5432"
-    volumes:
-      - canton_pgdata:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${CANTON_DB_USER:-canton}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   prometheus:
     image: prom/prometheus:latest
     container_name: canton_prometheus
@@ -46,6 +34,5 @@ services:
       - prometheus
 
 volumes:
-  canton_pgdata:
   canton_prometheus_data:
   canton_grafana_data:

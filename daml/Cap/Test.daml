@@ -1,0 +1,1429 @@
+module Cap.Test where
+
+import Daml.Script
+import DA.Time (time)
+import DA.Date (date, Month(..))
+import Cap.Types
+import Cap.Token
+import Cap.Holding
+import Cap.Agent
+import Cap.Service
+import Cap.Escrow
+import Cap.Reputation
+import Cap.Arbiter
+
+-- Canonical times used across tests
+t0 : Time
+t0 = time (date 2025 Jan 1) 0 0 0
+
+t1 : Time
+t1 = time (date 2025 Jan 1) 0 0 10
+
+t2 : Time
+t2 = time (date 2025 Jan 1) 0 1 0
+
+-- Full protocol flow test
+testFullFlow : Script ()
+testFullFlow = script do
+  -- Parties
+  registry <- allocateParty "Registry"
+  alice <- allocateParty "Alice"      -- Consumer (research agent)
+  bob <- allocateParty "Bob"          -- Provider (translation agent)
+  charlie <- allocateParty "Charlie"  -- Competing agent (should see nothing)
+
+  -- 1. Register agents
+  submit alice do
+    createCmd AgentProfile with
+      registry, agent = alice
+      name = "Research Agent"
+      description = "AI research and analysis"
+      capabilities = ["research", "analysis"]
+      endpoint = "http://localhost:8001"
+
+  submit bob do
+    createCmd AgentProfile with
+      registry, agent = bob
+      name = "Translation Agent"
+      description = "EN-KO translation"
+      capabilities = ["translation"]
+      endpoint = "http://localhost:8002"
+
+  -- 2. Bob lists translation service
+  submit bob do
+    createCmd ServiceListing with
+      registry, provider = bob
+      capability = "translation"
+      description = "EN to KO, 99% accuracy"
+      basePrice = 0.05
+
+  -- 3. Registry can discover all agents
+  allAgents <- query @AgentProfile registry
+  assertMsg "Registry sees all agents" (length allAgents == 2)
+
+  allListings <- query @ServiceListing registry
+  assertMsg "Registry sees listings" (length allListings == 1)
+
+  -- 4. Mint coins
+  aliceCoin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 100.0
+
+  -- 5. Alice requests translation
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice
+      provider = bob
+      capability = "translation"
+      params = "{\"text\": \"Hello world\", \"target\": \"ko\"}"
+      maxPrice = 1.0
+      slaTerms = defaultSLA, feeConfig = None
+
+  -- 6. Bob makes offer
+  offer <- submit bob do
+    exerciseCmd request MakeOffer with
+      price = 0.05
+      estimatedTimeMs = 3000
+
+  -- 7. Alice accepts → Escrow (Split + Lock)
+  escrow <- submit alice do
+    exerciseCmd offer AcceptOffer with
+      paymentCid = aliceCoin
+      acceptedAt = t0
+
+  -- 8. Bob delivers
+  review <- submit bob do
+    exerciseCmd escrow Deliver with
+      resultHash = "sha256:abc123"
+      resultUrl = "https://results.cap/001"
+      deliveredAt = t1
+
+  -- 9. Alice approves and pays with rating
+  (bobPayment, _) <- submit alice do
+    exerciseCmd review ApproveAndPay with
+      consumerRating = 5
+      consumerComment = "Fast and accurate"
+
+  -- 10. Verify Bob got paid
+  Some bobCoin <- queryContractId bob bobPayment
+  assertMsg "Bob received 0.05" (bobCoin.amount == 0.05)
+
+  -- 11. Verify Alice got change (100 - 0.05 = 99.95)
+  aliceCoins <- query @CAPCoin alice
+  let aliceTotal = foldl (\acc (_, c) -> acc + c.amount) 0.0 aliceCoins
+  assertMsg "Alice has 99.95" (aliceTotal == 99.95)
+
+  -- 12. Privacy: Charlie sees nothing about Alice-Bob deal
+  charlieCoins <- query @CAPCoin charlie
+  assertMsg "Charlie sees no coins" (null charlieCoins)
+
+  charlieRequests <- query @ServiceRequest charlie
+  assertMsg "Charlie sees no requests" (null charlieRequests)
+
+  charlieEscrows <- query @Escrow charlie
+  assertMsg "Charlie sees no escrows" (null charlieEscrows)
+
+  charlieRatings <- query @Rating charlie
+  assertMsg "Charlie sees no ratings" (null charlieRatings)
+
+  return ()
+
+-- Test: Provider declines request
+testDecline : Script ()
+testDecline = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 50.0
+
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "translation", params = "{}"
+      maxPrice = 1.0, slaTerms = defaultSLA, feeConfig = None
+
+  submit bob do exerciseCmd request DeclineRequest
+
+  coins <- query @CAPCoin alice
+  assertMsg "Alice still has coin" (length coins == 1)
+  return ()
+
+-- Test: Consumer withdraws request
+testWithdraw : Script ()
+testWithdraw = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "translation", params = "{}"
+      maxPrice = 1.0, slaTerms = defaultSLA, feeConfig = None
+
+  submit alice do exerciseCmd request WithdrawRequest
+
+  requests <- query @ServiceRequest alice
+  assertMsg "No active requests" (null requests)
+  return ()
+
+-- Test: Consumer rejects offer
+testRejectOffer : Script ()
+testRejectOffer = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "translation", params = "{}"
+      maxPrice = 1.0, slaTerms = defaultSLA, feeConfig = None
+
+  offer <- submit bob do
+    exerciseCmd request MakeOffer with price = 0.80, estimatedTimeMs = 5000
+
+  submit alice do exerciseCmd offer RejectOffer
+  return ()
+
+-- Test: Escrow cancellation (with locked coin refund)
+testCancelEscrow : Script ()
+testCancelEscrow = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 10.0
+
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "image-gen", params = "{}"
+      maxPrice = 5.0, slaTerms = defaultSLA, feeConfig = None
+
+  offer <- submit bob do
+    exerciseCmd request MakeOffer with price = 2.0, estimatedTimeMs = 10000
+
+  escrow <- submit alice do
+    exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+
+  refund <- submit alice do exerciseCmd escrow CancelEscrow
+
+  Some coin <- queryContractId alice refund
+  assertMsg "Refund is 2.0" (coin.amount == 2.0)
+
+  allCoins <- query @CAPCoin alice
+  let total = foldl (\acc (_, c) -> acc + c.amount) 0.0 allCoins
+  assertMsg "Alice has 10.0 total" (total == 10.0)
+  return ()
+
+-- Test: Dispute resolution (provider concedes)
+testDispute : Script ()
+testDispute = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 5.0
+
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "translation"
+      params = "{\"text\": \"Hello\"}"
+      maxPrice = 1.0, slaTerms = defaultSLA, feeConfig = None
+
+  offer <- submit bob do
+    exerciseCmd request MakeOffer with price = 0.50, estimatedTimeMs = 3000
+
+  escrow <- submit alice do
+    exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+
+  review <- submit bob do
+    exerciseCmd escrow Deliver with
+      resultHash = "sha256:bad_result"
+      resultUrl = "https://results.cap/bad"
+      deliveredAt = t1
+
+  dispute <- submit alice do
+    exerciseCmd review Dispute with reason = "Translation quality is unacceptable", disputedAt = t1
+
+  refund <- submit bob do exerciseCmd dispute ResolveForConsumer
+
+  Some coin <- queryContractId alice refund
+  assertMsg "Alice gets full refund" (coin.amount == 0.50)
+  return ()
+
+-- Test: Quick approve without ratings
+testQuickApprove : Script ()
+testQuickApprove = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 1.0
+
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "summarize", params = "{}"
+      maxPrice = 1.0, slaTerms = defaultSLA, feeConfig = None
+
+  offer <- submit bob do
+    exerciseCmd request MakeOffer with price = 0.10, estimatedTimeMs = 2000
+
+  escrow <- submit alice do
+    exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+
+  review <- submit bob do
+    exerciseCmd escrow Deliver with
+      resultHash = "sha256:summary123"
+      resultUrl = "https://results.cap/summary"
+      deliveredAt = t1
+
+  (payment, _invitation) <- submit alice do exerciseCmd review QuickApprove
+
+  Some coin <- queryContractId bob payment
+  assertMsg "Bob got 0.10" (coin.amount == 0.10)
+  return ()
+
+-- Test: Token split
+testTokenSplit : Script ()
+testTokenSplit = script do
+  alice <- allocateParty "Alice"
+
+  coin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 100.0
+
+  (coin1, coin2) <- submit alice do
+    exerciseCmd coin Split with splitAmount = 30.0
+
+  Some c1 <- queryContractId alice coin1
+  Some c2 <- queryContractId alice coin2
+  assertMsg "Split 1 = 30" (c1.amount == 30.0)
+  assertMsg "Split 2 = 70" (c2.amount == 70.0)
+  return ()
+
+-- Test: Agent profile update
+testProfileUpdate : Script ()
+testProfileUpdate = script do
+  registry <- allocateParty "Registry"
+  alice <- allocateParty "Alice"
+
+  submit alice do
+    createCmd AgentProfile with
+      registry, agent = alice
+      name = "Old Name", description = "Old"
+      capabilities = ["a"], endpoint = "http://old"
+
+  submit alice do
+    exerciseByKeyCmd @AgentProfile alice UpdateProfile with
+      newName = "New Name"
+      newDescription = "New"
+      newCapabilities = ["a", "b", "c"]
+      newEndpoint = "http://new"
+
+  profiles <- query @AgentProfile alice
+  let (_, p) = headNote "updated" profiles
+  assertMsg "Name updated" (p.name == "New Name")
+  assertMsg "Caps updated" (length p.capabilities == 3)
+  return ()
+
+-- Test: Token transfer (propose-accept)
+testTokenTransfer : Script ()
+testTokenTransfer = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  coin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 50.0
+
+  proposal <- submit alice do
+    exerciseCmd coin ProposeTransfer with receiver = bob
+
+  bobCoin <- submit bob do
+    exerciseCmd proposal AcceptTransfer
+
+  Some c <- queryContractId bob bobCoin
+  assertMsg "Bob owns the coin" (c.owner == bob)
+  assertMsg "Amount is 50" (c.amount == 50.0)
+
+  aliceCoins <- query @CAPCoin alice
+  assertMsg "Alice has no coins" (null aliceCoins)
+  return ()
+
+-- Test: Token merge
+testTokenMerge : Script ()
+testTokenMerge = script do
+  alice <- allocateParty "Alice"
+
+  coin1 <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 30.0
+  coin2 <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 70.0
+
+  merged <- submit alice do
+    exerciseCmd coin1 Merge with otherCid = coin2
+
+  Some c <- queryContractId alice merged
+  assertMsg "Merged amount is 100" (c.amount == 100.0)
+
+  allCoins <- query @CAPCoin alice
+  assertMsg "Only one coin left" (length allCoins == 1)
+  return ()
+
+-- ========== New CIP-0056 Token Standard Tests ==========
+
+-- Test: Lock and refund basic flow
+testLockAndRefund : Script ()
+testLockAndRefund = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  coin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 25.0
+
+  lockedCid <- submit alice do
+    exerciseCmd coin Lock with beneficiary = bob
+
+  -- Verify locked coin exists
+  Some locked <- queryContractId alice lockedCid
+  assertMsg "Original owner is alice" (locked.originalOwner == alice)
+  assertMsg "Beneficiary is bob" (locked.beneficiary == bob)
+  assertMsg "Amount is 25" (locked.amount == 25.0)
+
+  -- Refund (only originalOwner needed)
+  refundCid <- submit alice do
+    exerciseCmd lockedCid Refund
+
+  Some refund <- queryContractId alice refundCid
+  assertMsg "Refund owner is alice" (refund.owner == alice)
+  assertMsg "Refund amount is 25" (refund.amount == 25.0)
+  return ()
+
+-- Test: Lock and release to beneficiary (requires both parties)
+testLockAndRelease : Script ()
+testLockAndRelease = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  coin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 15.0
+
+  lockedCid <- submit alice do
+    exerciseCmd coin Lock with beneficiary = bob
+
+  -- Release requires both originalOwner and beneficiary
+  paymentCid <- submitMulti [alice, bob] [] do
+    exerciseCmd lockedCid ReleaseToBeneficiary
+
+  Some payment <- queryContractId bob paymentCid
+  assertMsg "Payment owner is bob" (payment.owner == bob)
+  assertMsg "Payment amount is 15" (payment.amount == 15.0)
+
+  -- Alice no longer has coins
+  aliceCoins <- query @CAPCoin alice
+  assertMsg "Alice has no coins" (null aliceCoins)
+  return ()
+
+-- Test: Beneficiary alone cannot release locked coin
+testBeneficiaryCannotRelease : Script ()
+testBeneficiaryCannotRelease = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  coin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 10.0
+
+  lockedCid <- submit alice do
+    exerciseCmd coin Lock with beneficiary = bob
+
+  -- Bob (beneficiary) alone cannot release
+  submitMustFail bob do
+    exerciseCmd lockedCid ReleaseToBeneficiary
+
+  -- Locked coin still exists
+  Some locked <- queryContractId alice lockedCid
+  assertMsg "Still locked" (locked.amount == 10.0)
+  return ()
+
+-- Test: CAPCoin implements Holding interface (CIP-0056 query)
+testHoldingInterface : Script ()
+testHoldingInterface = script do
+  alice <- allocateParty "Alice"
+
+  _coin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 42.0
+
+  holdings <- queryInterface @Holding alice
+  assertMsg "One holding" (length holdings == 1)
+  let (_, Some view) = headNote "holding" holdings
+  assertMsg "Owner matches" (view.owner == alice)
+  assertMsg "Amount matches" (view.amount == 42.0)
+  return ()
+
+-- Test: Provider abandon with locked coin refund
+testAbandonWithLockedCoin : Script ()
+testAbandonWithLockedCoin = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 20.0
+
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}"
+      maxPrice = 5.0, slaTerms = defaultSLA, feeConfig = None
+
+  offer <- submit bob do
+    exerciseCmd request MakeOffer with price = 3.0, estimatedTimeMs = 5000
+
+  escrow <- submit alice do
+    exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+
+  -- Provider abandons → consumer gets refund via locked coin
+  refundCid <- submit bob do
+    exerciseCmd escrow AbandonEscrow
+
+  Some refund <- queryContractId alice refundCid
+  assertMsg "Refund is 3.0" (refund.amount == 3.0)
+
+  allCoins <- query @CAPCoin alice
+  let total = foldl (\acc (_, c) -> acc + c.amount) 0.0 allCoins
+  assertMsg "Alice has 20.0 total" (total == 20.0)
+  return ()
+
+-- Test: Dispute resolved for provider (provider gets paid via locked coin)
+testDisputeResolveForProvider : Script ()
+testDisputeResolveForProvider = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do
+    createCmd CAPCoin with owner = alice, amount = 10.0
+
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "coding", params = "{}"
+      maxPrice = 5.0, slaTerms = defaultSLA, feeConfig = None
+
+  offer <- submit bob do
+    exerciseCmd request MakeOffer with price = 4.0, estimatedTimeMs = 10000
+
+  escrow <- submit alice do
+    exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+
+  review <- submit bob do
+    exerciseCmd escrow Deliver with
+      resultHash = "sha256:code123"
+      resultUrl = "https://results.cap/code"
+      deliveredAt = t1
+
+  dispute <- submit alice do
+    exerciseCmd review Dispute with reason = "Not satisfied with quality", disputedAt = t1
+
+  -- Consumer concedes → provider gets paid
+  paymentCid <- submit alice do
+    exerciseCmd dispute ResolveForProvider
+
+  Some payment <- queryContractId bob paymentCid
+  assertMsg "Bob gets 4.0" (payment.owner == bob)
+  assertMsg "Payment is 4.0" (payment.amount == 4.0)
+  return ()
+
+-- ========== Deep Verification Tests ==========
+-- These tests prove financial safety properties beyond happy-path coverage.
+
+-- Helper: compute total supply (CAPCoin + LockedCAPCoin) across parties.
+-- CAPCoin: owner is signatory, so query returns only owned coins (no double count).
+-- LockedCAPCoin: signatory=originalOwner, observer=beneficiary, so both see it.
+--   Filter by originalOwner==party to count each locked coin exactly once.
+totalSupply : [Party] -> Script Decimal
+totalSupply parties = do
+  coinTotals <- forA parties (\p -> do
+    coins <- query @CAPCoin p
+    return (foldl (\acc (_, c) -> acc + c.amount) 0.0 coins))
+  lockedTotals <- forA parties (\p -> do
+    locked <- query @LockedCAPCoin p
+    let owned = filter (\(_, c) -> c.originalOwner == p) locked
+    return (foldl (\acc (_, c) -> acc + c.amount) 0.0 owned))
+  return (foldl (+) 0.0 coinTotals + foldl (+) 0.0 lockedTotals)
+
+-- ── Property 1: Token Conservation ──
+-- Proves: sum(CAPCoin) + sum(LockedCAPCoin) is invariant through the full lifecycle.
+-- Tests: mint → split → lock → escrow → deliver → approve → release
+testTokenConservation_FullLifecycle : Script ()
+testTokenConservation_FullLifecycle = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+  let parties = [alice, bob]
+
+  -- Mint
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 100.0
+  bobCoin <- submit bob do createCmd CAPCoin with owner = bob, amount = 50.0
+  supply0 <- totalSupply parties
+  assertMsg "Initial supply = 150" (supply0 == 150.0)
+
+  -- Split
+  (part1, _part2) <- submit alice do exerciseCmd aliceCoin Split with splitAmount = 30.0
+  supply1 <- totalSupply parties
+  assertMsg "After split supply = 150" (supply1 == 150.0)
+
+  -- Lock
+  lockedCid <- submit alice do exerciseCmd part1 Lock with beneficiary = bob
+  supply2 <- totalSupply parties
+  assertMsg "After lock supply = 150" (supply2 == 150.0)
+
+  -- Release
+  _released <- submitMulti [alice, bob] [] do exerciseCmd lockedCid ReleaseToBeneficiary
+  supply3 <- totalSupply parties
+  assertMsg "After release supply = 150" (supply3 == 150.0)
+
+  return ()
+
+-- Token conservation through cancel/refund path
+testTokenConservation_CancelPath : Script ()
+testTokenConservation_CancelPath = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+  let parties = [alice, bob]
+
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 80.0
+  supply0 <- totalSupply parties
+  assertMsg "Initial = 80" (supply0 == 80.0)
+
+  -- Full escrow lifecycle through cancellation
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}", maxPrice = 50.0, slaTerms = defaultSLA, feeConfig = None
+  offer <- submit bob do exerciseCmd request MakeOffer with price = 25.0, estimatedTimeMs = 5000
+  escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+
+  supply1 <- totalSupply parties
+  assertMsg "After escrow supply = 80" (supply1 == 80.0)
+
+  -- Cancel → refund
+  _refund <- submit alice do exerciseCmd escrow CancelEscrow
+  supply2 <- totalSupply parties
+  assertMsg "After cancel supply = 80" (supply2 == 80.0)
+
+  return ()
+
+-- Token conservation through dispute → ResolveForConsumer path
+testTokenConservation_DisputeRefund : Script ()
+testTokenConservation_DisputeRefund = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+  let parties = [alice, bob]
+
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 60.0
+  supply0 <- totalSupply parties
+  assertMsg "Initial = 60" (supply0 == 60.0)
+
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}", maxPrice = 10.0, slaTerms = defaultSLA, feeConfig = None
+  offer <- submit bob do exerciseCmd request MakeOffer with price = 8.0, estimatedTimeMs = 5000
+  escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+
+  supply1 <- totalSupply parties
+  assertMsg "After escrow = 60" (supply1 == 60.0)
+
+  review <- submit bob do exerciseCmd escrow Deliver with resultHash = "bad", resultUrl = "", deliveredAt = t1
+  dispute <- submit alice do exerciseCmd review Dispute with reason = "bad quality", disputedAt = t1
+
+  supply2 <- totalSupply parties
+  assertMsg "During dispute = 60" (supply2 == 60.0)
+
+  _refund <- submit bob do exerciseCmd dispute ResolveForConsumer
+  supply3 <- totalSupply parties
+  assertMsg "After dispute refund = 60" (supply3 == 60.0)
+
+  return ()
+
+-- Token conservation through dispute → ResolveForProvider path
+testTokenConservation_DisputeRelease : Script ()
+testTokenConservation_DisputeRelease = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+  let parties = [alice, bob]
+
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 40.0
+  supply0 <- totalSupply parties
+  assertMsg "Initial = 40" (supply0 == 40.0)
+
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}", maxPrice = 10.0, slaTerms = defaultSLA, feeConfig = None
+  offer <- submit bob do exerciseCmd request MakeOffer with price = 5.0, estimatedTimeMs = 5000
+  escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+  review <- submit bob do exerciseCmd escrow Deliver with resultHash = "ok", resultUrl = "", deliveredAt = t1
+  dispute <- submit alice do exerciseCmd review Dispute with reason = "disputed", disputedAt = t1
+  _payment <- submit alice do exerciseCmd dispute ResolveForProvider
+
+  supply1 <- totalSupply parties
+  assertMsg "After provider wins = 40" (supply1 == 40.0)
+
+  return ()
+
+-- ── Property 2: Authorization Boundary ──
+-- Proves: unauthorized parties CANNOT exercise choices they shouldn't.
+
+-- Third party cannot refund someone else's locked coin
+testThirdPartyCannotRefund : Script ()
+testThirdPartyCannotRefund = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+  charlie <- allocateParty "Charlie"
+
+  coin <- submit alice do createCmd CAPCoin with owner = alice, amount = 10.0
+  lockedCid <- submit alice do exerciseCmd coin Lock with beneficiary = bob
+
+  -- Charlie (unrelated party) cannot refund
+  submitMustFail charlie do exerciseCmd lockedCid Refund
+
+  -- Bob (beneficiary) also cannot refund — only originalOwner can
+  submitMustFail bob do exerciseCmd lockedCid Refund
+
+  -- Alice (originalOwner) CAN refund
+  _refund <- submit alice do exerciseCmd lockedCid Refund
+  return ()
+
+-- Third party cannot release someone else's locked coin
+testThirdPartyCannotRelease : Script ()
+testThirdPartyCannotRelease = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+  charlie <- allocateParty "Charlie"
+
+  coin <- submit alice do createCmd CAPCoin with owner = alice, amount = 10.0
+  lockedCid <- submit alice do exerciseCmd coin Lock with beneficiary = bob
+
+  -- Charlie cannot release
+  submitMustFail charlie do exerciseCmd lockedCid ReleaseToBeneficiary
+
+  -- Alice alone cannot release (needs both)
+  submitMustFail alice do exerciseCmd lockedCid ReleaseToBeneficiary
+
+  -- Bob alone cannot release (needs both)
+  submitMustFail bob do exerciseCmd lockedCid ReleaseToBeneficiary
+
+  -- Only both together can release
+  _released <- submitMulti [alice, bob] [] do exerciseCmd lockedCid ReleaseToBeneficiary
+  return ()
+
+-- Provider cannot cancel escrow (only consumer can)
+testProviderCannotCancelEscrow : Script ()
+testProviderCannotCancelEscrow = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 10.0
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}", maxPrice = 5.0, slaTerms = defaultSLA, feeConfig = None
+  offer <- submit bob do exerciseCmd request MakeOffer with price = 2.0, estimatedTimeMs = 5000
+  escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+
+  -- Provider cannot cancel (only consumer can)
+  submitMustFail bob do exerciseCmd escrow CancelEscrow
+
+  -- Consumer CAN cancel
+  _refund <- submit alice do exerciseCmd escrow CancelEscrow
+  return ()
+
+-- Consumer cannot abandon escrow (only provider can)
+testConsumerCannotAbandonEscrow : Script ()
+testConsumerCannotAbandonEscrow = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 10.0
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}", maxPrice = 5.0, slaTerms = defaultSLA, feeConfig = None
+  offer <- submit bob do exerciseCmd request MakeOffer with price = 2.0, estimatedTimeMs = 5000
+  escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+
+  -- Consumer cannot abandon (only provider can)
+  submitMustFail alice do exerciseCmd escrow AbandonEscrow
+
+  -- Provider CAN abandon
+  _refund <- submit bob do exerciseCmd escrow AbandonEscrow
+  return ()
+
+-- ── Property 3: State Integrity ──
+-- Proves: no double-spend, no reuse, edge cases work correctly.
+
+-- Cannot Lock an already-locked coin (consuming choice prevents reuse)
+testNoDoubleLock : Script ()
+testNoDoubleLock = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+  charlie <- allocateParty "Charlie"
+
+  coin <- submit alice do createCmd CAPCoin with owner = alice, amount = 10.0
+
+  -- First lock succeeds
+  _lockedCid <- submit alice do exerciseCmd coin Lock with beneficiary = bob
+
+  -- Second lock on same coin MUST fail (coin is consumed)
+  submitMustFail alice do exerciseCmd coin Lock with beneficiary = charlie
+
+  return ()
+
+-- Cannot Refund an already-released coin
+testNoRefundAfterRelease : Script ()
+testNoRefundAfterRelease = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  coin <- submit alice do createCmd CAPCoin with owner = alice, amount = 10.0
+  lockedCid <- submit alice do exerciseCmd coin Lock with beneficiary = bob
+
+  -- Release first
+  _released <- submitMulti [alice, bob] [] do exerciseCmd lockedCid ReleaseToBeneficiary
+
+  -- Refund on already-consumed LockedCAPCoin MUST fail
+  submitMustFail alice do exerciseCmd lockedCid Refund
+
+  return ()
+
+-- Cannot Release an already-refunded coin
+testNoReleaseAfterRefund : Script ()
+testNoReleaseAfterRefund = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  coin <- submit alice do createCmd CAPCoin with owner = alice, amount = 10.0
+  lockedCid <- submit alice do exerciseCmd coin Lock with beneficiary = bob
+
+  -- Refund first
+  _refund <- submit alice do exerciseCmd lockedCid Refund
+
+  -- Release on already-consumed LockedCAPCoin MUST fail
+  submitMultiMustFail [alice, bob] [] do exerciseCmd lockedCid ReleaseToBeneficiary
+
+  return ()
+
+-- Exact amount payment (no split needed, direct lock)
+testExactAmountPayment : Script ()
+testExactAmountPayment = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+  let parties = [alice, bob]
+
+  -- Create coin with exact price amount
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 3.0
+  supply0 <- totalSupply parties
+
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}", maxPrice = 5.0, slaTerms = defaultSLA, feeConfig = None
+  offer <- submit bob do exerciseCmd request MakeOffer with price = 3.0, estimatedTimeMs = 5000
+  escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+
+  -- Alice should have NO change coins (exact payment)
+  aliceCoins <- query @CAPCoin alice
+  assertMsg "Alice has no change" (null aliceCoins)
+
+  -- Supply preserved
+  supply1 <- totalSupply parties
+  assertMsg "Supply preserved after exact lock" (supply1 == supply0)
+
+  -- Complete the flow
+  review <- submit bob do exerciseCmd escrow Deliver with resultHash = "done", resultUrl = "", deliveredAt = t1
+  (_payment, _) <- submit alice do exerciseCmd review QuickApprove
+
+  supply2 <- totalSupply parties
+  assertMsg "Supply preserved after release" (supply2 == supply0)
+
+  -- Bob got exactly 3.0
+  bobCoins <- query @CAPCoin bob
+  let bobTotal = foldl (\acc (_, c) -> acc + c.amount) 0.0 bobCoins
+  assertMsg "Bob received 3.0" (bobTotal == 3.0)
+
+  return ()
+
+-- Multiple concurrent escrows don't interfere with each other
+testConcurrentEscrows : Script ()
+testConcurrentEscrows = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+  charlie <- allocateParty "Charlie"
+  let parties = [alice, bob, charlie]
+
+  -- Alice has one big coin, Bob and Charlie have coins too
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 100.0
+  _bobCoin <- submit bob do createCmd CAPCoin with owner = bob, amount = 50.0
+  _charlieCoin <- submit charlie do createCmd CAPCoin with owner = charlie, amount = 50.0
+
+  supply0 <- totalSupply parties
+  assertMsg "Initial supply = 200" (supply0 == 200.0)
+
+  -- Alice opens escrow with Bob (10 CAP)
+  req1 <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "svc1", params = "{}", maxPrice = 20.0, slaTerms = defaultSLA, feeConfig = None
+  offer1 <- submit bob do exerciseCmd req1 MakeOffer with price = 10.0, estimatedTimeMs = 5000
+
+  -- Split first for escrow 1
+  (pay1, remainder) <- submit alice do exerciseCmd aliceCoin Split with splitAmount = 10.0
+  escrow1 <- submit alice do exerciseCmd offer1 AcceptOffer with paymentCid = pay1, acceptedAt = t0
+
+  -- Alice opens escrow with Charlie (15 CAP) from remainder
+  req2 <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = charlie
+      capability = "svc2", params = "{}", maxPrice = 20.0, slaTerms = defaultSLA, feeConfig = None
+  offer2 <- submit charlie do exerciseCmd req2 MakeOffer with price = 15.0, estimatedTimeMs = 5000
+  escrow2 <- submit alice do exerciseCmd offer2 AcceptOffer with paymentCid = remainder, acceptedAt = t0
+
+  supply1 <- totalSupply parties
+  assertMsg "Two escrows, supply = 200" (supply1 == 200.0)
+
+  -- Resolve escrow1: Bob delivers and gets paid
+  review1 <- submit bob do exerciseCmd escrow1 Deliver with resultHash = "r1", resultUrl = "", deliveredAt = t1
+  (_pay1Result, _) <- submit alice do exerciseCmd review1 QuickApprove
+
+  -- Resolve escrow2: Alice cancels → refund
+  _refund2 <- submit alice do exerciseCmd escrow2 CancelEscrow
+
+  supply2 <- totalSupply parties
+  assertMsg "After both resolved, supply = 200" (supply2 == 200.0)
+
+  -- Verify final balances
+  aliceCoins <- query @CAPCoin alice
+  let aliceTotal = foldl (\acc (_, c) -> acc + c.amount) 0.0 aliceCoins
+  assertMsg "Alice: 100 - 10(paid) = 90" (aliceTotal == 90.0)
+
+  bobCoins <- query @CAPCoin bob
+  let bobTotal = foldl (\acc (_, c) -> acc + c.amount) 0.0 bobCoins
+  assertMsg "Bob: 50 + 10 = 60" (bobTotal == 60.0)
+
+  charlieCoins <- query @CAPCoin charlie
+  let charlieTotal = foldl (\acc (_, c) -> acc + c.amount) 0.0 charlieCoins
+  assertMsg "Charlie: 50 (unchanged)" (charlieTotal == 50.0)
+
+  return ()
+
+-- Tiny amounts work correctly (precision test)
+testTinyAmounts : Script ()
+testTinyAmounts = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+  let parties = [alice, bob]
+
+  coin <- submit alice do createCmd CAPCoin with owner = alice, amount = 0.01
+  supply0 <- totalSupply parties
+
+  lockedCid <- submit alice do exerciseCmd coin Lock with beneficiary = bob
+  supply1 <- totalSupply parties
+  assertMsg "Tiny lock preserves supply" (supply1 == supply0)
+
+  _released <- submitMulti [alice, bob] [] do exerciseCmd lockedCid ReleaseToBeneficiary
+  supply2 <- totalSupply parties
+  assertMsg "Tiny release preserves supply" (supply2 == supply0)
+
+  return ()
+
+-- ========== Phase 1: SLA Enforcement Tests ==========
+
+-- Test: SplitRelease on LockedCAPCoin
+testSplitRelease : Script ()
+testSplitRelease = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  coin <- submit alice do createCmd CAPCoin with owner = alice, amount = 10.0
+  lockedCid <- submit alice do exerciseCmd coin Lock with beneficiary = bob
+
+  (refundCid, payCid) <- submitMulti [alice, bob] [] do
+    exerciseCmd lockedCid SplitRelease with beneficiaryAmount = 7.0
+
+  Some refund <- queryContractId alice refundCid
+  assertMsg "Refund is 3.0" (refund.owner == alice)
+  assertMsg "Refund amount" (refund.amount == 3.0)
+
+  Some pay <- queryContractId bob payCid
+  assertMsg "Pay is bob" (pay.owner == bob)
+  assertMsg "Pay amount" (pay.amount == 7.0)
+  return ()
+
+-- Test: On-time delivery — no penalty, full payment
+testOnTimeDelivery : Script ()
+testOnTimeDelivery = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 10.0
+
+  let sla = SLATerms with maxLatencyMs = 30000, penaltyRate = 0.10
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}"
+      maxPrice = 10.0, slaTerms = sla, feeConfig = None
+  offer <- submit bob do exerciseCmd request MakeOffer with price = 10.0, estimatedTimeMs = 5000
+  escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+
+  -- Deliver within deadline (t0 + 30s = well before t1 = 10s)
+  review <- submit bob do exerciseCmd escrow Deliver with resultHash = "ok", resultUrl = "", deliveredAt = t1
+
+  (payment, _) <- submit alice do exerciseCmd review ApproveAndPay with consumerRating = 5, consumerComment = "Great"
+
+  Some coin <- queryContractId bob payment
+  assertMsg "Full payment (no penalty)" (coin.amount == 10.0)
+  return ()
+
+-- Test: Late delivery with penalty — penalty applied
+testLateDeliveryWithPenalty : Script ()
+testLateDeliveryWithPenalty = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 10.0
+
+  -- 5 second SLA with 10% penalty
+  let sla = SLATerms with maxLatencyMs = 5000, penaltyRate = 0.10
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}"
+      maxPrice = 10.0, slaTerms = sla, feeConfig = None
+  offer <- submit bob do exerciseCmd request MakeOffer with price = 10.0, estimatedTimeMs = 3000
+  escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+
+  -- deadline = t0 + 5s. Deliver at t1 = t0+10s (late!)
+  review <- submit bob do exerciseCmd escrow Deliver with resultHash = "late", resultUrl = "", deliveredAt = t1
+
+  (payment, _) <- submit alice do exerciseCmd review ApproveAndPay with consumerRating = 3, consumerComment = "Late"
+
+  -- penalty = 10.0 * 0.10 = 1.0, net = 9.0
+  Some coin <- queryContractId bob payment
+  assertMsg "Net payment after penalty" (coin.amount == 9.0)
+
+  -- Alice gets the 1.0 penalty refund
+  aliceCoins <- query @CAPCoin alice
+  let aliceTotal = foldl (\acc (_, c) -> acc + c.amount) 0.0 aliceCoins
+  assertMsg "Alice got penalty refund" (aliceTotal == 1.0)
+  return ()
+
+-- Test: Late delivery but zero penalty rate — full payment
+testLateDeliveryZeroPenalty : Script ()
+testLateDeliveryZeroPenalty = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 10.0
+
+  -- 5s SLA but 0% penalty
+  let sla = SLATerms with maxLatencyMs = 5000, penaltyRate = 0.0
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}"
+      maxPrice = 10.0, slaTerms = sla, feeConfig = None
+  offer <- submit bob do exerciseCmd request MakeOffer with price = 10.0, estimatedTimeMs = 3000
+  escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+
+  -- Late delivery
+  review <- submit bob do exerciseCmd escrow Deliver with resultHash = "late", resultUrl = "", deliveredAt = t1
+
+  (payment, _) <- submit alice do exerciseCmd review ApproveAndPay with consumerRating = 4, consumerComment = "Late but ok"
+
+  Some coin <- queryContractId bob payment
+  assertMsg "Full payment (zero penalty rate)" (coin.amount == 10.0)
+  return ()
+
+-- Test: Consumer claims timeout refund after deadline
+testTimeoutClaim : Script ()
+testTimeoutClaim = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 10.0
+
+  let sla = SLATerms with maxLatencyMs = 5000, penaltyRate = 0.10
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}"
+      maxPrice = 10.0, slaTerms = sla, feeConfig = None
+  offer <- submit bob do exerciseCmd request MakeOffer with price = 10.0, estimatedTimeMs = 3000
+  escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+
+  -- deadline = t0 + 5s. Claim at t1 = t0+10s (after deadline)
+  refundCid <- submit alice do exerciseCmd escrow ClaimTimeout with claimTime = t1
+
+  Some coin <- queryContractId alice refundCid
+  assertMsg "Full refund on timeout" (coin.amount == 10.0)
+  return ()
+
+-- Test: Consumer cannot claim timeout before deadline
+testTimeoutClaimTooEarly : Script ()
+testTimeoutClaimTooEarly = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 10.0
+
+  -- 60 second SLA
+  let sla = SLATerms with maxLatencyMs = 60000, penaltyRate = 0.10
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}"
+      maxPrice = 10.0, slaTerms = sla, feeConfig = None
+  offer <- submit bob do exerciseCmd request MakeOffer with price = 10.0, estimatedTimeMs = 3000
+  escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+
+  -- deadline = t0 + 60s. Claim at t1 = t0+10s (BEFORE deadline) — must fail
+  submitMustFail alice do exerciseCmd escrow ClaimTimeout with claimTime = t1
+
+  return ()
+
+-- ========== Phase 2: Arbiter Dispute Resolution Tests ==========
+
+-- Helper: setup escrow, deliver, dispute, and escalate to arbiter
+setupEscalatedDispute : Script (Party, Party, Party, ContractId ArbitratedDispute)
+setupEscalatedDispute = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+  arbiter <- allocateParty "Arbiter"
+
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 10.0
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}"
+      maxPrice = 10.0, slaTerms = defaultSLA, feeConfig = None
+  offer <- submit bob do exerciseCmd request MakeOffer with price = 10.0, estimatedTimeMs = 5000
+  escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+  review <- submit bob do exerciseCmd escrow Deliver with resultHash = "hash", resultUrl = "url", deliveredAt = t1
+  dispute <- submit alice do exerciseCmd review Dispute with reason = "Bad quality", disputedAt = t1
+  arbDispute <- submit alice do exerciseCmd dispute EscalateToArbiter with arbiter
+  return (alice, bob, arbiter, arbDispute)
+
+-- Test: Arbiter rules for consumer (full refund)
+testArbiterRulesForConsumer : Script ()
+testArbiterRulesForConsumer = script do
+  (alice, bob, arbiter, arbDispute) <- setupEscalatedDispute
+  refundCid <- submitMulti [arbiter] [alice, bob] do exerciseCmd arbDispute RuleForConsumer
+  Some coin <- queryContractId alice refundCid
+  assertMsg "Alice gets full refund" (coin.amount == 10.0)
+  return ()
+
+-- Test: Arbiter rules for provider (full payment)
+testArbiterRulesForProvider : Script ()
+testArbiterRulesForProvider = script do
+  (alice, bob, arbiter, arbDispute) <- setupEscalatedDispute
+  paymentCid <- submitMulti [arbiter] [alice, bob] do exerciseCmd arbDispute RuleForProvider
+  Some coin <- queryContractId bob paymentCid
+  assertMsg "Bob gets full payment" (coin.amount == 10.0)
+  return ()
+
+-- Test: Arbiter splits funds (60/40)
+testArbiterSplitRuling : Script ()
+testArbiterSplitRuling = script do
+  (alice, bob, arbiter, arbDispute) <- setupEscalatedDispute
+  (consumerCid, providerCid) <- submitMulti [arbiter] [alice, bob] do
+    exerciseCmd arbDispute SplitRuling with consumerAmount = 6.0
+  Some consumerCoin <- queryContractId alice consumerCid
+  assertMsg "Alice gets 6.0" (consumerCoin.amount == 6.0)
+  Some providerCoin <- queryContractId bob providerCid
+  assertMsg "Bob gets 4.0" (providerCoin.amount == 4.0)
+  return ()
+
+-- Test: Both parties can submit evidence
+testSubmitEvidence : Script ()
+testSubmitEvidence = script do
+  (alice, bob, arbiter, arbDispute) <- setupEscalatedDispute
+
+  arbDispute2 <- submit alice do
+    exerciseCmd arbDispute SubmitEvidence with newEvidence = "Screenshot of bad output", submitter = alice
+  arbDispute3 <- submit bob do
+    exerciseCmd arbDispute2 SubmitEvidence with newEvidence = "Logs showing correct processing", submitter = bob
+
+  Some d <- queryContractId alice arbDispute3
+  assertMsg "Two pieces of evidence" (length d.evidence == 2)
+  return ()
+
+-- Test: Third party cannot escalate (only consumer can)
+testThirdPartyCannotEscalate : Script ()
+testThirdPartyCannotEscalate = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+  charlie <- allocateParty "Charlie"
+  arbiter <- allocateParty "Arbiter"
+
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 10.0
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}"
+      maxPrice = 10.0, slaTerms = defaultSLA, feeConfig = None
+  offer <- submit bob do exerciseCmd request MakeOffer with price = 10.0, estimatedTimeMs = 5000
+  escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+  review <- submit bob do exerciseCmd escrow Deliver with resultHash = "hash", resultUrl = "url", deliveredAt = t1
+  dispute <- submit alice do exerciseCmd review Dispute with reason = "Bad", disputedAt = t1
+
+  -- Charlie (third party) cannot escalate
+  submitMustFail charlie do exerciseCmd dispute EscalateToArbiter with arbiter
+
+  -- Bob (provider) cannot escalate — only consumer can
+  submitMustFail bob do exerciseCmd dispute EscalateToArbiter with arbiter
+
+  return ()
+
+-- ========== Phase 3: Bidirectional Reputation Tests ==========
+
+-- Test: Both parties rate after settlement
+testBidirectionalRating : Script ()
+testBidirectionalRating = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 10.0
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}"
+      maxPrice = 10.0, slaTerms = defaultSLA, feeConfig = None
+  offer <- submit bob do exerciseCmd request MakeOffer with price = 10.0, estimatedTimeMs = 5000
+  escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+  review <- submit bob do exerciseCmd escrow Deliver with resultHash = "hash", resultUrl = "url", deliveredAt = t1
+
+  -- Consumer rates provider via ApproveAndPay
+  (_, consumerRating) <- submit alice do
+    exerciseCmd review ApproveAndPay with consumerRating = 5, consumerComment = "Excellent"
+
+  -- Provider receives a RatingInvitation to rate consumer
+  invitations <- query @RatingInvitation bob
+  assertMsg "Provider has invitation" (length invitations == 1)
+
+  let (invCid, inv) = headNote "invitation" invitations
+  assertMsg "Provider is rater" (inv.rater == bob)
+  assertMsg "Consumer is rated" (inv.rated == alice)
+
+  -- Provider submits rating
+  providerRating <- submit bob do
+    exerciseCmd invCid SubmitRating with score = 4, comment = "Good client"
+
+  Some r <- queryContractId bob providerRating
+  assertMsg "Provider rated consumer" (r.rated == alice)
+  assertMsg "Role is provider" (r.role == "provider")
+  return ()
+
+-- Test: Provider declines rating invitation
+testProviderDeclinesRating : Script ()
+testProviderDeclinesRating = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 10.0
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}"
+      maxPrice = 10.0, slaTerms = defaultSLA, feeConfig = None
+  offer <- submit bob do exerciseCmd request MakeOffer with price = 10.0, estimatedTimeMs = 5000
+  escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+  review <- submit bob do exerciseCmd escrow Deliver with resultHash = "hash", resultUrl = "url", deliveredAt = t1
+  _ <- submit alice do exerciseCmd review ApproveAndPay with consumerRating = 5, consumerComment = "Good"
+
+  invitations <- query @RatingInvitation bob
+  let (invCid, _) = headNote "invitation" invitations
+
+  -- Provider declines
+  submit bob do exerciseCmd invCid DeclineRating
+
+  -- No more invitations
+  invitations2 <- query @RatingInvitation bob
+  assertMsg "No invitations left" (null invitations2)
+  return ()
+
+-- Test: Rating role field is correctly set
+testRatingRole : Script ()
+testRatingRole = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 10.0
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}"
+      maxPrice = 10.0, slaTerms = defaultSLA, feeConfig = None
+  offer <- submit bob do exerciseCmd request MakeOffer with price = 10.0, estimatedTimeMs = 5000
+  escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+  review <- submit bob do exerciseCmd escrow Deliver with resultHash = "hash", resultUrl = "url", deliveredAt = t1
+
+  (_, ratingCid) <- submit alice do
+    exerciseCmd review ApproveAndPay with consumerRating = 4, consumerComment = "Good"
+
+  Some rating <- queryContractId alice ratingCid
+  assertMsg "Consumer role" (rating.role == "consumer")
+  return ()
+
+-- Test: QuickApprove creates RatingInvitation for provider
+testRatingInvitationFromQuickApprove : Script ()
+testRatingInvitationFromQuickApprove = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 10.0
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}"
+      maxPrice = 10.0, slaTerms = defaultSLA, feeConfig = None
+  offer <- submit bob do exerciseCmd request MakeOffer with price = 10.0, estimatedTimeMs = 5000
+  escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+  review <- submit bob do exerciseCmd escrow Deliver with resultHash = "hash", resultUrl = "url", deliveredAt = t1
+
+  (_, invCid) <- submit alice do exerciseCmd review QuickApprove
+
+  Some inv <- queryContractId bob invCid
+  assertMsg "Provider is rater" (inv.rater == bob)
+  assertMsg "Consumer is rated" (inv.rated == alice)
+  assertMsg "Role is provider" (inv.role == "provider")
+  return ()
+
+-- ========== Phase 4: Protocol Fee Tests ==========
+
+-- Test: Fee on settlement — 2% fee deducted, FeeTransfer created
+testFeeOnSettlement : Script ()
+testFeeOnSettlement = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+  treasury <- allocateParty "Treasury"
+
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 100.0
+  let fc = Some (FeeConfig with feeRate = 0.02, treasury)
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}"
+      maxPrice = 100.0, slaTerms = defaultSLA, feeConfig = fc
+  offer <- submit bob do exerciseCmd request MakeOffer with price = 100.0, estimatedTimeMs = 5000
+  escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+  review <- submit bob do exerciseCmd escrow Deliver with resultHash = "ok", resultUrl = "", deliveredAt = t1
+  (payment, _) <- submit alice do exerciseCmd review ApproveAndPay with consumerRating = 5, consumerComment = "Good"
+
+  -- Bob gets 98.0 (100 - 2% fee)
+  Some coin <- queryContractId bob payment
+  assertMsg "Bob gets 98.0 after fee" (coin.amount == 98.0)
+
+  -- FeeTransfer exists for treasury
+  feeTransfers <- query @FeeTransfer treasury
+  assertMsg "One fee transfer" (length feeTransfers == 1)
+  let (_, ft) = headNote "fee" feeTransfers
+  assertMsg "Fee amount is 2.0" (ft.amount == 2.0)
+  assertMsg "Fee payer is bob" (ft.payer == bob)
+  return ()
+
+-- Test: Treasury collects fee → CAPCoin(treasury)
+testFeeCollection : Script ()
+testFeeCollection = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+  treasury <- allocateParty "Treasury"
+
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 50.0
+  let fc = Some (FeeConfig with feeRate = 0.10, treasury)
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}"
+      maxPrice = 50.0, slaTerms = defaultSLA, feeConfig = fc
+  offer <- submit bob do exerciseCmd request MakeOffer with price = 50.0, estimatedTimeMs = 5000
+  escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+  review <- submit bob do exerciseCmd escrow Deliver with resultHash = "ok", resultUrl = "", deliveredAt = t1
+  _ <- submit alice do exerciseCmd review ApproveAndPay with consumerRating = 5, consumerComment = "Good"
+
+  -- Treasury collects fee
+  feeTransfers <- query @FeeTransfer treasury
+  let (ftCid, _) = headNote "fee" feeTransfers
+  treasuryCoin <- submit treasury do exerciseCmd ftCid CollectFee
+
+  Some coin <- queryContractId treasury treasuryCoin
+  assertMsg "Treasury got 5.0" (coin.amount == 5.0)
+  assertMsg "Treasury owns coin" (coin.owner == treasury)
+  return ()
+
+-- Test: No fee when feeConfig = None
+testNoFeeWhenNone : Script ()
+testNoFeeWhenNone = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+  treasury <- allocateParty "Treasury"
+
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 100.0
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}"
+      maxPrice = 100.0, slaTerms = defaultSLA, feeConfig = None
+  offer <- submit bob do exerciseCmd request MakeOffer with price = 100.0, estimatedTimeMs = 5000
+  escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+  review <- submit bob do exerciseCmd escrow Deliver with resultHash = "ok", resultUrl = "", deliveredAt = t1
+  (payment, _) <- submit alice do exerciseCmd review ApproveAndPay with consumerRating = 5, consumerComment = "Good"
+
+  -- Bob gets full 100.0 (no fee)
+  Some coin <- queryContractId bob payment
+  assertMsg "Bob gets full 100.0" (coin.amount == 100.0)
+
+  -- No fee transfers
+  feeTransfers <- query @FeeTransfer treasury
+  assertMsg "No fee transfers" (null feeTransfers)
+  return ()
+
+-- Test: Late delivery + fee: penalty first, then fee on net payment
+testFeeWithPenalty : Script ()
+testFeeWithPenalty = script do
+  alice <- allocateParty "Alice"
+  bob <- allocateParty "Bob"
+  treasury <- allocateParty "Treasury"
+
+  aliceCoin <- submit alice do createCmd CAPCoin with owner = alice, amount = 100.0
+  -- 5s SLA, 10% penalty, 2% fee
+  let sla = SLATerms with maxLatencyMs = 5000, penaltyRate = 0.10
+  let fc = Some (FeeConfig with feeRate = 0.02, treasury)
+  request <- submit alice do
+    createCmd ServiceRequest with
+      consumer = alice, provider = bob
+      capability = "test", params = "{}"
+      maxPrice = 100.0, slaTerms = sla, feeConfig = fc
+  offer <- submit bob do exerciseCmd request MakeOffer with price = 100.0, estimatedTimeMs = 3000
+  escrow <- submit alice do exerciseCmd offer AcceptOffer with paymentCid = aliceCoin, acceptedAt = t0
+  -- Late delivery (t1 = t0+10s > deadline = t0+5s)
+  review <- submit bob do exerciseCmd escrow Deliver with resultHash = "late", resultUrl = "", deliveredAt = t1
+  (payment, _) <- submit alice do exerciseCmd review ApproveAndPay with consumerRating = 3, consumerComment = "Late"
+
+  -- Penalty: 100 * 0.10 = 10 → net = 90
+  -- Fee: 90 * 0.02 = 1.8 → Bob gets 88.2
+  Some coin <- queryContractId bob payment
+  assertMsg "Bob gets 88.2 after penalty+fee" (coin.amount == 88.2)
+
+  -- Alice gets penalty refund = 10.0
+  aliceCoins <- query @CAPCoin alice
+  let aliceTotal = foldl (\acc (_, c) -> acc + c.amount) 0.0 aliceCoins
+  assertMsg "Alice got 10.0 penalty refund" (aliceTotal == 10.0)
+
+  -- FeeTransfer = 1.8
+  feeTransfers <- query @FeeTransfer treasury
+  let (_, ft) = headNote "fee" feeTransfers
+  assertMsg "Fee is 1.8" (ft.amount == 1.8)
+  return ()
+
+headNote : Text -> [a] -> a
+headNote msg [] = error msg
+headNote _ (x :: _) = x

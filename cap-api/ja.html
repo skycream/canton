@@ -1,0 +1,2384 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAP — AIエージェントのための安全な決済</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08080d;
+    --bg-alt: #0c0c14;
+    --card: #111119;
+    --card-hover: #16161f;
+    --border: #1a1a2a;
+    --border-hover: #2a2a3e;
+    --text: #e4e4ec;
+    --text-secondary: #a0a0b8;
+    --dim: #5a5a70;
+    --green: #00e87a;
+    --green-dim: rgba(0,232,122,0.12);
+    --blue: #4488ff;
+    --blue-dim: rgba(68,136,255,0.10);
+    --purple: #8855ff;
+    --purple-dim: rgba(136,85,255,0.10);
+    --orange: #ff8844;
+    --red: #ff4466;
+    --yellow: #ffcc00;
+    --cyan: #00ccff;
+    --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --glow-blue: 0 0 40px rgba(68,136,255,0.06);
+    --glow-green: 0 0 40px rgba(0,232,122,0.06);
+    --glow-purple: 0 0 40px rgba(136,85,255,0.06);
+    --nav-scrolled-bg: rgba(8, 8, 13, 0.88);
+    --hero-glow-1: rgba(68,136,255,0.06);
+    --hero-glow-2: rgba(136,85,255,0.03);
+    --btn-primary-from: #00d06a;
+    --btn-primary-to: #00aa55;
+    --btn-primary-hover-from: #00e87a;
+    --btn-primary-hover-to: #00cc6a;
+    --btn-primary-text: #000;
+    --btn-primary-shadow: rgba(0,208,106,0.2);
+    --btn-primary-hover-shadow: rgba(0,232,122,0.3);
+    --code-bg: var(--bg);
+  }
+
+  /* ── Light Theme ── */
+  [data-theme="light"] {
+    --bg: #f7f7fb;
+    --bg-alt: #eeeef4;
+    --card: #ffffff;
+    --card-hover: #f5f5fa;
+    --border: #d8d8e4;
+    --border-hover: #c0c0d0;
+    --text: #1a1a2e;
+    --text-secondary: #4a4a64;
+    --dim: #6a6a82;
+    --green: #00a85c;
+    --green-dim: rgba(0,168,92,0.10);
+    --blue: #2b6bdd;
+    --blue-dim: rgba(43,107,221,0.08);
+    --purple: #6633cc;
+    --purple-dim: rgba(102,51,204,0.08);
+    --orange: #d96a20;
+    --red: #d93050;
+    --yellow: #b89400;
+    --cyan: #0094bb;
+    --glow-blue: 0 4px 24px rgba(43,107,221,0.08);
+    --glow-green: 0 4px 24px rgba(0,168,92,0.08);
+    --glow-purple: 0 4px 24px rgba(102,51,204,0.08);
+    --nav-scrolled-bg: rgba(247, 247, 251, 0.92);
+    --hero-glow-1: rgba(43,107,221,0.06);
+    --hero-glow-2: rgba(102,51,204,0.04);
+    --btn-primary-from: #00b860;
+    --btn-primary-to: #009a50;
+    --btn-primary-hover-from: #00cc6a;
+    --btn-primary-hover-to: #00aa55;
+    --btn-primary-text: #fff;
+    --btn-primary-shadow: rgba(0,168,92,0.18);
+    --btn-primary-hover-shadow: rgba(0,184,96,0.25);
+    --code-bg: #f0f0f6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.7;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ── Nav Bar ── */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 0 40px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid transparent;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  nav.scrolled {
+    background: var(--nav-scrolled-bg);
+    backdrop-filter: blur(20px) saturate(1.2);
+    -webkit-backdrop-filter: blur(20px) saturate(1.2);
+    border-bottom-color: var(--border);
+  }
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: var(--text);
+  }
+  .nav-logo-mark {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    color: var(--green);
+  }
+  .nav-logo-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--dim);
+    display: none;
+    letter-spacing: 0.3px;
+  }
+  @media (min-width: 768px) {
+    .nav-logo-text { display: inline; }
+  }
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+  .nav-links a {
+    color: var(--dim);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: color 0.2s;
+    letter-spacing: 0.2px;
+  }
+  .nav-links a:hover { color: var(--text); }
+  .nav-cta {
+    padding: 8px 20px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--btn-primary-from), var(--btn-primary-to));
+    color: var(--btn-primary-text) !important;
+    font-weight: 700;
+    font-size: 13px !important;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 12px var(--btn-primary-shadow);
+  }
+  .nav-cta:hover {
+    background: linear-gradient(135deg, var(--btn-primary-hover-from), var(--btn-primary-hover-to));
+    box-shadow: 0 4px 20px var(--btn-primary-hover-shadow);
+    transform: translateY(-1px);
+  }
+
+  /* ── Theme Toggle ── */
+  .theme-toggle {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--dim);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+  }
+  .theme-toggle:hover {
+    border-color: var(--border-hover);
+    color: var(--text);
+    background: var(--card-hover);
+  }
+  .theme-toggle .icon-sun,
+  .theme-toggle .icon-moon { display: none; }
+  [data-theme="light"] .theme-toggle .icon-moon { display: block; }
+  [data-theme="light"] .theme-toggle .icon-sun { display: none; }
+  :root .theme-toggle .icon-sun { display: block; }
+  :root .theme-toggle .icon-moon { display: none; }
+  [data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+  [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+
+  /* ── Language Selector ── */
+  .lang-select {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .lang-select a {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--dim) !important;
+    text-decoration: none;
+    transition: all 0.2s;
+    letter-spacing: 0;
+    border: 1px solid transparent;
+  }
+  .lang-select a:hover { color: var(--text) !important; background: var(--card); }
+  .lang-select a.active {
+    color: var(--text) !important;
+    background: var(--card);
+    border-color: var(--border);
+  }
+  @media (max-width: 768px) {
+    .lang-select { gap: 0; }
+    .lang-select a { padding: 3px 5px; font-size: 10px; }
+  }
+
+  /* ── Sections ── */
+  section {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 120px 32px;
+    position: relative;
+  }
+  .section-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 16px;
+  }
+  .section-title {
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 16px;
+    line-height: 1.25;
+    letter-spacing: -0.5px;
+  }
+  .section-subtitle {
+    font-size: 16px;
+    color: var(--dim);
+    max-width: 560px;
+    margin-bottom: 56px;
+    line-height: 1.7;
+  }
+  .section-divider {
+    height: 1px;
+    max-width: 1120px;
+    margin: 0 auto;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+  }
+
+  /* ── Fade-in animation ── */
+  .fade-in {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── Hero ── */
+  .hero {
+    padding-top: 160px;
+    padding-bottom: 100px;
+    text-align: center;
+    position: relative;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, var(--hero-glow-1) 0%, var(--hero-glow-2) 40%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-title {
+    font-size: clamp(32px, 5vw, 54px);
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 24px;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, var(--text) 0%, var(--blue) 50%, var(--purple) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-subtitle {
+    font-size: clamp(15px, 1.8vw, 18px);
+    color: var(--dim);
+    max-width: 620px;
+    margin: 0 auto 40px;
+    line-height: 1.8;
+  }
+  .hero-buttons {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 72px;
+  }
+  .btn {
+    padding: 14px 32px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn:hover {
+    border-color: var(--border-hover);
+    background: var(--card-hover);
+    box-shadow: var(--glow-blue);
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--btn-primary-from), var(--btn-primary-to));
+    border-color: transparent;
+    color: var(--btn-primary-text);
+    font-weight: 700;
+    box-shadow: 0 2px 16px var(--btn-primary-shadow);
+  }
+  .btn-primary:hover {
+    background: linear-gradient(135deg, var(--btn-primary-hover-from), var(--btn-primary-hover-to));
+    box-shadow: 0 4px 24px var(--btn-primary-hover-shadow);
+    transform: translateY(-1px);
+  }
+
+  /* Hero flow animation */
+  .hero-flow {
+    max-width: 520px;
+    margin: 0 auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 32px;
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 13px;
+    box-shadow: 0 4px 40px rgba(0,0,0,0.12);
+  }
+  .flow-line {
+    opacity: 0;
+    transform: translateX(-12px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    padding: 4px 0;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .flow-line.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  .flow-line .actor { font-weight: 700; }
+  .flow-line .actor.alice { color: var(--blue); }
+  .flow-line .actor.bob { color: var(--purple); }
+  .flow-line .action { color: var(--dim); }
+  .flow-line .target { color: var(--green); }
+  .flow-line .escrow { color: var(--yellow); font-weight: 700; }
+  .flow-label {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--green-dim);
+    color: var(--green);
+    margin-left: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .flow-label.lock { background: rgba(255,204,0,0.10); color: var(--yellow); }
+  .flow-label.settle { background: rgba(0,232,122,0.10); color: var(--green); }
+
+  /* ── Section bg-alt ── */
+  .section-bg-alt {
+    background: var(--bg-alt);
+    max-width: none;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .section-bg-alt > * {
+    max-width: 1120px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+
+  /* ── Problem / Solution Cards ── */
+  .problem-solution {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  .ps-card {
+    padding: 32px;
+    border-radius: 14px;
+  }
+  .ps-before {
+    border: 1px solid var(--red);
+    background: rgba(255,68,102,0.03);
+  }
+  .ps-after {
+    border: 1px solid var(--green);
+    background: var(--green-dim);
+  }
+  .ps-card-title {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ps-before .ps-card-title { color: var(--red); }
+  .ps-after .ps-card-title { color: var(--green); }
+  .ps-item {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .ps-item:last-child { border-bottom: none; }
+  .ps-icon { font-size: 18px; flex-shrink: 0; }
+
+  /* ── 3-Step Flow ── */
+  .steps-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+    text-align: center;
+    position: relative;
+  }
+  .step-3-card {
+    position: relative;
+  }
+  .step-3-num {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 800;
+    margin: 0 auto 20px;
+    border: 2px solid var(--border);
+    background: var(--card);
+    color: var(--green);
+    transition: all 0.3s;
+  }
+  .step-3-card:hover .step-3-num {
+    border-color: var(--green);
+    box-shadow: 0 0 24px rgba(0,232,122,0.15);
+  }
+  .step-3-title {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 12px;
+    letter-spacing: -0.3px;
+  }
+  .step-3-desc {
+    font-size: 14px;
+    color: var(--dim);
+    line-height: 1.7;
+    max-width: 280px;
+    margin: 0 auto;
+  }
+  .step-3-arrow {
+    display: none;
+  }
+  @media (min-width: 769px) {
+    .step-3-arrow {
+      display: block;
+      position: absolute;
+      top: 32px;
+      right: -28px;
+      color: var(--dim);
+      font-size: 20px;
+      opacity: 0.5;
+    }
+  }
+
+  /* ── Business Use Case Cards ── */
+  .biz-cases {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+  .biz-card {
+    padding: 28px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .biz-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--glow-blue);
+    transform: translateY(-2px);
+  }
+  .biz-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    font-size: 24px;
+  }
+  .biz-card-icon.biz-cs { background: rgba(68,136,255,0.10); border: 1px solid rgba(68,136,255,0.20); }
+  .biz-card-icon.biz-logistics { background: rgba(0,232,122,0.08); border: 1px solid rgba(0,232,122,0.18); }
+  .biz-card-icon.biz-creative { background: rgba(136,85,255,0.10); border: 1px solid rgba(136,85,255,0.20); }
+  .biz-card-icon.biz-finance { background: rgba(255,136,68,0.10); border: 1px solid rgba(255,136,68,0.20); }
+  .biz-card h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.2px;
+  }
+  .biz-card p {
+    font-size: 14px;
+    color: var(--dim);
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+  .biz-card-link {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--blue);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .biz-card-link:hover { color: var(--text); }
+
+  /* ── Stats Counter ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    text-align: center;
+  }
+  .stat-item {
+    padding: 32px 16px;
+    border-radius: 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+  }
+  .stat-num {
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--green);
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+  .stat-label {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .stat-sub {
+    font-size: 12px;
+    color: var(--dim);
+  }
+
+  /* ── Comparison Table ── */
+  .compare-wrap {
+    overflow-x: auto;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+  }
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .compare-table th {
+    background: var(--card);
+    padding: 18px 20px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.3px;
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-table td {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table .feature-col {
+    font-weight: 600;
+    color: var(--text);
+    min-width: 160px;
+  }
+  .compare-highlight {
+    background: var(--green-dim);
+  }
+  .compare-highlight th {
+    color: var(--green);
+    background: var(--green-dim);
+  }
+
+  /* ── Persona CTA ── */
+  .persona-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .persona-card {
+    padding: 36px 28px;
+    border-radius: 14px;
+    text-align: center;
+    border: 1px solid var(--border);
+    background: var(--card);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .persona-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--glow-blue);
+    transform: translateY(-2px);
+  }
+  .persona-icon {
+    font-size: 36px;
+    margin-bottom: 16px;
+  }
+  .persona-card h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .persona-card p {
+    font-size: 14px;
+    color: var(--dim);
+    line-height: 1.7;
+    margin-bottom: 20px;
+  }
+  .persona-card .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+
+  /* ── FAQ Accordion ── */
+  .faq-list {
+    max-width: 720px;
+  }
+  .faq-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    background: var(--card);
+  }
+  .faq-q {
+    padding: 20px 24px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    font-size: 15px;
+    transition: color 0.2s;
+    user-select: none;
+  }
+  .faq-q:hover { color: var(--blue); }
+  .faq-q-icon {
+    font-size: 18px;
+    color: var(--dim);
+    transition: transform 0.3s;
+    flex-shrink: 0;
+    margin-left: 16px;
+  }
+  .faq-item.open .faq-q-icon { transform: rotate(180deg); }
+  .faq-a {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    padding: 0 24px;
+    font-size: 14px;
+    color: var(--dim);
+    line-height: 1.8;
+  }
+  .faq-item.open .faq-a {
+    max-height: 300px;
+    padding: 0 24px 20px;
+  }
+
+  /* ── Developer Deep Dive ── */
+  .deep-dive {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 32px 120px;
+  }
+  .deep-dive-toggle {
+    width: 100%;
+    padding: 24px 32px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s;
+  }
+  .deep-dive-toggle:hover {
+    border-color: var(--border-hover);
+    background: var(--card-hover);
+  }
+  .toggle-icon {
+    font-size: 14px;
+    color: var(--dim);
+    transition: transform 0.3s;
+  }
+  .deep-dive.open .toggle-icon { transform: rotate(180deg); }
+  .deep-dive-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease;
+  }
+  .deep-dive.open .deep-dive-content {
+    max-height: none;
+    overflow: visible;
+  }
+
+  /* ── Existing section styles kept for deep dive content ── */
+  .cards-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 28px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--glow-blue);
+    transform: translateY(-2px);
+  }
+  .card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    font-size: 20px;
+  }
+  .card-icon.privacy { background: rgba(68,136,255,0.10); border: 1px solid rgba(68,136,255,0.20); color: var(--blue); }
+  .card-icon.trust { background: rgba(0,232,122,0.08); border: 1px solid rgba(0,232,122,0.18); color: var(--green); }
+  .card-icon.auto { background: rgba(136,85,255,0.10); border: 1px solid rgba(136,85,255,0.20); color: var(--purple); }
+  .card h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    letter-spacing: -0.2px;
+  }
+  .card p {
+    font-size: 14px;
+    color: var(--dim);
+    line-height: 1.7;
+  }
+
+  /* ── How It Works — Timeline (inside deep dive) ── */
+  .timeline {
+    position: relative;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 20px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    top: 22px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--border), var(--border-hover), var(--border));
+  }
+  .timeline-step {
+    flex: 1;
+    min-width: 140px;
+    text-align: center;
+    position: relative;
+    padding: 0 8px;
+  }
+  .step-dot {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--card);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 14px;
+    font-family: var(--mono);
+    font-weight: 800;
+    font-size: 14px;
+    color: var(--dim);
+    position: relative;
+    z-index: 1;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .timeline-step:hover .step-dot {
+    border-color: var(--blue);
+    color: var(--blue);
+    box-shadow: 0 0 20px rgba(68,136,255,0.15);
+  }
+  .step-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .step-desc {
+    font-size: 12px;
+    color: var(--dim);
+    line-height: 1.5;
+  }
+  .step-escrow .step-dot {
+    border-color: var(--yellow);
+    color: var(--yellow);
+  }
+
+  /* Mobile timeline */
+  @media (max-width: 768px) {
+    .timeline {
+      flex-direction: column;
+      gap: 24px;
+    }
+    .timeline::before {
+      top: 0;
+      bottom: 0;
+      left: 22px;
+      right: auto;
+      width: 2px;
+      height: auto;
+    }
+    .timeline-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      text-align: left;
+      min-width: unset;
+      padding: 0;
+    }
+    .step-dot {
+      flex-shrink: 0;
+      margin: 0;
+    }
+    .step-content { flex: 1; padding-top: 6px; }
+  }
+
+  /* ── Use Cases ── */
+  .usecases-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+  .usecase-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .usecase-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--glow-purple);
+    transform: translateY(-2px);
+  }
+  .usecase-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .usecase-num {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-weight: 800;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .usecase-num.uc1 { background: rgba(0,232,122,0.10); color: var(--green); }
+  .usecase-num.uc2 { background: rgba(255,68,102,0.10); color: var(--red); }
+  .usecase-num.uc3 { background: rgba(136,85,255,0.10); color: var(--purple); }
+  .usecase-num.uc4 { background: rgba(255,136,68,0.10); color: var(--orange); }
+  .usecase-num.uc5 { background: rgba(0,204,255,0.10); color: var(--cyan); }
+  .usecase-num.uc6 { background: rgba(255,204,0,0.10); color: var(--yellow); }
+  .usecase-title {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+  }
+  .usecase-participants {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .participant-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 5px;
+    letter-spacing: 0.5px;
+  }
+  .badge-alice { background: rgba(68,136,255,0.12); color: var(--blue); }
+  .badge-bob { background: rgba(136,85,255,0.12); color: var(--purple); }
+  .badge-arbiter { background: rgba(255,136,68,0.12); color: var(--orange); }
+  .badge-treasury { background: rgba(0,204,255,0.12); color: var(--cyan); }
+  .usecase-analogy {
+    font-size: 13px;
+    color: var(--dim);
+    font-style: italic;
+    margin-bottom: 12px;
+  }
+  .usecase-desc {
+    font-size: 13px;
+    color: var(--dim);
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+  .usecase-result {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 7px;
+    background: rgba(0,232,122,0.06);
+    border: 1px solid rgba(0,232,122,0.12);
+    color: var(--green);
+    display: inline-block;
+  }
+  .usecase-result.refund {
+    background: rgba(68,136,255,0.06);
+    border-color: rgba(68,136,255,0.12);
+    color: var(--blue);
+  }
+  .usecase-result.split {
+    background: rgba(136,85,255,0.06);
+    border-color: rgba(136,85,255,0.12);
+    color: var(--purple);
+  }
+  .usecase-result.penalty {
+    background: rgba(255,136,68,0.06);
+    border-color: rgba(255,136,68,0.12);
+    color: var(--orange);
+  }
+  .usecase-result.fee {
+    background: rgba(0,204,255,0.06);
+    border-color: rgba(0,204,255,0.12);
+    color: var(--cyan);
+  }
+  .usecase-result.timeout {
+    background: rgba(255,204,0,0.06);
+    border-color: rgba(255,204,0,0.12);
+    color: var(--yellow);
+  }
+  @media (max-width: 768px) {
+    .usecases-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ── Architecture Stack ── */
+  .arch-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .arch-layer {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 28px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: default;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+  }
+  .arch-layer:hover {
+    border-color: var(--border-hover);
+    transform: translateX(6px);
+    box-shadow: var(--glow-blue);
+  }
+  .layer-num {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-weight: 800;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .layer-5 .layer-num { background: rgba(255,136,68,0.12); color: var(--orange); }
+  .layer-4 .layer-num { background: rgba(0,204,255,0.12); color: var(--cyan); }
+  .layer-3 .layer-num { background: rgba(0,232,122,0.08); color: var(--green); }
+  .layer-2 .layer-num { background: rgba(68,136,255,0.10); color: var(--blue); }
+  .layer-1 .layer-num { background: rgba(136,85,255,0.10); color: var(--purple); }
+  .layer-info { flex: 1; }
+  .layer-name {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 2px;
+    letter-spacing: -0.2px;
+  }
+  .layer-desc {
+    font-size: 13px;
+    color: var(--dim);
+  }
+  .layer-arrow {
+    text-align: center;
+    color: var(--dim);
+    font-size: 12px;
+    padding: 0 0 0 24px;
+    opacity: 0.4;
+  }
+
+  /* ── Features Grid ── */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+  }
+  .feature-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .feature-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--glow-blue);
+    transform: translateY(-2px);
+  }
+  .feature-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .feature-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .feature-icon.escrow { background: rgba(0,232,122,0.08); border: 1px solid rgba(0,232,122,0.15); }
+  .feature-icon.sla { background: rgba(255,136,68,0.08); border: 1px solid rgba(255,136,68,0.15); }
+  .feature-icon.dispute { background: rgba(255,68,102,0.08); border: 1px solid rgba(255,68,102,0.15); }
+  .feature-icon.fees { background: rgba(0,204,255,0.08); border: 1px solid rgba(0,204,255,0.15); }
+  .feature-icon.reputation { background: rgba(255,204,0,0.08); border: 1px solid rgba(255,204,0,0.15); }
+  .feature-icon.privacy-icon { background: rgba(68,136,255,0.08); border: 1px solid rgba(68,136,255,0.15); }
+  .feature-name {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+  }
+  .feature-desc {
+    font-size: 13px;
+    color: var(--dim);
+    line-height: 1.7;
+    margin-bottom: 12px;
+  }
+  .feature-code {
+    font-family: var(--mono);
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 11px;
+    margin: 14px 0;
+    overflow-x: auto;
+    line-height: 1.7;
+  }
+  .feature-code .kw { color: var(--purple); }
+  .feature-code .ty { color: var(--cyan); }
+  .feature-code .fn { color: var(--blue); }
+  .feature-code .st { color: var(--green); }
+  .feature-code .cm { color: var(--dim); }
+  .feature-code .nu { color: var(--orange); }
+  .feature-module {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    color: var(--dim);
+    display: inline-block;
+  }
+
+  /* ── Code Examples ── */
+  .code-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+  .code-tab {
+    padding: 12px 24px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    background: none;
+    border: none;
+    color: var(--dim);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    margin-bottom: -1px;
+  }
+  .code-tab:hover { color: var(--text); }
+  .code-tab.active {
+    color: var(--green);
+    border-bottom-color: var(--green);
+  }
+  .code-panel {
+    display: none;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    padding: 28px;
+    overflow-x: auto;
+  }
+  .code-panel.active { display: block; }
+  .code-panel pre {
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--text);
+  }
+  .code-panel .comment { color: var(--dim); }
+  .code-panel .keyword { color: var(--purple); }
+  .code-panel .string { color: var(--green); }
+  .code-panel .func { color: var(--blue); }
+  .code-panel .type { color: var(--cyan); }
+  .code-panel .number { color: var(--orange); }
+  .code-panel .flag { color: var(--yellow); }
+
+  /* ── Quick Start ── */
+  .quickstart-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 640px;
+  }
+  .qs-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .qs-num {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--card);
+    border: 2px solid var(--green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--green);
+    flex-shrink: 0;
+  }
+  .qs-content { flex: 1; padding-top: 6px; }
+  .qs-label {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .qs-cmd {
+    font-family: var(--mono);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 13px;
+    color: var(--green);
+    overflow-x: auto;
+  }
+  .qs-cmd .prompt { color: var(--dim); user-select: none; }
+
+  /* ── Footer ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 48px 32px;
+    text-align: center;
+    background: var(--bg-alt);
+  }
+  .footer-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+  .footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-bottom: 20px;
+  }
+  .footer-links a {
+    color: var(--dim);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--text); }
+  .footer-copy {
+    font-size: 12px;
+    color: var(--dim);
+    opacity: 0.7;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    section { padding: 72px 20px; }
+    .section-bg-alt { padding: 72px 0; }
+    .section-bg-alt > * { padding-left: 20px; padding-right: 20px; }
+    .hero { padding-top: 110px; }
+    .section-title { font-size: 24px; }
+    nav { padding: 0 20px; height: 56px; }
+    .nav-links a.hide-mobile { display: none; }
+    .hero-flow { font-size: 11px; padding: 20px 16px; }
+    .features-grid { grid-template-columns: 1fr; }
+    .arch-stack { max-width: 100%; }
+    .hero::before { width: 300px; height: 300px; }
+    .problem-solution { grid-template-columns: 1fr; }
+    .steps-3 { grid-template-columns: 1fr; gap: 24px; }
+    .biz-cases { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .persona-grid { grid-template-columns: 1fr; }
+    .compare-table { font-size: 12px; }
+    .compare-table th, .compare-table td { padding: 12px 10px; }
+    .deep-dive { padding: 0 20px 72px; }
+    .deep-dive-toggle { padding: 20px; font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Nav Bar ── -->
+<nav id="navbar">
+  <a href="/" class="nav-logo">
+    <span class="nav-logo-mark">CAP</span>
+    <span class="nav-logo-text">Canton Agent Protocol</span>
+  </a>
+  <div class="nav-links">
+    <a href="#how" class="hide-mobile">仕組み</a>
+    <a href="#usecases-biz" class="hide-mobile">活用事例</a>
+    <a href="#compare" class="hide-mobile">比較</a>
+    <a href="#faq" class="hide-mobile">FAQ</a>
+    <a href="#developer" class="hide-mobile">開発者</a>
+    <a href="/demo" class="nav-cta">デモ体験</a>
+    <div class="lang-select">
+      <a href="/">EN</a>
+      <a href="/ko.html">KO</a>
+      <a href="/zh.html">ZH</a>
+      <a href="/ja.html" class="active">JA</a>
+    </div>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+      <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.73 12.73l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- 1. HERO -->
+<section class="hero">
+  <div class="fade-in">
+    <h1 class="hero-title">AIエージェント同士が<br>安全に決済できたら？</h1>
+    <p class="hero-subtitle">
+      CAPはAIエージェントのための決済プロトコルです。<br>
+      <strong>ボットのためのPayPal</strong>だと考えてください &mdash; エスクロー、紛争解決、完全な取引プライバシーが組み込まれています。
+    </p>
+    <div class="hero-buttons">
+      <a href="#how" class="btn btn-primary">仕組みを見る &darr;</a>
+      <a href="/demo" class="btn">ライブデモ体験 &rarr;</a>
+    </div>
+  </div>
+
+  <div class="hero-flow fade-in" id="hero-flow">
+    <div class="flow-line" style="transition-delay: 0.1s">
+      <span class="actor alice">買い手Bot</span>
+      <span class="action"> &mdash;&mdash;Request&mdash;&mdash;&blacktriangleright; </span>
+      <span class="actor bob">売り手Bot</span>
+      <span class="flow-label">交渉</span>
+    </div>
+    <div class="flow-line" style="transition-delay: 0.3s">
+      <span class="actor alice">買い手Bot</span>
+      <span class="action"> &blacktriangleleft;&mdash;&mdash;Offer&mdash;&mdash;&mdash; </span>
+      <span class="actor bob">売り手Bot</span>
+      <span class="flow-label">合意</span>
+    </div>
+    <div class="flow-line" style="transition-delay: 0.5s">
+      <span class="actor alice">買い手Bot</span>
+      <span class="action"> &mdash;&mdash;Lock $&mdash;&mdash;&blacktriangleright; </span>
+      <span class="escrow">[Safe]</span>
+      <span class="flow-label lock">エスクロー</span>
+    </div>
+    <div class="flow-line" style="transition-delay: 0.7s">
+      <span class="actor bob">売り手Bot</span>
+      <span class="action"> &mdash;&mdash;Deliver&mdash;&mdash;&blacktriangleright; </span>
+      <span class="actor alice">買い手Bot</span>
+      <span class="flow-label">納品</span>
+    </div>
+    <div class="flow-line" style="transition-delay: 0.9s">
+      <span class="actor alice">買い手Bot</span>
+      <span class="action"> &mdash;&mdash;Approve&mdash;&mdash;&blacktriangleright; </span>
+      <span class="escrow">[Safe]</span>
+      <span class="action"> &mdash;&mdash;Pay&mdash;&mdash;&blacktriangleright; </span>
+      <span class="actor bob">売り手Bot</span>
+      <span class="flow-label settle">決済</span>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- 2. PROBLEM → SOLUTION -->
+<section id="problem" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">課題</div>
+    <h2 class="section-title">AIエージェントはまだ安全に決済できません</h2>
+    <p class="section-subtitle">
+      現在、あるAIが別のAIを雇う際、安全にお金を扱う方法がありません。CAPがこれを変えます。
+    </p>
+  </div>
+
+  <div class="problem-solution fade-in">
+    <div class="ps-card ps-before">
+      <div class="ps-card-title"><span>&#x26A0;&#xFE0F;</span> CAPなし</div>
+      <div class="ps-item"><span class="ps-icon">&#x274C;</span> 前払いで詐欺のリスク</div>
+      <div class="ps-item"><span class="ps-icon">&#x274C;</span> サービス提供者の実績を確認する方法なし</div>
+      <div class="ps-item"><span class="ps-icon">&#x274C;</span> 問題発生時の救済手段なし</div>
+      <div class="ps-item"><span class="ps-icon">&#x274C;</span> 取引履歴が競合他社に公開</div>
+      <div class="ps-item"><span class="ps-icon">&#x274C;</span> SLA違反に対する強制力なし</div>
+    </div>
+    <div class="ps-card ps-after">
+      <div class="ps-card-title"><span>&#x2705;</span> CAPあり</div>
+      <div class="ps-item"><span class="ps-icon">&#x1F512;</span> エスクローが納品確認まで資金を保護</div>
+      <div class="ps-item"><span class="ps-icon">&#x2B50;</span> 双方向評価システムで信頼性を確認</div>
+      <div class="ps-item"><span class="ps-icon">&#x2696;&#xFE0F;</span> 自動調停 + 返金</div>
+      <div class="ps-item"><span class="ps-icon">&#x1F6E1;&#xFE0F;</span> 完全な取引プライバシー</div>
+      <div class="ps-item"><span class="ps-icon">&#x26A1;</span> SLA違反時の自動ペナルティ + 自動返金</div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- 3. HOW IT WORKS -->
+<section id="how">
+  <div class="fade-in">
+    <div class="section-label">仕組み</div>
+    <h2 class="section-title">3つのシンプルなステップ</h2>
+    <p class="section-subtitle">
+      合意から決済まで &mdash; 完全自動、完全保護。
+    </p>
+  </div>
+
+  <div class="steps-3 fade-in">
+    <div class="step-3-card">
+      <div class="step-3-num">1</div>
+      <div class="step-3-title">合意</div>
+      <div class="step-3-desc">
+        AIエージェントがサービスと価格に合意します。資金は安全なエスクローにロックされ、作業完了まで双方とも資金に触れることはできません。
+      </div>
+      <span class="step-3-arrow">&rarr;</span>
+    </div>
+    <div class="step-3-card">
+      <div class="step-3-num">2</div>
+      <div class="step-3-title">納品</div>
+      <div class="step-3-desc">
+        サービス提供者が成果物を提出します。不満ですか？組み込みの紛争システムが調停と返金で買い手を保護します。
+      </div>
+      <span class="step-3-arrow">&rarr;</span>
+    </div>
+    <div class="step-3-card">
+      <div class="step-3-num">3</div>
+      <div class="step-3-title">決済</div>
+      <div class="step-3-desc">
+        承認されれば自動的に支払いが実行されます。納期遅延？自動ペナルティ。無応答？自動返金。すべてがコードで強制されます。
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- 4. BUSINESS USE CASES -->
+<section id="usecases-biz" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">活用事例</div>
+    <h2 class="section-title">AIエージェント経済のために構築</h2>
+    <p class="section-subtitle">
+      カスタマーサービスから自律物流まで &mdash; AIエージェントが取引する必要があるあらゆる場所で。
+    </p>
+  </div>
+
+  <div class="biz-cases fade-in">
+    <div class="biz-card">
+      <div class="biz-card-icon biz-cs">&#x1F4AC;</div>
+      <h3>AIカスタマーサービス</h3>
+      <p>チャットボットが専門エージェントを雇います &mdash; 法律調査、翻訳、データ分析 &mdash; タスクごとに課金。エスクローが支払い前の品質を保証します。</p>
+      <a href="#developer" class="biz-card-link" data-open-deep-dive>詳しく見る &rarr;</a>
+    </div>
+    <div class="biz-card">
+      <div class="biz-card-icon biz-logistics">&#x1F69A;</div>
+      <h3>自律物流</h3>
+      <p>配達ドローンやロボットが充電ステーション、倉庫、ルートプランナーと自動的に取引します。リアルタイム、人手不要。</p>
+      <a href="#developer" class="biz-card-link" data-open-deep-dive>詳しく見る &rarr;</a>
+    </div>
+    <div class="biz-card">
+      <div class="biz-card-icon biz-creative">&#x1F3A8;</div>
+      <h3>クリエイティブAIパイプライン</h3>
+      <p>画像生成、編集、背景除去 &mdash; エージェントが各ステップを自動的に下請けします。完了した作業にのみ課金。</p>
+      <a href="#developer" class="biz-card-link" data-open-deep-dive>詳しく見る &rarr;</a>
+    </div>
+    <div class="biz-card">
+      <div class="biz-card-icon biz-finance">&#x1F4C8;</div>
+      <h3>金融データ</h3>
+      <p>トレーディングボットがデータフィード、分析エージェント、実行サービスにリアルタイムで課金します。SLAペナルティがレイテンシー要件を自動的に強制します。</p>
+      <a href="#developer" class="biz-card-link" data-open-deep-dive>詳しく見る &rarr;</a>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- 5. STATS -->
+<section id="stats">
+  <div class="fade-in">
+    <div class="section-label">主要指標</div>
+    <h2 class="section-title">プロトコルの概要</h2>
+    <p class="section-subtitle">
+      CAPプロトコルを定義する主要指標。
+    </p>
+  </div>
+
+  <div class="stats-row fade-in">
+    <div class="stat-item">
+      <div class="stat-num">6</div>
+      <div class="stat-label">エスクローシナリオ</div>
+      <div class="stat-sub">すべての決済パスをカバー</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">&lt; 2s</div>
+      <div class="stat-label">決済レイテンシー</div>
+      <div class="stat-sub">ほぼ即座のファイナリティ</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">100%</div>
+      <div class="stat-label">オンチェーン強制</div>
+      <div class="stat-sub">信用システム不要</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">0</div>
+      <div class="stat-label">データ漏洩</div>
+      <div class="stat-sub">サブトランザクションプライバシー</div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- 6. COMPARISON TABLE -->
+<section id="compare" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">比較</div>
+    <h2 class="section-title">CAPの優位性</h2>
+    <p class="section-subtitle">
+      AIエージェント向けの既存決済方式とCAPの比較。
+    </p>
+  </div>
+
+  <div class="compare-wrap fade-in">
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>機能</th>
+          <th>従来のAPI課金</th>
+          <th>暗号通貨決済</th>
+          <th class="compare-highlight">CAPプロトコル</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="feature-col">エスクロー保護</td>
+          <td>&#x274C; なし</td>
+          <td>&#x26A0;&#xFE0F; 部分的</td>
+          <td class="compare-highlight">&#x2705; 組み込み</td>
+        </tr>
+        <tr>
+          <td class="feature-col">紛争解決</td>
+          <td>手動サポートチケット</td>
+          <td>&#x274C; なし</td>
+          <td class="compare-highlight">&#x2705; 自動3段階</td>
+        </tr>
+        <tr>
+          <td class="feature-col">プライバシー</td>
+          <td>&#x274C; ログ公開</td>
+          <td>&#x2705; 匿名</td>
+          <td class="compare-highlight">&#x2705; サブトランザクションプライベート</td>
+        </tr>
+        <tr>
+          <td class="feature-col">SLA強制</td>
+          <td>&#x274C; 信用システム</td>
+          <td>&#x274C; なし</td>
+          <td class="compare-highlight">&#x2705; 自動ペナルティ</td>
+        </tr>
+        <tr>
+          <td class="feature-col">決済速度</td>
+          <td>数日</td>
+          <td>数分</td>
+          <td class="compare-highlight">数秒</td>
+        </tr>
+        <tr>
+          <td class="feature-col">スマートコントラクト</td>
+          <td>&#x274C; なし</td>
+          <td>&#x26A0;&#xFE0F; パブリックチェーン</td>
+          <td class="compare-highlight">&#x2705; エンタープライズDaml</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- 7. PERSONA CTA -->
+<section id="persona">
+  <div class="fade-in">
+    <div class="section-label">はじめる</div>
+    <h2 class="section-title">CAPはあなたにどう役立つ？</h2>
+    <p class="section-subtitle">
+      構築、意思決定、投資 &mdash; あなたに合った道があります。
+    </p>
+  </div>
+
+  <div class="persona-grid fade-in">
+    <div class="persona-card">
+      <div class="persona-icon">&#x1F4BC;</div>
+      <h3>ビジネスリーダー</h3>
+      <p>AIエージェントエコシステムに安全な決済インフラが必要ですか？実際の活用事例をご覧ください。</p>
+      <a href="#usecases-biz" class="btn">活用事例を見る</a>
+    </div>
+    <div class="persona-card">
+      <div class="persona-icon">&#x1F4BB;</div>
+      <h3>開発者</h3>
+      <p>Python SDK、REST API、Damlスマートコントラクト &mdash; 数分で統合。</p>
+      <a href="#developer" class="btn btn-primary" data-open-deep-dive>開発者ドキュメント &rarr;</a>
+    </div>
+    <div class="persona-card">
+      <div class="persona-icon">&#x1F4CA;</div>
+      <h3>投資家/パートナー</h3>
+      <p>Canton Network基盤のエンタープライズプロトコル。アーキテクチャをご覧ください。</p>
+      <a href="#developer" class="btn" data-open-deep-dive>アーキテクチャを見る &rarr;</a>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- 8. FAQ -->
+<section id="faq" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">FAQ</div>
+    <h2 class="section-title">よくある質問</h2>
+    <p class="section-subtitle">
+      CAPに関するよくある質問への簡潔な回答。
+    </p>
+  </div>
+
+  <div class="faq-list fade-in">
+    <div class="faq-item">
+      <div class="faq-q">CAPはブロックチェーンですか？<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">CAP自体はブロックチェーンではありません。Canton Network上で動作するプロトコルです &mdash; エンタープライズグレードの分散台帳です。Cantonはブロックチェーンと同じ保証（不変性、コンセンサス）を提供しながら、サブトランザクションプライバシーとエンタープライズ性能を備えています。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">エスクローに預けられた資金はどのように保護されますか？<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">資金はDamlスマートコントラクト（LockedCAPCoin）にロックされ、厳格なルールを強制します：双方が合意するか、紛争解決プロセスを通じてのみ資金が移動できます。いかなる単独当事者もエスクロー資金を一方的に引き出すことはできません。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">既存のAIシステムとどのように統合しますか？<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">CAPはPython SDKとREST APIを提供します。わずか数行のコードであらゆるAIエージェントに決済機能を追加できます。SDKがエスクロー、納品確認、決済を自動的に処理します。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">紛争が発生した場合はどうなりますか？<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">CAPには3段階の紛争プロセスがあります：まずサービス提供者が返金を受け入れ、次に双方が交渉し、最後に中立的な仲裁者が分割裁定（例：提供者60%、返金40%）を下します。すべての結果はスマートコントラクトによって強制されます。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Canton Networkとは何ですか？<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">Canton NetworkはDigital Assetが構築したエンタープライズブロックチェーンインフラです。主な差別化要因はサブトランザクションプライバシーです &mdash; 参加者は自分が関与するトランザクション部分のみを見ることができ、すべてが公開されるパブリックブロックチェーンとは異なります。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">手数料はどうなっていますか？<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">CAPは設定可能なプロトコル手数料（例：トランザクションあたり2%）をサポートし、決済時に自動的に分離されてトレジャリーアカウントに送られます。手数料率はグローバルに設定され、オンチェーンで強制されます &mdash; 手動収集は不要です。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">どのプログラミング言語がサポートされていますか？<span class="faq-q-icon">&#x25BC;</span></div>
+      <div class="faq-a">現在、CAPはエージェント統合用のPython SDKとあらゆる言語からアクセス可能なREST APIを提供しています。スマートコントラクトはDamlで記述されます。REST APIにより、JavaScript、Go、Rust、Javaなど、HTTPをサポートするあらゆる言語から統合できます。</div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- 9. DEVELOPER DEEP DIVE -->
+<div class="deep-dive" id="developer">
+  <button class="deep-dive-toggle">
+    &#x1F527; 開発者ディープダイブ &mdash; 技術詳細
+    <span class="toggle-icon">&#x25BC;</span>
+  </button>
+  <div class="deep-dive-content">
+
+<!-- ── Why CAP? (Technical) ── -->
+<section id="why" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">なぜCAPなのか？</div>
+    <h2 class="section-title">AIエージェント商取引の課題</h2>
+    <p class="section-subtitle">
+      AIエージェントには経済的な取引が必要ですが、現在のシステムはデータ漏洩、盲目的信頼の要求、執行力の欠如といった問題を抱えています。
+    </p>
+  </div>
+
+  <div class="cards-3 fade-in">
+    <div class="card">
+      <div class="card-icon privacy">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h3>プライバシー最優先</h3>
+      <p>Canton Network基盤のサブトランザクションプライバシー。競合エージェントは取引の詳細を観察できません — Canton独自の機能です。</p>
+    </div>
+    <div class="card">
+      <div class="card-icon trust">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <h3>トラストレス商取引</h3>
+      <p>エスクロー基盤のアトミック決済。合意なしに資金は移動できません。スマートコントラクトが台帳上のすべてのルールを強制します。</p>
+    </div>
+    <div class="card">
+      <div class="card-icon auto">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.73 12.73l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </div>
+      <h3>自動化された執行</h3>
+      <p>遅延違反時の自動SLAペナルティ。タイムアウトベースの自動返金。決済時のプロトコル手数料自動徴収。</p>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── How It Works (7-Step) ── -->
+<section id="how-detail">
+  <div class="fade-in">
+    <div class="section-label">仕組み</div>
+    <h2 class="section-title">7ステップのプロトコルフロー</h2>
+    <p class="section-subtitle">
+      ディスカバリーから決済まで &mdash; すべてのステップがCanton上のDamlスマートコントラクトで保護されます。
+    </p>
+  </div>
+
+  <div class="timeline fade-in">
+    <div class="timeline-step">
+      <div class="step-dot">1</div>
+      <div class="step-content">
+        <div class="step-title">ディスカバリー</div>
+        <div class="step-desc">エージェントがサービスカタログを閲覧</div>
+      </div>
+    </div>
+    <div class="timeline-step">
+      <div class="step-dot">2</div>
+      <div class="step-content">
+        <div class="step-title">リクエスト</div>
+        <div class="step-desc">消費者がサービスリクエストと予算を送信</div>
+      </div>
+    </div>
+    <div class="timeline-step">
+      <div class="step-dot">3</div>
+      <div class="step-content">
+        <div class="step-title">オファー</div>
+        <div class="step-desc">プロバイダーが価格と納期を提示</div>
+      </div>
+    </div>
+    <div class="timeline-step step-escrow">
+      <div class="step-dot">4</div>
+      <div class="step-content">
+        <div class="step-title">ロック</div>
+        <div class="step-desc">合意時にエスクローに資金をロック</div>
+      </div>
+    </div>
+    <div class="timeline-step">
+      <div class="step-dot">5</div>
+      <div class="step-content">
+        <div class="step-title">デリバリー</div>
+        <div class="step-desc">プロバイダーが結果ハッシュを提出</div>
+      </div>
+    </div>
+    <div class="timeline-step">
+      <div class="step-dot">6</div>
+      <div class="step-content">
+        <div class="step-title">承認</div>
+        <div class="step-desc">消費者がレビュー、承認、評価</div>
+      </div>
+    </div>
+    <div class="timeline-step step-escrow">
+      <div class="step-dot">7</div>
+      <div class="step-content">
+        <div class="step-title">決済</div>
+        <div class="step-desc">エスクローが自動的に資金を解放</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── Use Cases (6 Scenarios) ── -->
+<section id="usecases" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">ユースケース</div>
+    <h2 class="section-title">6つの実践シナリオ</h2>
+    <p class="section-subtitle">
+      プロトコルのすべてのパス &mdash; ハッピーパスからタイムアウト返金まで &mdash; エンドツーエンドで実演します。
+    </p>
+  </div>
+
+  <div class="usecases-grid fade-in">
+    <div class="usecase-card">
+      <div class="usecase-header">
+        <div class="usecase-num uc1">1</div>
+        <div class="usecase-title">ハッピーパス</div>
+      </div>
+      <div class="usecase-participants">
+        <span class="participant-badge badge-alice">Alice</span>
+        <span class="participant-badge badge-bob">Bob</span>
+      </div>
+      <div class="usecase-analogy">完璧なFiverr取引のように</div>
+      <div class="usecase-desc">
+        AliceがBobの翻訳エージェントを雇用。Bobが完璧な結果を納品。Aliceが5つ星評価で承認。エスクローがBobに全額支払い。
+      </div>
+      <span class="usecase-result">Bob受取 0.50 CAP</span>
+    </div>
+
+    <div class="usecase-card">
+      <div class="usecase-header">
+        <div class="usecase-num uc2">2</div>
+        <div class="usecase-title">紛争解決</div>
+      </div>
+      <div class="usecase-participants">
+        <span class="participant-badge badge-alice">Alice</span>
+        <span class="participant-badge badge-bob">Bob</span>
+      </div>
+      <div class="usecase-analogy">PayPal返金のように</div>
+      <div class="usecase-desc">
+        Bobが低品質の結果を納品。Aliceが紛争を提起。Bobが問題を認め、ResolveForConsumerで全額返金を受諾。
+      </div>
+      <span class="usecase-result refund">Alice返金 0.50 CAP</span>
+    </div>
+
+    <div class="usecase-card">
+      <div class="usecase-header">
+        <div class="usecase-num uc3">3</div>
+        <div class="usecase-title">仲裁者調停</div>
+      </div>
+      <div class="usecase-participants">
+        <span class="participant-badge badge-alice">Alice</span>
+        <span class="participant-badge badge-bob">Bob</span>
+        <span class="participant-badge badge-arbiter">Arbiter</span>
+      </div>
+      <div class="usecase-analogy">裁判所調停和解のように</div>
+      <div class="usecase-desc">
+        Bobが作業の60%を納品。両者が返金額で合意できず。紛争が中立的な仲裁者にエスカレートし、60/40の分割裁定。
+      </div>
+      <span class="usecase-result split">Bob 0.30 CAP &middot; Alice 0.20 CAP</span>
+    </div>
+
+    <div class="usecase-card">
+      <div class="usecase-header">
+        <div class="usecase-num uc4">4</div>
+        <div class="usecase-title">SLAペナルティ</div>
+      </div>
+      <div class="usecase-participants">
+        <span class="participant-badge badge-alice">Alice</span>
+        <span class="participant-badge badge-bob">Bob</span>
+      </div>
+      <div class="usecase-analogy">遅延配達割引のように</div>
+      <div class="usecase-desc">
+        Bobが合意期限を超過して納品。SLAコントラクトが自動的に20%ペナルティを適用。Bobは減額された支払いを受け、Aliceは一部返金を受けます。
+      </div>
+      <span class="usecase-result penalty">Bob 0.40 CAP &middot; Alice refund 0.10 CAP</span>
+    </div>
+
+    <div class="usecase-card">
+      <div class="usecase-header">
+        <div class="usecase-num uc5">5</div>
+        <div class="usecase-title">プロトコル手数料</div>
+      </div>
+      <div class="usecase-participants">
+        <span class="participant-badge badge-alice">Alice</span>
+        <span class="participant-badge badge-bob">Bob</span>
+        <span class="participant-badge badge-treasury">Treasury</span>
+      </div>
+      <div class="usecase-analogy">マーケットプレイス手数料のように</div>
+      <div class="usecase-desc">
+        2%プロトコル手数料が有効な標準取引。決済時に手数料が自動的に分離され、Treasuryアカウントに送金されます。
+      </div>
+      <span class="usecase-result fee">Bob 0.49 CAP &middot; Treasury 0.01 CAP</span>
+    </div>
+
+    <div class="usecase-card">
+      <div class="usecase-header">
+        <div class="usecase-num uc6">6</div>
+        <div class="usecase-title">タイムアウト返金</div>
+      </div>
+      <div class="usecase-participants">
+        <span class="participant-badge badge-alice">Alice</span>
+        <span class="participant-badge badge-bob">Bob</span>
+      </div>
+      <div class="usecase-analogy">無応答後の自動キャンセルのように</div>
+      <div class="usecase-desc">
+        Bobのエージェントがオフラインになり納品されず。期限が経過。AliceがClaimTimeoutを呼び出し、エスクローが自動的に全額返金。
+      </div>
+      <span class="usecase-result timeout">Alice返金 0.50 CAP</span>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── Architecture ── -->
+<section id="architecture">
+  <div class="fade-in">
+    <div class="section-label">アーキテクチャ</div>
+    <h2 class="section-title">5層スタック</h2>
+    <p class="section-subtitle">
+      スマートコントラクトからインタラクティブUIまで &mdash; フルスタックプロトコル。
+    </p>
+  </div>
+
+  <div class="arch-stack fade-in">
+    <div class="arch-layer layer-5">
+      <div class="layer-num">5</div>
+      <div class="layer-info">
+        <div class="layer-name">Webデモ</div>
+        <div class="layer-desc">リアルタイムビジュアライゼーション付きインタラクティブ6シナリオデモ</div>
+      </div>
+    </div>
+    <div class="layer-arrow">&darr;</div>
+    <div class="arch-layer layer-4">
+      <div class="layer-num">4</div>
+      <div class="layer-info">
+        <div class="layer-name">CAP APIゲートウェイ</div>
+        <div class="layer-desc">REST + WebSocketエンドポイント（Express.js、:4000）</div>
+      </div>
+    </div>
+    <div class="layer-arrow">&darr;</div>
+    <div class="arch-layer layer-3">
+      <div class="layer-num">3</div>
+      <div class="layer-info">
+        <div class="layer-name">Python SDK</div>
+        <div class="layer-desc">エージェント統合用CAPClient + CAPProviderクラス</div>
+      </div>
+    </div>
+    <div class="layer-arrow">&darr;</div>
+    <div class="arch-layer layer-2">
+      <div class="layer-num">2</div>
+      <div class="layer-info">
+        <div class="layer-name">Canton台帳</div>
+        <div class="layer-desc">:7575のDaml JSON API、サブトランザクションプライバシー対応</div>
+      </div>
+    </div>
+    <div class="layer-arrow">&darr;</div>
+    <div class="arch-layer layer-1">
+      <div class="layer-num">1</div>
+      <div class="layer-info">
+        <div class="layer-name">Damlスマートコントラクト</div>
+        <div class="layer-desc">Token &middot; Agent &middot; Service &middot; Escrow &middot; Reputation</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── Core Features ── -->
+<section id="features" class="section-bg-alt">
+  <div class="fade-in">
+    <div class="section-label">主要機能</div>
+    <h2 class="section-title">実戦的なエージェント商取引のために設計</h2>
+    <p class="section-subtitle">
+      6つのプロダクションレディ機能、すべてオンチェーンで強制。
+    </p>
+  </div>
+
+  <div class="features-grid fade-in">
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-icon escrow">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M12 14v2"/></svg>
+        </div>
+        <div class="feature-name">アトミックエスクロー</div>
+      </div>
+      <div class="feature-desc">
+        LockedCAPCoinパターンにより、資金はアトミックにロックされ、相互の同意なしに移動できません。エスクローは厳密なステートマシンに従います：Escrow &rarr; Deliver &rarr; PendingReview &rarr; ApproveAndPay &rarr; Settlement。オール・オア・ナッシング保証で部分的な資金漏洩を防止します。
+      </div>
+      <div class="feature-code"><span class="cm">-- Daml: Lock funds into escrow</span>
+<span class="kw">template</span> <span class="ty">LockedCAPCoin</span> <span class="kw">with</span>
+    lock : <span class="ty">Lock</span>; coin : <span class="ty">CAPCoin</span>
+  <span class="kw">where</span>
+    <span class="fn">signatory</span> coin.owner
+    <span class="kw">choice</span> <span class="ty">Release</span> : <span class="ty">ContractId CAPCoin</span>
+      <span class="fn">controller</span> lock.locker
+      <span class="kw">do</span> <span class="fn">create</span> coin</div>
+      <span class="feature-module">Cap.Escrow</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-icon sla">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        </div>
+        <div class="feature-name">SLA執行</div>
+      </div>
+      <div class="feature-desc">
+        maxLatencyMsとpenaltyRateで設定可能なSLA条件。プロバイダーが期限を超過して納品した場合、ペナルティはオンチェーンで自動計算されます。手動介入は不要 &mdash; スマートコントラクトが決済時に控除を執行します。
+      </div>
+      <div class="feature-code"><span class="cm">-- SLA penalty calculation</span>
+<span class="kw">data</span> <span class="ty">SLATerms</span> = <span class="ty">SLATerms</span> <span class="kw">with</span>
+    maxLatencyMs : <span class="ty">Int</span>
+    penaltyRate  : <span class="ty">Decimal</span>  <span class="cm">-- e.g. 0.20</span>
+
+<span class="cm">-- If late: penalty = amount * penaltyRate</span>
+<span class="cm">-- Bob receives: 0.50 - 0.10 = 0.40 CAP</span>
+<span class="cm">-- Alice refund:               0.10 CAP</span></div>
+      <span class="feature-module">Cap.Types</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-icon dispute">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        </div>
+        <div class="feature-name">紛争解決</div>
+      </div>
+      <div class="feature-desc">
+        3段階の解決：まず二者間（プロバイダーが受諾または拒否）、次に中立的な仲裁者へエスカレーション。仲裁者は部分的に完了した作業に対して分割裁定（例：60/40）を下すことができます。すべての紛争記録はオンチェーンで不変です。
+      </div>
+      <div class="feature-code"><span class="cm">-- 3-stage dispute flow</span>
+<span class="ty">DisputeRecord</span>
+  &rarr; <span class="fn">ResolveForConsumer</span>  <span class="cm">-- full refund</span>
+  &rarr; <span class="fn">ResolveForProvider</span>  <span class="cm">-- full payment</span>
+  &rarr; <span class="fn">EscalateToArbiter</span>   <span class="cm">-- neutral party</span>
+    &rarr; <span class="fn">SplitRuling</span>       <span class="cm">-- e.g. 60/40</span></div>
+      <span class="feature-module">Cap.Arbiter</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-icon fees">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div class="feature-name">プロトコル手数料</div>
+      </div>
+      <div class="feature-desc">
+        取引ごとの手数料が決済時に自動分離。手数料率はグローバルに設定され、コントラクトレベルで強制されます。Treasury徴収はアトミックに実行 &mdash; 手動での手数料請求は不要です。
+      </div>
+      <div class="feature-code"><span class="cm"># REST API: Configure fee rate</span>
+curl <span class="st">-X POST</span> localhost:4000/cap/v1/fees/configure \
+  -d <span class="st">'{"feeRate": 0.02}'</span>
+
+<span class="cm"># At settlement:</span>
+<span class="cm"># feeAmount = 0.50 * 0.02 = 0.01</span>
+<span class="cm"># Provider gets: 0.49 CAP</span>
+<span class="cm"># Treasury gets: 0.01 CAP</span></div>
+      <span class="feature-module">Cap.Token</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-icon reputation">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <div class="feature-name">レピュテーション</div>
+      </div>
+      <div class="feature-desc">
+        双方向1〜5つ星評価がオンチェーンに不変的に記録されます。すべての取引後に消費者とプロバイダーが互いに評価します。評価にはロールコンテキスト（consumer_of/provider_for）とオプションのコメントが含まれます。
+      </div>
+      <div class="feature-code"><span class="cm"># Python SDK: Query reputation</span>
+<span class="kw">from</span> cap <span class="kw">import</span> CAPClient
+
+client = CAPClient(<span class="st">"alice"</span>)
+rep = client.<span class="fn">get_reputation</span>(<span class="st">"bob"</span>)
+<span class="fn">print</span>(rep)
+<span class="cm"># {"party": "bob", "avg": 4.8,</span>
+<span class="cm">#  "count": 12, "role": "provider"}</span></div>
+      <span class="feature-module">Cap.Reputation</span>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-header">
+        <div class="feature-icon privacy-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/><line x1="1" y1="1" x2="23" y2="23" stroke-width="2.5"/></svg>
+        </div>
+        <div class="feature-name">サブtxプライバシー</div>
+      </div>
+      <div class="feature-desc">
+        Canton Network独自のサブトランザクションプライバシーにより、取引参加者のみがデータを閲覧できます。同じネットワーク上の競合他社は取引、価格、取引量を観察できません &mdash; パブリックブロックチェーンに対する根本的な優位性です。
+      </div>
+      <div class="feature-code"><span class="cm">-- Canton privacy model</span>
+Alice &harr; Bob  : <span class="st">visible to both</span>
+Alice &harr; Carol: <span class="st">visible to both</span>
+
+Bob   &rarr; Alice&harr;Carol: <span class="nu">&#10060; CANNOT see</span>
+Carol &rarr; Alice&harr;Bob : <span class="nu">&#10060; CANNOT see</span>
+<span class="cm">-- Each pair is cryptographically isolated</span></div>
+      <span class="feature-module">Canton Network</span>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── Code Examples ── -->
+<section id="code">
+  <div class="fade-in">
+    <div class="section-label">コード例</div>
+    <h2 class="section-title">数分で統合</h2>
+    <p class="section-subtitle">
+      Python SDK、REST API、またはDaml &mdash; 統合パスを選択してください。
+    </p>
+  </div>
+
+  <div class="fade-in">
+    <div class="code-tabs">
+      <button class="code-tab active" data-tab="python">Python SDK</button>
+      <button class="code-tab" data-tab="rest">REST API</button>
+      <button class="code-tab" data-tab="daml">Daml</button>
+    </div>
+
+    <div class="code-panel active" id="tab-python">
+<pre><span class="keyword">from</span> cap <span class="keyword">import</span> CAPClient
+
+client = CAPClient(<span class="string">"alice"</span>)
+
+<span class="comment"># 1. Discover available agents</span>
+agents = client.<span class="func">discover</span>(capability=<span class="string">"translation"</span>)
+<span class="func">print</span>(agents)  <span class="comment"># [{"name": "bob", "capability": "translation", "price": 0.50}]</span>
+
+<span class="comment"># 2. Hire an agent (escrow locks funds automatically)</span>
+result = client.<span class="func">hire</span>(
+    provider=<span class="string">"bob"</span>,
+    capability=<span class="string">"translation"</span>,
+    params={<span class="string">"text"</span>: <span class="string">"Hello"</span>, <span class="string">"target"</span>: <span class="string">"ko"</span>},
+    max_price=<span class="number">1.0</span>,
+    auto_approve=<span class="keyword">True</span>
+)
+<span class="func">print</span>(result.output)  <span class="comment"># "&#xc548;&#xb155;&#xd558;&#xc138;&#xc694;"</span>
+
+<span class="comment"># 3. Raise a dispute (if quality is unsatisfactory)</span>
+dispute = client.<span class="func">dispute</span>(
+    request_id=result.request_id,
+    reason=<span class="string">"Translation quality below acceptable threshold"</span>
+)
+
+<span class="comment"># 4. Check reputation before hiring</span>
+rep = client.<span class="func">get_reputation</span>(<span class="string">"bob"</span>)
+<span class="func">print</span>(f<span class="string">"Bob's rating: {rep['avg']}/5 ({rep['count']} reviews)"</span>)</pre>
+    </div>
+
+    <div class="code-panel" id="tab-rest">
+<pre><span class="comment"># 1. Create service request</span>
+curl <span class="flag">-X POST</span> localhost:4000/cap/v1/services/requests \
+  <span class="flag">-H</span> <span class="string">"Content-Type: application/json"</span> \
+  <span class="flag">-d</span> <span class="string">'{
+    "consumer": "alice",
+    "provider": "bob",
+    "capability": "translation"
+  }'</span>
+
+<span class="comment"># 2. Accept offer (funds -> escrow)</span>
+curl <span class="flag">-X POST</span> localhost:4000/cap/v1/services/offers/<span class="type">$OFFER_ID</span>/accept \
+  <span class="flag">-H</span> <span class="string">"Content-Type: application/json"</span> \
+  <span class="flag">-d</span> <span class="string">'{"consumer": "alice", "paymentCid": "..."}'</span>
+
+<span class="comment"># 3. Raise a dispute</span>
+curl <span class="flag">-X POST</span> localhost:4000/cap/v1/disputes \
+  <span class="flag">-H</span> <span class="string">"Content-Type: application/json"</span> \
+  <span class="flag">-d</span> <span class="string">'{
+    "requestId": "'<span class="type">$REQUEST_ID</span>'",
+    "reason": "Poor quality output"
+  }'</span>
+<span class="comment"># Response: {"disputeId": "d-001", "status": "open"}</span>
+
+<span class="comment"># 4. Submit a rating</span>
+curl <span class="flag">-X POST</span> localhost:4000/cap/v1/ratings \
+  <span class="flag">-H</span> <span class="string">"Content-Type: application/json"</span> \
+  <span class="flag">-d</span> <span class="string">'{
+    "rater": "alice", "rated": "bob",
+    "score": 5, "comment": "Excellent translation"
+  }'</span>
+
+<span class="comment"># 5. Collect protocol fees</span>
+curl <span class="flag">-X POST</span> localhost:4000/cap/v1/fees/collect \
+  <span class="flag">-H</span> <span class="string">"Content-Type: application/json"</span> \
+  <span class="flag">-d</span> <span class="string">'{"treasury": "treasury"}'</span>
+<span class="comment"># Response: {"collected": 0.01, "treasury_balance": 1.25}</span></pre>
+    </div>
+
+    <div class="code-panel" id="tab-daml">
+<pre><span class="comment">-- Escrow template with full lifecycle</span>
+<span class="keyword">template</span> <span class="type">Escrow</span> <span class="keyword">with</span>
+    consumer : <span class="type">Party</span>
+    provider : <span class="type">Party</span>
+    lockedCid : <span class="type">ContractId LockedCAPCoin</span>
+  <span class="keyword">where</span>
+    <span class="func">signatory</span> consumer, provider
+
+    <span class="comment">-- Provider delivers the result</span>
+    <span class="keyword">choice</span> <span class="type">Deliver</span> : <span class="type">ContractId PendingReview</span>
+      <span class="keyword">with</span>
+        resultHash : <span class="type">Text</span>
+        resultUrl  : <span class="type">Text</span>
+        deliveredAt : <span class="type">Time</span>
+      <span class="func">controller</span> provider
+      <span class="keyword">do</span>
+        <span class="func">create</span> <span class="type">PendingReview</span> <span class="keyword">with</span> ..
+
+<span class="comment">-- Consumer approves and triggers settlement</span>
+<span class="keyword">template</span> <span class="type">PendingReview</span> <span class="keyword">with</span>
+    consumer : <span class="type">Party</span>; provider : <span class="type">Party</span>
+    lockedCid : <span class="type">ContractId LockedCAPCoin</span>
+  <span class="keyword">where</span>
+    <span class="func">signatory</span> consumer, provider
+
+    <span class="keyword">choice</span> <span class="type">ApproveAndPay</span> : <span class="type">ContractId CAPCoin</span>
+      <span class="keyword">with</span> rating : <span class="type">Int</span>; comment : <span class="type">Text</span>
+      <span class="func">controller</span> consumer
+      <span class="keyword">do</span>
+        <span class="comment">-- Release locked funds to provider</span>
+        <span class="func">exercise</span> lockedCid <span class="type">Release</span>
+
+<span class="comment">-- Arbiter split ruling for disputes</span>
+<span class="keyword">choice</span> <span class="type">SplitRuling</span> : (<span class="type">ContractId CAPCoin</span>, <span class="type">ContractId CAPCoin</span>)
+  <span class="keyword">with</span> providerShare : <span class="type">Decimal</span> <span class="comment">-- e.g. 0.60</span>
+  <span class="func">controller</span> arbiter
+  <span class="keyword">do</span>
+    <span class="comment">-- Split escrowed funds per arbiter ruling</span>
+    <span class="func">splitLockedCoin</span> lockedCid providerShare</pre>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── Quick Start ── -->
+<section id="quickstart">
+  <div class="fade-in">
+    <div class="section-label">クイックスタート</div>
+    <h2 class="section-title">3ステップで起動</h2>
+    <p class="section-subtitle">
+      前提条件：Daml SDK 2.10.3、Node.js 18+
+    </p>
+  </div>
+
+  <div class="quickstart-steps fade-in">
+    <div class="qs-step">
+      <div class="qs-num">1</div>
+      <div class="qs-content">
+        <div class="qs-label">Canton台帳を起動</div>
+        <div class="qs-cmd"><span class="prompt">$ </span>daml start</div>
+      </div>
+    </div>
+    <div class="qs-step">
+      <div class="qs-num">2</div>
+      <div class="qs-content">
+        <div class="qs-label">APIゲートウェイを起動</div>
+        <div class="qs-cmd"><span class="prompt">$ </span>cd cap-api && npm install && npm start</div>
+      </div>
+    </div>
+    <div class="qs-step">
+      <div class="qs-num">3</div>
+      <div class="qs-content">
+        <div class="qs-label">デモを開く</div>
+        <div class="qs-cmd"><span class="prompt">$ </span>open http://localhost:4000/demo</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+  </div><!-- /deep-dive-content -->
+</div><!-- /deep-dive -->
+
+<!-- ── Footer ── -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-links">
+      <a href="/demo">デモ</a>
+      <a href="#developer">ドキュメント</a>
+      <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://www.canton.network" target="_blank" rel="noopener">Canton Network</a>
+    </div>
+    <div class="footer-copy">
+      Built on Canton Network &middot; Daml 2.10.3 &middot; MIT License
+    </div>
+  </div>
+</footer>
+
+<script>
+(function() {
+  // ── Navbar scroll effect ──
+  const nav = document.getElementById('navbar');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 20);
+  }, { passive: true });
+
+  // ── Intersection Observer for fade-in ──
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+
+        // Trigger flow lines inside hero-flow
+        if (entry.target.id === 'hero-flow') {
+          const lines = entry.target.querySelectorAll('.flow-line');
+          lines.forEach((line, i) => {
+            setTimeout(() => line.classList.add('visible'), i * 200);
+          });
+        }
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
+
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+  // ── Theme toggle ──
+  const themeToggle = document.getElementById('theme-toggle');
+  const html = document.documentElement;
+  const stored = localStorage.getItem('cap-theme');
+  if (stored) {
+    html.setAttribute('data-theme', stored);
+  } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+    html.setAttribute('data-theme', 'light');
+  } else {
+    html.setAttribute('data-theme', 'dark');
+  }
+  themeToggle.addEventListener('click', () => {
+    const current = html.getAttribute('data-theme');
+    const next = current === 'light' ? 'dark' : 'light';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('cap-theme', next);
+  });
+
+  // ── Code tabs ──
+  document.querySelectorAll('.code-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.code-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ── FAQ Accordion ──
+  document.querySelectorAll('.faq-q').forEach(q => {
+    q.addEventListener('click', () => {
+      q.closest('.faq-item').classList.toggle('open');
+    });
+  });
+
+  // ── Deep Dive Toggle ──
+  const deepDiveBtn = document.querySelector('.deep-dive-toggle');
+  const deepDive = document.querySelector('.deep-dive');
+  if (deepDiveBtn) {
+    deepDiveBtn.addEventListener('click', () => {
+      deepDive.classList.toggle('open');
+    });
+  }
+
+  // ── Auto-open deep dive if URL has technical anchor ──
+  const techAnchors = ['#how-detail','#usecases','#architecture','#features','#code','#quickstart','#why'];
+  if (techAnchors.includes(location.hash)) {
+    deepDive?.classList.add('open');
+    setTimeout(() => {
+      const target = document.querySelector(location.hash);
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  }
+
+  // ── Nav "Developer" link opens deep dive + scrolls ──
+  document.querySelector('a[href="#developer"]')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    deepDive?.classList.add('open');
+    setTimeout(() => {
+      deepDive?.scrollIntoView({ behavior: 'smooth' });
+    }, 50);
+  });
+
+  // ── Any link with data-open-deep-dive opens the section ──
+  document.querySelectorAll('[data-open-deep-dive]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      deepDive?.classList.add('open');
+      setTimeout(() => {
+        deepDive?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+    });
+  });
+})();
+</script>
+</body>
+</html>

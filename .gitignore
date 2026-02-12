@@ -7,5 +7,6 @@ node_modules/
 .claude/
 DamlEnterprise2.10.3.pdf
 log/
-deploy/tls/certs/
+deploy/splice-node/
+deploy/splice-node-*.tar.gz
 .env

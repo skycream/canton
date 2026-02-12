@@ -1,0 +1,87 @@
+module Cap.Reputation where
+
+-- Individual deal rating (private: only rater and rated can see)
+template Rating
+  with
+    rater : Party
+    rated : Party
+    score : Int         -- 1 to 5
+    comment : Text
+    role : Text         -- "consumer" or "provider" — who the rater is
+  where
+    signatory rater
+    observer rated
+
+    ensure score >= 1 && score <= 5
+
+-- Invitation for a party to submit a rating after settlement
+template RatingInvitation
+  with
+    rater : Party
+    rated : Party
+    role : Text         -- role of the rater: "consumer" or "provider"
+    capability : Text
+  where
+    signatory rater, rated
+
+    choice SubmitRating : ContractId Rating
+      with score : Int; comment : Text
+      controller rater
+      do
+        assertMsg "Rating must be 1-5" (score >= 1 && score <= 5)
+        create Rating with rater, rated, score, comment, role
+
+    choice DeclineRating : ()
+      controller rater
+      do return ()
+
+-- On-chain aggregated reputation score for an agent
+template ReputationScore
+  with
+    registry : Party       -- Registry observer for discovery
+    agent : Party
+    totalDeals : Int
+    totalScore : Int       -- Sum of all scores (avg = totalScore / totalDeals)
+    asProviderDeals : Int
+    asProviderScore : Int
+    asConsumerDeals : Int
+    asConsumerScore : Int
+    lastUpdated : Time
+  where
+    signatory agent
+    observer registry
+
+    key agent : Party
+    maintainer key
+
+    -- Record a new rating into the aggregated score
+    choice RecordRating : ContractId ReputationScore
+      with
+        newScore : Int
+        raterRole : Text      -- "consumer" or "provider" (who the rater is)
+        recordedAt : Time
+      controller agent
+      do
+        assertMsg "Score must be 1-5" (newScore >= 1 && newScore <= 5)
+        let (pDeals, pScore) = if raterRole == "consumer"
+              then (asProviderDeals + 1, asProviderScore + newScore)
+              else (asProviderDeals, asProviderScore)
+        let (cDeals, cScore) = if raterRole == "provider"
+              then (asConsumerDeals + 1, asConsumerScore + newScore)
+              else (asConsumerDeals, asConsumerScore)
+        create this with
+          totalDeals = totalDeals + 1
+          totalScore = totalScore + newScore
+          asProviderDeals = pDeals
+          asProviderScore = pScore
+          asConsumerDeals = cDeals
+          asConsumerScore = cScore
+          lastUpdated = recordedAt
+
+    -- Get average rating (helper, returns as Int * 100 for 2 decimal places)
+    nonconsuming choice GetAvgRating : Int
+      controller agent
+      do
+        if totalDeals == 0
+          then return 0
+          else return ((totalScore * 100) / totalDeals)

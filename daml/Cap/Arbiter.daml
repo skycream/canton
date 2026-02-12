@@ -1,0 +1,128 @@
+module Cap.Arbiter where
+
+import Cap.Token
+import Cap.Types
+
+-- Dispute escalated to a neutral arbiter for resolution
+template ArbitratedDispute
+  with
+    consumer : Party
+    provider : Party
+    arbiter : Party
+    amount : Decimal
+    lockedCoinCid : ContractId LockedCAPCoin
+    reason : Text
+    resultHash : Text
+    resultUrl : Text
+    evidence : [Text]
+    disputeConfig : DisputeConfig
+    disputeCreatedAt : Time
+    disputeDeadline : Time
+  where
+    signatory consumer, provider
+    observer arbiter
+
+    -- Either party submits additional evidence
+    choice SubmitEvidence : ContractId ArbitratedDispute
+      with newEvidence : Text; submitter : Party
+      controller submitter
+      do
+        assertMsg "Must be party to dispute" (submitter == consumer || submitter == provider)
+        create this with evidence = evidence ++ [newEvidence]
+
+    -- Arbiter rules entirely for consumer (full refund)
+    choice RuleForConsumer : ContractId CAPCoin
+      controller arbiter
+      do exercise lockedCoinCid Refund
+
+    -- Arbiter rules entirely for provider (full payment)
+    choice RuleForProvider : ContractId CAPCoin
+      controller arbiter
+      do exercise lockedCoinCid ReleaseToBeneficiary
+
+    -- Arbiter splits funds between consumer and provider
+    choice SplitRuling : (ContractId CAPCoin, ContractId CAPCoin)
+      with consumerAmount : Decimal
+      controller arbiter
+      do exercise lockedCoinCid SplitRelease
+           with beneficiaryAmount = amount - consumerAmount
+
+    -- Auto-resolve on timeout if arbiter doesn't act
+    choice ClaimArbiterTimeout : ContractId CAPCoin
+      with
+        claimTime : Time
+        claimer : Party
+      controller claimer
+      do
+        assertMsg "Must be party to dispute" (claimer == consumer || claimer == provider)
+        assertMsg "Arbiter deadline not reached" (claimTime > disputeDeadline)
+        if disputeConfig.defaultRuling == "provider"
+          then exercise lockedCoinCid ReleaseToBeneficiary
+          else exercise lockedCoinCid Refund
+
+    -- Either party can appeal arbiter ruling by escalating to appeals committee
+    choice AppealRuling : ContractId AppealedDispute
+      with
+        appellant : Party
+        appealReason : Text
+        appealsCommittee : Party
+      controller appellant
+      do
+        assertMsg "Must be party to dispute" (appellant == consumer || appellant == provider)
+        create AppealedDispute with
+          consumer
+          provider
+          originalArbiter = arbiter
+          appealsCommittee
+          amount
+          lockedCoinCid
+          reason
+          appealReason
+          resultHash
+          resultUrl
+          evidence
+          appellant
+
+-- Appeal of an arbiter's ruling to an appeals committee
+template AppealedDispute
+  with
+    consumer : Party
+    provider : Party
+    originalArbiter : Party
+    appealsCommittee : Party
+    amount : Decimal
+    lockedCoinCid : ContractId LockedCAPCoin
+    reason : Text
+    appealReason : Text
+    resultHash : Text
+    resultUrl : Text
+    evidence : [Text]
+    appellant : Party
+  where
+    signatory consumer, provider
+    observer appealsCommittee
+
+    -- Appeals committee rules for consumer
+    choice AppealRuleForConsumer : ContractId CAPCoin
+      controller appealsCommittee
+      do exercise lockedCoinCid Refund
+
+    -- Appeals committee rules for provider
+    choice AppealRuleForProvider : ContractId CAPCoin
+      controller appealsCommittee
+      do exercise lockedCoinCid ReleaseToBeneficiary
+
+    -- Appeals committee splits funds
+    choice AppealSplitRuling : (ContractId CAPCoin, ContractId CAPCoin)
+      with consumerAmount : Decimal
+      controller appealsCommittee
+      do exercise lockedCoinCid SplitRelease
+           with beneficiaryAmount = amount - consumerAmount
+
+    -- Either party submits additional appeal evidence
+    choice SubmitAppealEvidence : ContractId AppealedDispute
+      with newEvidence : Text; submitter : Party
+      controller submitter
+      do
+        assertMsg "Must be party to dispute" (submitter == consumer || submitter == provider)
+        create this with evidence = evidence ++ [newEvidence]

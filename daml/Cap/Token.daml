@@ -1,0 +1,142 @@
+module Cap.Token where
+
+import Cap.Holding
+
+-- Simple fungible token for agent payments.
+-- In production, replaced by USDCx on Canton Network.
+template CAPCoin
+  with
+    owner : Party
+    amount : Decimal
+  where
+    signatory owner
+    ensure amount > 0.0
+
+    -- CIP-0056: Holding interface so wallets can query any token uniformly
+    interface instance Holding for CAPCoin where
+      view = HoldingView with owner, amount
+      getOwner = owner
+      getAmount = amount
+
+    -- Split a coin into two parts
+    choice Split : (ContractId CAPCoin, ContractId CAPCoin)
+      with
+        splitAmount : Decimal
+      controller owner
+      do
+        assertMsg "Split amount must be positive" (splitAmount > 0.0)
+        assertMsg "Split amount must be less than total" (splitAmount < amount)
+        coin1 <- create CAPCoin with owner, amount = splitAmount
+        coin2 <- create CAPCoin with owner, amount = amount - splitAmount
+        return (coin1, coin2)
+
+    -- Lock coin for escrow (Canton LockedAmulet pattern)
+    choice Lock : ContractId LockedCAPCoin
+      with
+        beneficiary : Party
+      controller owner
+      do
+        create LockedCAPCoin with
+          originalOwner = owner
+          beneficiary
+          amount
+
+    -- Propose transferring coin to a new owner
+    choice ProposeTransfer : ContractId TransferProposal
+      with
+        receiver : Party
+      controller owner
+      do
+        assertMsg "Cannot transfer to self" (receiver /= owner)
+        create TransferProposal with sender = owner, receiver, amount
+
+    -- Merge another coin into this one (both must have same owner)
+    nonconsuming choice Merge : ContractId CAPCoin
+      with
+        otherCid : ContractId CAPCoin
+      controller owner
+      do
+        other <- fetch otherCid
+        assertMsg "Coins must have same owner" (other.owner == owner)
+        archive self
+        archive otherCid
+        create CAPCoin with owner, amount = amount + other.amount
+
+-- Locked coin: funds held in escrow until released or refunded.
+-- Follows Canton's LockedAmulet pattern (lock → release/refund).
+template LockedCAPCoin
+  with
+    originalOwner : Party
+    beneficiary : Party
+    amount : Decimal
+  where
+    signatory originalOwner
+    observer beneficiary
+    ensure amount > 0.0
+
+    -- Release funds to beneficiary (requires both parties' authority)
+    choice ReleaseToBeneficiary : ContractId CAPCoin
+      controller originalOwner, beneficiary
+      do
+        create CAPCoin with owner = beneficiary, amount
+
+    -- Refund funds to original owner
+    choice Refund : ContractId CAPCoin
+      controller originalOwner
+      do
+        create CAPCoin with owner = originalOwner, amount
+
+    -- Split release: partial payment to beneficiary, remainder refunded to owner
+    choice SplitRelease : (ContractId CAPCoin, ContractId CAPCoin)
+      with beneficiaryAmount : Decimal
+      controller originalOwner, beneficiary
+      do
+        assertMsg "Split amount must be positive" (beneficiaryAmount > 0.0)
+        assertMsg "Split amount must be less than total" (beneficiaryAmount < amount)
+        refundCoin <- create CAPCoin with owner = originalOwner, amount = amount - beneficiaryAmount
+        payCoin <- create CAPCoin with owner = beneficiary, amount = beneficiaryAmount
+        return (refundCoin, payCoin)
+
+-- Transfer proposal: coin is locked (consumed), receiver must accept to get funds
+template TransferProposal
+  with
+    sender : Party
+    receiver : Party
+    amount : Decimal
+  where
+    signatory sender
+    observer receiver
+    ensure amount > 0.0
+
+    -- Receiver accepts: gets a new coin
+    choice AcceptTransfer : ContractId CAPCoin
+      controller receiver
+      do
+        create CAPCoin with owner = receiver, amount
+
+    -- Receiver rejects: funds returned to sender
+    choice RejectTransfer : ContractId CAPCoin
+      controller receiver
+      do
+        create CAPCoin with owner = sender, amount
+
+    -- Sender cancels: funds returned to sender
+    choice CancelTransfer : ContractId CAPCoin
+      controller sender
+      do
+        create CAPCoin with owner = sender, amount
+
+-- Fee transfer: pending fee that treasury can collect
+template FeeTransfer
+  with
+    payer : Party
+    treasury : Party
+    amount : Decimal
+  where
+    signatory payer
+    observer treasury
+    ensure amount > 0.0
+
+    choice CollectFee : ContractId CAPCoin
+      controller treasury
+      do create CAPCoin with owner = treasury, amount
